@@ -1829,15 +1829,16 @@
 
           return (
             <div className="min-h-screen flex flex-col items-center justify-center p-4 z-10 relative">
-              <GlassCard className="w-full max-w-3xl relative z-10 mt-16 md:mt-6 flex flex-col p-6 md:p-10 pb-32 md:pb-10">
+              <GlassCard className="w-full max-w-3xl relative z-10 mt-16 md:mt-6 flex flex-col p-6 md:p-10 pb-8 md:pb-10">
                 
                 <div className="flex flex-wrap justify-between items-center mb-6 gap-4">
                   <h2 className="text-xl md:text-2xl font-extrabold text-slate-800 drop-shadow-md">แบบทดสอบ{type === 'pretest' ? 'ก่อน' : 'หลัง'}เรียน</h2>
-                  <div className="flex items-center gap-3">
-                     <div className={`px-4 py-2 rounded-xl font-black text-sm border shadow-sm backdrop-blur-md flex items-center ${timeLeft < 300 ? 'bg-rose-100/80 border-rose-300 text-rose-600 animate-pulse' : 'bg-white/60 border-white/80 text-slate-800'}`}>
-                         <SafeIcon name="Clock" size={16} className="mr-2"/> {formatTimeMinSec(timeLeft)}
+                  <div className="flex items-center gap-2">
+                     <button onClick={() => globalStore.setState(p => ({ quizData: { ...p.quizData, currentIndex: Math.max(0, currentIndex - 1) } }))} disabled={currentIndex === 0} className="bg-white/80 text-slate-700 hover:bg-white px-3 py-2 rounded-xl font-bold text-sm border border-white shadow-sm backdrop-blur-md disabled:opacity-30 flex items-center justify-center active:scale-95 transition-all"><SafeIcon name="ArrowLeft" size={18}/></button>
+                     <div className={`px-3 sm:px-4 py-2 rounded-xl font-black text-sm border shadow-sm backdrop-blur-md flex items-center ${timeLeft < 300 ? 'bg-rose-100/80 border-rose-300 text-rose-600 animate-pulse' : 'bg-white/60 border-white/80 text-slate-800'}`}>
+                         <SafeIcon name="Clock" size={16} className="mr-1.5 hidden sm:block"/> {formatTimeMinSec(timeLeft)}
                      </div>
-                     <div className="bg-white/80 text-line-700 px-4 py-2 rounded-xl font-bold text-sm border border-white shadow-sm backdrop-blur-md">
+                     <div className="bg-white/80 text-line-700 px-3 sm:px-4 py-2 rounded-xl font-bold text-sm border border-white shadow-sm backdrop-blur-md whitespace-nowrap">
                          {currentIndex + 1} / {questions.length}
                      </div>
                   </div>
@@ -1856,10 +1857,11 @@
                   })}
                 </div>
                 
-                <div className="flex flex-col-reverse md:flex-row justify-between mt-10 pt-6 border-t border-white/40 gap-4 fixed bottom-0 left-0 w-full bg-white/80 backdrop-blur-xl md:static md:bg-transparent p-4 md:p-0 md:border-none z-50">
-                  <button onClick={() => globalStore.setState(p => ({ quizData: { ...p.quizData, currentIndex: Math.max(0, currentIndex - 1) } }))} disabled={currentIndex === 0} className="w-full md:w-auto px-6 py-3 rounded-xl font-bold text-slate-700 bg-white/50 hover:bg-white/80 border border-white/60 disabled:opacity-30 backdrop-blur-md transition-colors shadow-sm">ย้อนกลับ</button>
-                  {currentIndex < questions.length - 1 ? <GradientButton onClick={() => globalStore.setState(p=>({ quizData: { ...p.quizData, currentIndex: currentIndex + 1 } }))} disabled={!isAnswered} className="w-full md:w-auto px-8 py-3 border border-white/40 backdrop-blur-md">ถัดไป</GradientButton> : <GradientButton onClick={actions.submitQuiz} disabled={!isAnswered} className="w-full md:w-auto px-8 py-3 border border-white/40 backdrop-blur-md"><SafeIcon name="CheckSquare" size={20}/> ส่งคำตอบ</GradientButton>}
-                </div>
+                {currentIndex === questions.length - 1 && (
+                  <div className="mt-8 flex justify-center w-full animate-in fade-in zoom-in duration-500">
+                    <GradientButton onClick={actions.submitQuiz} disabled={!isAnswered} className="w-full md:w-auto px-10 py-4 text-lg border border-white/40 backdrop-blur-md shadow-[0_10px_25px_rgba(0,185,0,0.4)]"><SafeIcon name="CheckSquare" size={24}/> ยืนยันส่งคำตอบ</GradientButton>
+                  </div>
+                )}
               </GlassCard>
             </div>
           );
