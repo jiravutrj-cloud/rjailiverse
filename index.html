@@ -21,40 +21,25 @@
       }
     </script>
     
-    <!-- Custom Styles for Parallax Clouds & Glassmorphism -->
+    <!-- Custom Styles -->
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&display=swap');
-        
-        body { 
-            font-family: 'Sarabun', sans-serif; 
-            margin: 0; 
-            overflow-x: hidden; 
-            background-color: #0f172a;
-        }
-
-        /* --- Parallax Background --- */
+        body { font-family: 'Sarabun', sans-serif; margin: 0; overflow-x: hidden; background-color: #0f172a; }
         .sky-bg { position: fixed; inset: 0; z-index: 0; }
         .clouds-wrapper { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 2; pointer-events: none; }
         .cloud-layer { position: absolute; bottom: 0; left: 0; width: 200%; height: 100%; background-repeat: repeat-x; background-size: auto 100%; animation: drift linear infinite; }
         .layer-1 { opacity: 0.9; background-image: url('https://raw.githubusercontent.com/danielstuart14/CSS_FOG_ANIMATION/master/fog1.png'); animation-duration: 150s; }
         .layer-2 { opacity: 0.6; background-image: url('https://raw.githubusercontent.com/danielstuart14/CSS_FOG_ANIMATION/master/fog2.png'); animation-duration: 200s; transform: scale(1.1); }
         .layer-3 { opacity: 0.4; background-image: url('https://raw.githubusercontent.com/danielstuart14/CSS_FOG_ANIMATION/master/fog1.png'); animation-duration: 250s; transform: scale(1.2); }
-
         @keyframes drift { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
-
-        /* --- UI Utilities --- */
         .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background-color: rgba(255,255,255,0.4); border-radius: 10px; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background-color: rgba(255,255,255,0.6); }
-        
-        /* Padding for safe areas (Notches/Home indicators) */
         .pt-safe { padding-top: env(safe-area-inset-top, 20px); }
         .pb-safe { padding-bottom: env(safe-area-inset-bottom, 20px); }
-        .top-safe { top: env(safe-area-inset-top, 20px); }
     </style>
 
-    <!-- Import Maps -->
     <script type="importmap">
     {
       "imports": {
@@ -110,27 +95,11 @@
 
         let app, auth, db, appId;
         try {
-          const fbP1 = "AIzaSyBs275";
-          const fbP2 = "NY99gdv1uZdAnb";
-          const fbP3 = "mx3UlWO8K4o5a0";
+          const fbP1 = "AIzaSyBs275"; const fbP2 = "NY99gdv1uZdAnb"; const fbP3 = "mx3UlWO8K4o5a0";
           let fbConfig = (typeof __firebase_config !== 'undefined' && __firebase_config) 
             ? JSON.parse(__firebase_config) 
-            : {
-                apiKey: fbP1 + fbP2 + fbP3,
-                authDomain: "e-learning-with-fah-ai.firebaseapp.com",
-                projectId: "e-learning-with-fah-ai",
-                storageBucket: "e-learning-with-fah-ai.firebasestorage.app",
-                messagingSenderId: "418946105960",
-                appId: "1:418946105960:web:728e28070790975df231dd",
-                measurementId: "G-LZ3Y6D8SHV"
-              };
-          
-          if (fbConfig && Object.keys(fbConfig).length > 0) {
-            app = initializeApp(fbConfig);
-            auth = getAuth(app);
-            db = getFirestore(app);
-            appId = typeof __app_id !== 'undefined' ? String(__app_id).replace(/\//g, '-') : 'fah-elearning-prod';
-          }
+            : { apiKey: fbP1 + fbP2 + fbP3, authDomain: "e-learning-with-fah-ai.firebaseapp.com", projectId: "e-learning-with-fah-ai", storageBucket: "e-learning-with-fah-ai.firebasestorage.app", messagingSenderId: "418946105960", appId: "1:418946105960:web:728e28070790975df231dd", measurementId: "G-LZ3Y6D8SHV" };
+          if (fbConfig && Object.keys(fbConfig).length > 0) { app = initializeApp(fbConfig); auth = getAuth(app); db = getFirestore(app); appId = typeof __app_id !== 'undefined' ? String(__app_id).replace(/\//g, '-') : 'fah-elearning-prod'; }
         } catch (error) { console.warn("Firebase init error", error); }
 
         const FAH_IDLE_VIDEO = "https://player.vimeo.com/video/1201677272?background=1&autoplay=1&loop=1&muted=1";
@@ -295,11 +264,9 @@
         };
 
         const callGeminiAPI = async (prompt, systemInstruction, base64Image = null) => {
-          const gmP1 = "AQ.Ab8RN6";
-          const gmP2 = "KJITz9uFnCtAF";
-          const gmP3 = "6TAgEeDPfKZoIvdYvl2MFmfYb6ok4cQ";
+          const gmP1 = "AQ.Ab8RN6"; const gmP2 = "KJITz9uFnCtAF"; const gmP3 = "6TAgEeDPfKZoIvdYvl2MFmfYb6ok4cQ";
           const apiKey = gmP1 + gmP2 + gmP3; 
-          const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+          const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash:generateContent?key=${apiKey}`;
           try {
             const parts = [{ text: prompt }];
             if (base64Image) {
@@ -317,12 +284,13 @@
         };
 
         const callGeminiTTS = async (text, voiceName = "Aoede") => {
-          const gmP1 = "AQ.Ab8RN6";
-          const gmP2 = "KJITz9uFnCtAF";
-          const gmP3 = "6TAgEeDPfKZoIvdYvl2MFmfYb6ok4cQ";
+          const gmP1 = "AQ.Ab8RN6"; const gmP2 = "KJITz9uFnCtAF"; const gmP3 = "6TAgEeDPfKZoIvdYvl2MFmfYb6ok4cQ";
           const apiKey = gmP1 + gmP2 + gmP3; 
-          const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`;
-          const payload = { contents: [{ parts: [{ text }] }], generationConfig: { responseModalities: ["AUDIO"], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName } } } } };
+          const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash:generateContent?key=${apiKey}`;
+          const payload = { 
+              contents: [{ parts: [{ text }] }], 
+              generationConfig: { responseModalities: ["AUDIO"], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName } } } } 
+          };
           return await fetchWithRetry(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
         };
 
@@ -513,7 +481,6 @@
           const isSpeakingRef = useRef(false); 
           const latestTranscriptRef = useRef('');
           
-          // Adaptive Layout States (Detecting Mobile or Portrait mode)
           const [isMobile, setIsMobile] = useState(window.innerWidth < 1024 || window.innerHeight > window.innerWidth);
           const [fabPos, setFabPos] = useState({ x: window.innerWidth - 80, y: window.innerHeight - 100 }); 
           const [isDraggingFab, setIsDraggingFab] = useState(false); 
@@ -559,7 +526,6 @@
               return () => { 
                   window.removeEventListener('mousemove', handlePointerMove); 
                   window.removeEventListener('mouseup', handlePointerUp); 
-                  window.removeEventListener('touchmove', handlePointerMove); 
                   window.removeEventListener('touchmove', handlePointerMove); 
                   window.removeEventListener('touchend', handlePointerUp); 
               };
@@ -730,7 +696,6 @@
               else speakThai("สวัสดีครับ ผมเมฆนะครับ นี่คือเสียงของผมครับ", null, false, 'BROTHER'); 
           };
 
-          // รักษาเสียงและตั้งค่าเริ่มต้นเป็นน้องฟ้า (Aoede) เสมอ
           const speakThai = async (text, onEndCallback = null, forceStandard = false, speaker = 'FAH') => {
             stopAudio(); 
             currentSpeechIdRef.current += 1; 
@@ -1629,17 +1594,10 @@
           
           const actionConfig = hasPosttest ? { t: "ยินดีด้วย คุณเรียนจบแล้ว 🎉", d: "ผ่านการทดสอบและได้รับประกาศนียบัตร", b: "ดูโปรไฟล์", i: "Award", c: "from-emerald-400 to-emerald-600", a: () => globalStore.setState({ activeTab: 'profile' }) } : isUnlocked ? { t: "พร้อมสอบ Posttest แล้ว!", d: "คุณทำเวลาเรียนและผ่านการประเมินปฏิบัติครบถ้วนแล้ว", b: "เริ่มทำ Posttest", i: "FileText", c: "from-rose-400 to-pink-600", a: () => { globalStore.setState({ quizData: { type: 'posttest', questions: store.questionSets[user.quizSetIndex || 0] || store.questionSets[0] || [], currentIndex: 0, answers: {}, score: 0, isFinished: false }}); actions.nav('quiz'); } } : isTimeMet ? { t: "ภารกิจถัดไป: ฝึกภาคปฏิบัติ", d: "เวลาเรียนครบเกณฑ์แล้ว ขั้นตอนต่อไปคือห้องเจรจา", b: "เข้าห้องเจรจา", i: "Globe", c: "from-orange-400 to-amber-500", a: () => globalStore.setState({ activeTab: 'skill_lab', selectedLabId: null }) } : { t: `เรียนต่อ: บทที่ ${user?.lastVideoId || 1}`, d: activeLesson?.title || "กลับเข้าสู่บทเรียนล่าสุด", b: "เล่นวิดีโอต่อ", i: "PlayCircle", c: "from-line-500 to-line-600", a: () => globalStore.setState({ activeTab: 'video', currentVideoId: user?.lastVideoId || 1 }) };
 
-          // 🔥 ดึงข้อมูลผู้ใช้งานจริงมาโชว์ใน Leaderboard 🔥
           const leaderboardData = store.dbUsers.map(u => {
               const history = u.skillLabHistory || [];
               const avgScore = history.length > 0 ? Math.round(history.reduce((sum, record) => sum + (record.score || 0), 0) / history.length) : 0;
-              return {
-                  id: u.id,
-                  name: u.name || 'ผู้ใช้งาน',
-                  hosp: u.hospital || '-',
-                  score: avgScore,
-                  isMe: u.id === user?.id
-              };
+              return { id: u.id, name: u.name || 'ผู้ใช้งาน', hosp: u.hospital || '-', score: avgScore, isMe: u.id === user?.id };
           }).filter(u => u.score > 0).sort((a,b) => b.score - a.score).slice(0, 50);
 
           return (
@@ -2159,12 +2117,12 @@
                  case 'auth_wizard': return <AuthWizard store={store} actions={actions} />;
                  case 'dashboard': return <StudentDashboard store={store} actions={actions} />;
                  case 'quiz': return <QuizScreen store={store} actions={actions} />;
-                 case 'quiz_result': return <QuizResultScreen store={store} actions={actions} />;
-                 case 'quiz_fail': return <QuizFailScreen store={store} actions={actions} />;
-                 case 'cert_confirm': return <CertConfirmScreen store={store} actions={actions} />;
-                 case 'profile_summary': return <ProfileSummaryScreen store={store} actions={actions} />;
-                 case 'admin_login': return <AdminLoginScreen store={store} actions={actions} />;
-                 case 'admin_dashboard': return <AdminDashboard store={store} actions={actions} />;
+                 case 'quiz_result': return <QuizResultScreen store={store, actions} />;
+                 case 'quiz_fail': return <QuizFailScreen store={store, actions} />;
+                 case 'cert_confirm': return <CertConfirmScreen store={store, actions} />;
+                 case 'profile_summary': return <ProfileSummaryScreen store={store, actions} />;
+                 case 'admin_login': return <AdminLoginScreen store={store, actions} />;
+                 case 'admin_dashboard': return <AdminDashboard store={store, actions} />;
                  default: return <LandingScreen store={store} actions={actions} />;
              }
           };
