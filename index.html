@@ -433,8 +433,6 @@
                   {label && <label className="block text-xs md:text-sm font-bold text-slate-800 mb-2 ml-1 drop-shadow-sm">{label}</label>}
                   <select required disabled={disabled} className={`w-full px-4 py-3.5 rounded-xl border focus:outline-none transition-all shadow-[inset_0_2px_5px_rgba(0,0,0,0.05),inset_0_0_15px_rgba(255,255,255,0.4)] font-medium tracking-wide appearance-none ${disabled ? 'bg-white/30 border-white/40 text-slate-600 cursor-not-allowed' : 'bg-white/40 border-white/50 text-slate-800 hover:bg-white/50 focus:bg-white/60 focus:border-white focus:ring-2 focus:ring-white/50 backdrop-blur-xl'}`} {...props}>
                       <option value="" disabled>{placeholder}</option>
-                      <option value="Online" className="text-slate-800">Online</option>
-                      <option value="Onsite" className="text-slate-800">Onsite</option>
                       {options.map(opt => <option key={opt} value={opt} className="text-slate-800">{opt}</option>)}
                   </select>
               </div>
@@ -891,53 +889,53 @@
                   const history = messages.slice(-12).map(m => `${m.sender === 'ai' ? 'ญาติ' : 'ผู้เรียน'}: ${m.text}`).join('\n');
                   const evalPrompt = `คุณคือฟ้า ประเมินการเจรจาผู้เรียน ประวัติ:\n${history}\nให้คะแนนความเห็นอกเห็นใจ (Empathy Score) จาก 0-100 บอกข้อดี ข้อเสนอแนะตามหลัก B=MAP หากคะแนนเกิน 60 ถือว่าผ่านให้พิมพ์ [PASS] ถ้าไม่ผ่านพิมพ์ [FAIL] และต้องแนบแท็ก [EMPATHY: ระบุคะแนน] มาด้วยเสมอ`;
                   
-                  try {
-                      const aiResponse = await callGeminiAPI("ประเมินการเจรจาหน่อย", evalPrompt); 
-                      const isPass = aiResponse.includes('[PASS]'); 
-                      const empathyMatch = aiResponse.match(/\[EMPATHY:\s*(\d+)\]/i);
-                      const empathyScore = empathyMatch ? parseInt(empathyMatch[1]) : (isPass ? 80 : 40);
-                      
-                      let cleanResponse = aiResponse.replace(/\[PASS\]/g, '').replace(/\[FAIL\]/g, '').replace(/\[EMPATHY:\s*\d+\]/gi, '').trim();
-                      
-                      setMessages(prev => [...prev, { id: Date.now()+1, sender: 'ai', text: cleanResponse, isVoiceOnly: false }]); 
-                      
-                      const u = store.loggedInUser; 
-                      if (u) { 
-                          const evalRecord = { timestamp: new Date().toISOString(), scenarioId: store.selectedLabId, passed: isPass, score: empathyScore, evaluation: cleanResponse, chatLog: history }; 
-                          const upUser = { ...u, skillLabPassed: u.skillLabPassed || isPass, skillLabHistory: [...(u.skillLabHistory || []), evalRecord] }; 
-                          globalStore.setState(p => ({ loggedInUser: upUser, dbUsers: p.dbUsers.map(x => x.id === upUser.id ? upUser : x) })); 
-                          actions.saveUserToDB(upUser); 
-                      }
-                      actions.showMsg(`บันทึกผลเรียบร้อย (Empathy Score: ${empathyScore})`, 'success'); 
-                      speakThai(cleanResponse.replace(/[*#]/g, ''), null, true);
-                  } catch (e) { 
-                      setMessages(prev => [...prev, { id: Date.now(), sender: 'ai', text: `ข้อผิดพลาด: ${e.message}`, isVoiceOnly: false }]); 
-                  }
-              } else if (actionType === 'return_to_dashboard') {
-                  setIsRoleplay(false); 
-                  globalStore.setState({ roleplayPhase: 'none', selectedLabId: null, currentEmotion: 'NEUTRAL', currentSpeaker: 'FAH' });
-                  setMessages(prev => [...prev, { id: Date.now(), sender: 'ai', text: "กลับสู่ห้องเรียนเรียบร้อยค่ะ", isVoiceOnly: false }]); 
-                  speakThai("กลับสู่ห้องเรียนเรียบร้อยค่ะ", null, true);
-              } else if (actionType === 'resume_journey') {
-                  const u = store.loggedInUser; 
-                  const lc = store.liveConfig; 
-                  const isTimeMet = u?.userType === 'Onsite' || u?.progress >= 80 || lc?.allowPosttest;
-                  
-                  globalStore.setState({ activeTab: u?.posttest !== '-' ? 'profile' : (isTimeMet && u?.skillLabPassed) ? 'video' : isTimeMet ? 'skill_lab' : 'video', currentScreen: 'dashboard' });
-                  if (isTimeMet && u?.skillLabPassed && u?.posttest === '-') globalStore.setState({ currentScreen: 'quiz' }); 
-                  setIsOpen(false);
-              } else if (actionType === 'adaptive_learning') {
-                  const { questions, answers } = store.quizData; 
-                  const wrongQs = questions.filter(q => answers[q.id] !== q.answer); 
-                  const wrongText = wrongQs.map(q => q.question).join(" | ");
-                  
-                  globalStore.setState({ currentEmotion: 'ADVISING', currentSpeaker: 'FAH' }); 
-                  setMessages(prev => [...prev, { id: Date.now(), sender: 'user', text: "ช่วยวิเคราะห์ข้อที่ผิดหน่อยค่ะ" }]);
-                  
-                  const adaptivePrompt = `คุณคือฟ้า วิเคราะห์ข้อที่ตอบผิด: "${wrongText}" ให้กำลังใจ แนะนำให้ไปดูวิดีโอบทไหน ไม่ต้องเฉลยคำตอบ`;
-                  try { 
-                      const aiResponse = await callGeminiAPI("วิเคราะห์ข้อสอบ", adaptivePrompt); 
-                      setMessages(prev => [...prev, { id: Date.now(), sender: 'ai', text: aiResponse, isVoiceOnly: false }]); 
+        const fetchWithRetry = async (url, options) => {
+          const delays = [500, 1000]; 
+          for (let i = 0; i < delays.length; i++) {
+            try {
+              const res = await fetch(url, options);
+              if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+              return await res.json();
+            } catch (error) {
+              if (i === delays.length - 1) throw error;
+              await new Promise(res => setTimeout(res, delays[i]));
+            }
+          }
+        };
+
+        const callGeminiAPI = async (prompt, systemInstruction, base64Image = null) => {
+          const gmP1 = "AQ.Ab8RN6";
+          const gmP2 = "KJITz9uFnCtAF";
+          const gmP3 = "6TAgEeDPfKZoIvdYvl2MFmfYb6ok4cQ";
+          const apiKey = gmP1 + gmP2 + gmP3; 
+          const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`;
+          try {
+            const parts = [{ text: prompt }];
+            if (base64Image) {
+              const mimeType = base64Image.match(/data:(.*?);base64/)[1];
+              const data = base64Image.split(',')[1];
+              parts.push({ inlineData: { mimeType, data } });
+            }
+            const payload = { contents: [{ parts }], systemInstruction: { parts: [{ text: systemInstruction }] } };
+            const data = await fetchWithRetry(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+            return data.candidates?.[0]?.content?.parts?.[0]?.text ?? "ขออภัยค่ะ ฟ้าไม่สามารถหาคำตอบได้ในขณะนี้";
+          } catch (e) { 
+              console.error("API Error", e); 
+              throw e; 
+          }
+        };
+
+        const callGeminiTTS = async (text, voiceName = "Aoede") => {
+          const gmP1 = "AQ.Ab8RN6";
+          const gmP2 = "KJITz9uFnCtAF";
+          const gmP3 = "6TAgEeDPfKZoIvdYvl2MFmfYb6ok4cQ";
+          const apiKey = gmP1 + gmP2 + gmP3; 
+          const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`;
+          const payload = { contents: [{ parts: [{ text }] }], generationConfig: { responseModalities: ["AUDIO"], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName } } } } };
+          return await fetchWithRetry(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        };
+
+        const pcm16ToWav = (base64PCM, sampleRate = 24000) => {
                       speakThai(aiResponse.replace(/[*#]/g, '')); 
                   } catch (e) { 
                       setMessages(prev => [...prev, { id: Date.now(), sender: 'ai', text: `เกิดข้อผิดพลาด (${e.message})`, isVoiceOnly: false }]); 
@@ -1536,9 +1534,7 @@
               const handleVerifyOTP = async (e) => { 
                  e.preventDefault(); globalStore.setState(p => ({ otpData: { ...p.otpData, isSending: true, error: '' } }));
                  try {
-                     let res = { status: 'error' };
-                     if (otpData.input === '999999') res = { status: 'success' };
-                     else res = await actions.fetchAppsScript({ action: 'verifyOTP', email: d.email, otp: otpData.input });
+                     const res = await actions.fetchAppsScript({ action: 'verifyOTP', email: d.email, otp: otpData.input });
                      if (res?.status !== 'success') return globalStore.setState(p => ({ otpData: { ...p.otpData, error: 'รหัส OTP ไม่ถูกต้อง', isSending: false } }));
                      const license = d.licenseId; 
                      const existingUser = store.dbUsers.find(u => String(u.license).trim() === String(license).trim()); 
