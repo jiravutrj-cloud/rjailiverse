@@ -438,7 +438,19 @@
           nav: (sc) => { window.location.hash = sc; globalStore.setState({ currentScreen: sc }); window.scrollTo(0, 0); },
           showMsg: (t, type = 'success') => { globalStore.setState({ uiMessage: { type, text: String(t), visible: true } }); setTimeout(() => globalStore.setState(p => ({ uiMessage: { ...p.uiMessage, visible: false } })), 3500); },
           speakText: (text) => globalStore.setState({ speakTextTrigger: text }),
-          fetchAppsScript: async (payload, specificUrl = null) => { try { const url = specificUrl || globalStore.getState().appsScriptUrl; if(!url) return { status: 'error' }; const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(payload) }); return await response.json(); } catch(e) { return { status: 'error' }; } },
+          fetchAppsScript: async (payload, specificUrl = null) => { 
+              try { 
+                  const url = specificUrl || globalStore.getState().appsScriptUrl; 
+                  if(!url) return { status: 'error', message: 'ไม่ได้ตั้งค่า URL' }; 
+                  const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(payload) }); 
+                  const data = await response.json();
+                  if (data.status !== 'success') console.error("Apps Script Error Response:", data);
+                  return data; 
+              } catch(e) { 
+                  console.error("Fetch Apps Script Error:", e);
+                  return { status: 'error', message: e.message }; 
+              } 
+          },
           enqueueSync: (payload) => globalStore.setState(p => ({ syncQueue: [...p.syncQueue, { id: Date.now(), payload, retries: 0 }] })),
           saveUserToDB: async (u) => { if (db && globalStore.getState().fbUser) { try { await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_users', u.id), u, { merge: true }); } catch (e) { console.error("Error saving user:", e); } } },
           deleteUserFromDB: async (id) => { if (db && globalStore.getState().fbUser) { try { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_users', id)); } catch (e) {} } },
@@ -839,7 +851,7 @@
               const sc = SKILL_LAB_SCENARIOS.find(s => s.id === store.selectedLabId); 
               const contextText = sc?.language === 'en' 
                   ? "Scenario ended. Patient is a 46yo male, brain dead from car accident. Relatives: Fah (22) and Mek (18). Let's start the roleplay." 
-                  : "เมื่อวิดีโอจำลองสถานการณ์จบ ฟ้าให้ข้อมูลเพิ่มเติม คนไข้ชาย อายุ 46 ปี ประสบอุบัติเหตุทางรถยนต์ ญาติคือ ลูกสาวฟ้า อายุ 22 ปี ลูกชาย เมฆ อายุ 18 ปี\n\nการวินิจฉัย คนไข้ไม่มีการตอบสนองของการตรวจทางระบบประสาทที่เกี่ยวข้องกับก้านสมอง กล่าวคือ คนไข้ไม่ขยับเขยื้อนตัว ไม่มีการตอบสนองของก้านสมอง เช่น การตอบสนองของตา การตอบสนองของใบหน้าทั้งหมด และตรวจการหายใจของคนไข้ แพทย์จะดูว่าคนไข้สามารถหายใจเองได้หรือไม่ โดยการปลดเครื่องช่วยหายใจออกเป็นเวลา 10 นาที ซึ่งแพทย์ผู้ประเมินจะสังเกตการตอบสนองของผู้ป่วยสมองตาย ว่าไม่มีการกลับมาหายใจได้เองอีก ในระหว่างนั้น แพทย์จะส่งตรวจค่าปริมาณออกซิเจนและคาร์บอนไดออกไซด์ในเลือดพร้อมกันไปด้วย\n\nการวินิจฉัยดังที่กล่าวมาข้างต้นนี้ แพทย์จะต้องกลับมาประเมินซ้ำอีก 6 ชั่วโมง ถ้าผลการตรวจทุกอย่างยังเหมือนเดิม ก็สามารถวินิจฉัยได้ว่า “คนไข้สมองตาย” ซึ่งแปลว่า “คนไข้เสียชีวิตแล้ว”\n\nทำอย่างไรต่อเมื่อคนไข้สมองตาย\nเมื่อคนไข้คนนั้นได้รับการวินิจฉัยว่า “สมองตาย” สิ่งที่ญาติและผู้ดูแลจะต้องรับรู้และเข้าใจคือ คนไข้เสียชีวิตแล้ว แพทย์ไม่สามารถจะรักษาหรือให้ยาใดๆ กับคนไข้ต่อไปได้ อย่างไรก็ตาม อวัยวะอื่นๆ ของคนไข้คนนั้นยังสามารถใช้งานได้ กระบวนการบริจาคอวัยวะจึงเป็นขั้นตอนต่อมาที่จะเกิดขึ้น เพื่อต่อชีวิตให้กับผู้ป่วยอีกหลายรายที่ยังรออวัยวะอยู่";
+                  : "ข้อมูลเบื้องต้น: คนไข้ชาย อายุ 46 ปี ประสบอุบัติเหตุรถยนต์ แพทย์ประเมินก้านสมองและทดสอบการหายใจแล้ว ยืนยันภาวะสมองตาย ซึ่งถือว่าเสียชีวิตตามกฎหมาย แต่อวัยวะยังสามารถใช้งานได้ ญาติที่รออยู่คือ ลูกสาว (ฟ้า อายุ 22) และลูกชาย (เมฆ อายุ 18) เริ่มการเจรจาได้เลยค่ะ";
               
               globalStore.setState({ roleplayPhase: 'giving_context', currentEmotion: 'SAD', currentSpeaker: 'FAH' });
               const contextMsgId = Date.now(); 
@@ -1546,7 +1558,8 @@
                       globalStore.setState({ authStep: 'verify_otp' }); 
                   } else { 
                       globalStore.setState(p => ({ otpData: { ...p.otpData, isSending: false } })); 
-                      actions.showMsg('ระบบขัดข้อง ไม่สามารถส่งรหัส OTP ได้', 'error'); 
+                      // อัปเดตให้แจ้งเตือนสาเหตุตรงๆ ว่าทำไมส่งอีเมลไม่ได้
+                      actions.showMsg(`ส่ง OTP ไม่สำเร็จ (${res?.message || 'โปรดเช็ค URL Google Apps Script'})`, 'error'); 
                   } 
               };
               return (
@@ -1619,19 +1632,19 @@
           );
         }
 
-        function StudentDashboard({ store, actions }) {
-          const { loggedInUser: user, studySeconds: secs, activeTab: tab, currentVideoId: vId, liveConfig: lc, isLiveCheckedIn: checkedIn, lessons, selectedLabId } = store;
-          const [liveChatInput, setLiveChatInput] = useState(''); 
-          const sliderRef = useRef(null); 
-          const [isDraggingSlider, setIsDraggingSlider] = useState(false); 
-          const [startX, setStartX] = useState(0); 
-          const [scrollLeft, setScrollLeft] = useState(0); 
-          const dragDistance = useRef(0);
-
-          const handleMouseDown = (e) => { setIsDraggingSlider(true); dragDistance.current = 0; setStartX(e.pageX - sliderRef.current.offsetLeft); setScrollLeft(sliderRef.current.scrollLeft); };
-          const handleMouseLeave = () => setIsDraggingSlider(false); 
-          const handleMouseUp = () => setIsDraggingSlider(false);
-          const handleMouseMove = (e) => { if (!isDraggingSlider) return; e.preventDefault(); const x = e.pageX - sliderRef.current.offsetLeft; const walk = (x - startX) * 2; dragDistance.current = Math.abs(x - startX); sliderRef.current.scrollLeft = scrollLeft - walk; };
+          const triggerScenarioNegotiation = () => {
+              const sc = SKILL_LAB_SCENARIOS.find(s => s.id === store.selectedLabId); 
+              const contextText = sc?.language === 'en' 
+                  ? "Scenario ended. Patient is a 46yo male, brain dead from car accident. Relatives: Fah (22) and Mek (18). Let's start the roleplay." 
+                  // อัปเดตข้อความสรุปเคสแบบที่ 1 (กระชับ)
+                  : "ข้อมูลเบื้องต้น: คนไข้ชาย อายุ 46 ปี ประสบอุบัติเหตุรถยนต์ แพทย์ประเมินก้านสมองและทดสอบการหายใจแล้ว ยืนยันภาวะสมองตาย ซึ่งถือว่าเสียชีวิตตามกฎหมาย แต่อวัยวะยังสามารถใช้งานได้ ญาติที่รออยู่คือ ลูกสาว (ฟ้า อายุ 22) และลูกชาย (เมฆ อายุ 18) เริ่มการเจรจาได้เลยค่ะ";
+              
+              globalStore.setState({ roleplayPhase: 'giving_context', currentEmotion: 'SAD', currentSpeaker: 'FAH' });
+              const contextMsgId = Date.now(); 
+              setMessages(prev => [...prev, { id: contextMsgId, sender: 'ai', text: contextText, isVoiceOnly: false, speakerName: 'ฟ้า', isContext: true }]);
+              
+              speakThai(contextText, () => globalStore.setState({ roleplayPhase: 'negotiating', currentEmotion: 'SAD', currentSpeaker: 'FAH' }), true, 'FAH');
+          };
 
           useEffect(() => {
             if (!['video', 'skill_lab'].includes(tab) || !user) return;
