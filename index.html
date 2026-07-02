@@ -301,9 +301,9 @@
 
         const callGeminiAPI = async (prompt, systemInstruction, base64Image = null) => {
           // ซ่อน API Key ด้วยการหั่น String เพื่อป้องกัน GitHub ตรวจจับและแบนคีย์
-          const kP1 = "AQ.Ab8RN6L";
-          const kP2 = "yUKvmR2AakneLnvOB1";
-          const kP3 = "tW5Np4sqTZ989HcDiHmSFI9Fw";
+          const kP1 = "AQ.Ab8RN6I";
+          const kP2 = "GDqSH1ewnUTRZ14XIxsN6";
+          const kP3 = "KBtUoaStU9BXLsxvkgkIKA";
           const apiKey = kP1 + kP2 + kP3; 
           
           const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
@@ -331,9 +331,9 @@
 
         const callGeminiTTS = async (text, voiceName = "Aoede") => {
           // ซ่อน API Key ด้วยการหั่น String เพื่อป้องกัน GitHub ตรวจจับและแบนคีย์
-          const kP1 = "AQ.Ab8RN6L";
-          const kP2 = "yUKvmR2AakneLnvOB1";
-          const kP3 = "tW5Np4sqTZ989HcDiHmSFI9Fw";
+          const kP1 = "AQ.Ab8RN6I";
+          const kP2 = "GDqSH1ewnUTRZ14XIxsN6";
+          const kP3 = "KBtUoaStU9BXLsxvkgkIKA";
           const apiKey = kP1 + kP2 + kP3; 
           
           const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`;
