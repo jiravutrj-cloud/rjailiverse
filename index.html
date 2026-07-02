@@ -5,10 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>e-Learning with Fah AI</title>
     
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
 
-    <!-- Tailwind Configuration -->
     <script>
       tailwind.config = {
         theme: {
@@ -21,23 +19,36 @@
       }
     </script>
     
-    <!-- Custom Styles -->
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&display=swap');
-        body { font-family: 'Sarabun', sans-serif; margin: 0; overflow-x: hidden; background-color: #0f172a; }
+        
+        body { 
+            font-family: 'Sarabun', sans-serif; 
+            margin: 0; 
+            overflow-x: hidden; 
+            background-color: #0f172a;
+        }
+
+        /* --- Parallax Background --- */
         .sky-bg { position: fixed; inset: 0; z-index: 0; }
         .clouds-wrapper { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 2; pointer-events: none; }
         .cloud-layer { position: absolute; bottom: 0; left: 0; width: 200%; height: 100%; background-repeat: repeat-x; background-size: auto 100%; animation: drift linear infinite; }
         .layer-1 { opacity: 0.9; background-image: url('https://raw.githubusercontent.com/danielstuart14/CSS_FOG_ANIMATION/master/fog1.png'); animation-duration: 150s; }
         .layer-2 { opacity: 0.6; background-image: url('https://raw.githubusercontent.com/danielstuart14/CSS_FOG_ANIMATION/master/fog2.png'); animation-duration: 200s; transform: scale(1.1); }
         .layer-3 { opacity: 0.4; background-image: url('https://raw.githubusercontent.com/danielstuart14/CSS_FOG_ANIMATION/master/fog1.png'); animation-duration: 250s; transform: scale(1.2); }
+
         @keyframes drift { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+
+        /* --- UI Utilities --- */
         .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background-color: rgba(255,255,255,0.4); border-radius: 10px; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background-color: rgba(255,255,255,0.6); }
+        
+        /* Padding for safe areas (Notches/Home indicators) */
         .pt-safe { padding-top: env(safe-area-inset-top, 20px); }
         .pb-safe { padding-bottom: env(safe-area-inset-bottom, 20px); }
+        .top-safe { top: env(safe-area-inset-top, 20px); }
     </style>
 
     <script type="importmap">
@@ -67,10 +78,6 @@
         import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
         import { getFirestore, collection, doc, setDoc, onSnapshot, deleteDoc } from 'firebase/firestore';
 
-        // ============================================================================
-        // 1. CONFIGURATIONS & DATA CONSTANTS
-        // ============================================================================
-
         const ICONS = {
           Play: LucideIcons.Play, Clock: LucideIcons.Clock, LogIn: LucideIcons.LogIn, Lock: LucideIcons.Lock, Users: LucideIcons.Users, 
           MonitorPlay: LucideIcons.MonitorPlay, Radio: LucideIcons.Radio, User: LucideIcons.User, ArrowLeft: LucideIcons.ArrowLeft, 
@@ -95,11 +102,27 @@
 
         let app, auth, db, appId;
         try {
-          const fbP1 = "AIzaSyBs275"; const fbP2 = "NY99gdv1uZdAnb"; const fbP3 = "mx3UlWO8K4o5a0";
+          const fbP1 = "AIzaSyBs275";
+          const fbP2 = "NY99gdv1uZdAnb";
+          const fbP3 = "mx3UlWO8K4o5a0";
           let fbConfig = (typeof __firebase_config !== 'undefined' && __firebase_config) 
             ? JSON.parse(__firebase_config) 
-            : { apiKey: fbP1 + fbP2 + fbP3, authDomain: "e-learning-with-fah-ai.firebaseapp.com", projectId: "e-learning-with-fah-ai", storageBucket: "e-learning-with-fah-ai.firebasestorage.app", messagingSenderId: "418946105960", appId: "1:418946105960:web:728e28070790975df231dd", measurementId: "G-LZ3Y6D8SHV" };
-          if (fbConfig && Object.keys(fbConfig).length > 0) { app = initializeApp(fbConfig); auth = getAuth(app); db = getFirestore(app); appId = typeof __app_id !== 'undefined' ? String(__app_id).replace(/\//g, '-') : 'fah-elearning-prod'; }
+            : {
+                apiKey: fbP1 + fbP2 + fbP3,
+                authDomain: "e-learning-with-fah-ai.firebaseapp.com",
+                projectId: "e-learning-with-fah-ai",
+                storageBucket: "e-learning-with-fah-ai.firebasestorage.app",
+                messagingSenderId: "418946105960",
+                appId: "1:418946105960:web:728e28070790975df231dd",
+                measurementId: "G-LZ3Y6D8SHV"
+              };
+          
+          if (fbConfig && Object.keys(fbConfig).length > 0) {
+            app = initializeApp(fbConfig);
+            auth = getAuth(app);
+            db = getFirestore(app);
+            appId = typeof __app_id !== 'undefined' ? String(__app_id).replace(/\//g, '-') : 'fah-elearning-prod';
+          }
         } catch (error) { console.warn("Firebase init error", error); }
 
         const FAH_IDLE_VIDEO = "https://player.vimeo.com/video/1201677272?background=1&autoplay=1&loop=1&muted=1";
@@ -205,7 +228,6 @@
           "จริยธรรมที่สำคัญที่สุดในกระบวนการบริจาคอวัยวะคืออะไร?|Autonomy (การเคารพสิทธิ์การตัดสินใจของผู้ป่วย/ญาติ)|Beneficence (การทำประโยชน์สูงสุด)|Non-maleficence (การไม่ทำอันตราย)|Justice (ความยุติธรรมในการจัดสรรอวัยวะ)|0"
         ];
 
-        // --- 2. UTILS ---
         function recursiveShuffle(arr) { 
             if (!arr || arr.length <= 1) return arr; 
             const idx = Math.floor(Math.random() * arr.length); 
@@ -264,9 +286,11 @@
         };
 
         const callGeminiAPI = async (prompt, systemInstruction, base64Image = null) => {
-          const gmP1 = "AQ.Ab8RN6"; const gmP2 = "KJITz9uFnCtAF"; const gmP3 = "6TAgEeDPfKZoIvdYvl2MFmfYb6ok4cQ";
+          const gmP1 = "AQ.Ab8RN6";
+          const gmP2 = "KJITz9uFnCtAF";
+          const gmP3 = "6TAgEeDPfKZoIvdYvl2MFmfYb6ok4cQ";
           const apiKey = gmP1 + gmP2 + gmP3; 
-          const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash:generateContent?key=${apiKey}`;
+          const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`;
           try {
             const parts = [{ text: prompt }];
             if (base64Image) {
@@ -284,13 +308,12 @@
         };
 
         const callGeminiTTS = async (text, voiceName = "Aoede") => {
-          const gmP1 = "AQ.Ab8RN6"; const gmP2 = "KJITz9uFnCtAF"; const gmP3 = "6TAgEeDPfKZoIvdYvl2MFmfYb6ok4cQ";
+          const gmP1 = "AQ.Ab8RN6";
+          const gmP2 = "KJITz9uFnCtAF";
+          const gmP3 = "6TAgEeDPfKZoIvdYvl2MFmfYb6ok4cQ";
           const apiKey = gmP1 + gmP2 + gmP3; 
-          const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash:generateContent?key=${apiKey}`;
-          const payload = { 
-              contents: [{ parts: [{ text }] }], 
-              generationConfig: { responseModalities: ["AUDIO"], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName } } } } 
-          };
+          const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-tts-preview:generateContent?key=${apiKey}`;
+          const payload = { contents: [{ parts: [{ text }] }], generationConfig: { responseModalities: ["AUDIO"], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName } } } } };
           return await fetchWithRetry(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
         };
 
@@ -313,7 +336,6 @@
             if ('speechSynthesis' in window) window.speechSynthesis.cancel(); 
         };
 
-        // --- 3. STATE MANAGEMENT ---
         const createGlobalStore = (initialState) => {
           let savedState = null;
           try { savedState = JSON.parse(localStorage.getItem('elearning_app_state') ?? 'null'); } catch (e) {}
@@ -372,7 +394,6 @@
           startSkillLabRoleplay: (scenario) => globalStore.setState({ chatTrigger: { id: Date.now(), scenario } })
         };
 
-        // --- 4. SHARED UI ---
         function GlassCard({ children, className = "", onClick, ...rest }) {
           const cardRef = useRef(null); 
           let radiusClass = 'rounded-[2rem]'; 
@@ -459,7 +480,6 @@
           );
         }
 
-        // --- 5. CHATBOT COMPONENT & ADAPTIVE UI ---
         function GlobalAIChatbot({ store }) {
           const [isOpen, setIsOpen] = useState(false); 
           const [chatInput, setChatInput] = useState(''); 
@@ -481,6 +501,7 @@
           const isSpeakingRef = useRef(false); 
           const latestTranscriptRef = useRef('');
           
+          // Adaptive Layout States (Detecting Mobile/Portrait)
           const [isMobile, setIsMobile] = useState(window.innerWidth < 1024 || window.innerHeight > window.innerWidth);
           const [fabPos, setFabPos] = useState({ x: window.innerWidth - 80, y: window.innerHeight - 100 }); 
           const [isDraggingFab, setIsDraggingFab] = useState(false); 
@@ -1141,8 +1162,9 @@
           const shortsModeUI = (
               <div className="fixed inset-0 z-[9999] bg-black flex flex-col animate-in fade-in overflow-hidden">
                   <div className="absolute inset-0 z-0">
-                      {/* Dark gradient for text readability ONLY at bottom */}
+                      {/* Dark gradient for text readability top and bottom */}
                       <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/90 via-black/20 to-transparent z-10 pointer-events-none"></div>
+                      <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-black/70 to-transparent z-10 pointer-events-none"></div>
                       
                       {isChaos && <div className="absolute inset-0 bg-rose-500/20 mix-blend-overlay z-10 pointer-events-none animate-pulse"></div>}
 
@@ -1155,76 +1177,74 @@
                   {/* Top Navigation Floating (Room Switching) */}
                   <div className="absolute top-safe pt-2 left-0 right-0 px-4 flex justify-between items-center z-20 overflow-x-auto gap-4 custom-scrollbar">
                       {[{t:'video', i:'MonitorPlay'}, {t:'live', i:'Radio'}, {t:'skill_lab', i:'Globe'}, {t:'leaderboard', i:'Award'}, {t:'profile', i:'User'}].map(({t, i}) => (
-                          <button key={t} onClick={() => { stopAudio(); stopVAD(); globalStore.setState({ activeTab: t, selectedLabId: null, roleplayPhase: 'none' }); setMessages([]); setIsOpen(false); }} className={`text-white drop-shadow-md active:scale-95 transition-all flex-shrink-0 ${store.activeTab === t ? 'scale-110 opacity-100 text-line-400' : 'opacity-50 hover:opacity-100'}`}>
-                              <SafeIcon name={i} size={28} strokeWidth={1.5} />
+                          <button key={t} onClick={() => { stopAudio(); stopVAD(); globalStore.setState({ activeTab: t, selectedLabId: null, roleplayPhase: 'none' }); setMessages([]); setIsOpen(false); }} className={`text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] active:scale-95 transition-transform flex-shrink-0 ${store.activeTab === t ? 'scale-110 opacity-100' : 'opacity-60 hover:opacity-100'}`}>
+                              <SafeIcon name={i} size={28} strokeWidth={2.5} />
                           </button>
                       ))}
                   </div>
 
                   {/* Right Action Bar (Vertical Floating - Pure Icons without Glass Cards) */}
-                  <div className="absolute right-4 bottom-24 flex flex-col gap-5 items-center z-20">
-                      <button onClick={() => { stopAudio(); stopVAD(); globalStore.setState({ selectedLabId: null, chatTrigger: null, roleplayPhase: 'none' }); setMessages([]); setIsOpen(false); }} className="text-white/70 hover:text-white drop-shadow-md flex flex-col items-center gap-1 active:scale-95 transition-all mb-4">
+                  <div className="absolute right-4 top-safe pt-16 flex flex-col gap-6 items-center z-20">
+                      <button onClick={() => { stopAudio(); stopVAD(); globalStore.setState({ selectedLabId: null, chatTrigger: null, roleplayPhase: 'none' }); setMessages([]); setIsOpen(false); }} className="text-white/60 hover:text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] flex flex-col items-center gap-1 active:scale-95 transition-all mb-4">
                           <SafeIcon name="X" size={28} strokeWidth={1.5} />
                       </button>
+                  </div>
 
-                      <button onClick={() => { if(store.selectedLabId !== 1) { stopAudio(); stopVAD(); setMessages([]); setIsOpen(false); actions.startSkillLabRoleplay(SKILL_LAB_SCENARIOS[0]); } }} className={`${store.selectedLabId === 1 ? 'text-white font-bold opacity-100 scale-110' : 'text-white/60 font-normal opacity-60 hover:opacity-100'} drop-shadow-md flex flex-col items-center gap-1 active:scale-95 transition-all`}>
-                          <span className="text-lg tracking-tighter">TH</span>
+                  <div className="absolute right-4 bottom-28 flex flex-col gap-6 items-center z-20">
+                      <button onClick={() => { if(store.selectedLabId !== 1) { stopAudio(); stopVAD(); setMessages([]); setIsOpen(false); actions.startSkillLabRoleplay(SKILL_LAB_SCENARIOS[0]); } }} className={`${store.selectedLabId === 1 ? 'text-white font-black opacity-100 scale-110' : 'text-white/60 font-normal opacity-60 hover:opacity-100'} drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] flex flex-col items-center gap-1 active:scale-95 transition-all`}>
+                          <span className="text-xl tracking-tighter">TH</span>
                       </button>
-                      <button onClick={() => { if(store.selectedLabId !== 2) { stopAudio(); stopVAD(); setMessages([]); setIsOpen(false); actions.startSkillLabRoleplay(SKILL_LAB_SCENARIOS[1]); } }} className={`${store.selectedLabId === 2 ? 'text-white font-bold opacity-100 scale-110' : 'text-white/60 font-normal opacity-60 hover:opacity-100'} drop-shadow-md flex flex-col items-center gap-1 active:scale-95 transition-all`}>
-                          <span className="text-lg tracking-tighter">EN</span>
+                      <button onClick={() => { if(store.selectedLabId !== 2) { stopAudio(); stopVAD(); setMessages([]); setIsOpen(false); actions.startSkillLabRoleplay(SKILL_LAB_SCENARIOS[1]); } }} className={`${store.selectedLabId === 2 ? 'text-white font-black opacity-100 scale-110' : 'text-white/60 font-normal opacity-60 hover:opacity-100'} drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] flex flex-col items-center gap-1 active:scale-95 transition-all`}>
+                          <span className="text-xl tracking-tighter">EN</span>
                       </button>
                       
-                      <button onClick={() => setIsOpen(!isOpen)} className={`${isOpen ? 'text-line-400 opacity-100 scale-110' : 'text-white/80 opacity-80 hover:opacity-100'} drop-shadow-md flex flex-col items-center gap-1 active:scale-95 transition-transform hover:scale-110`}>
-                          <SafeIcon name="MessageSquare" size={32} strokeWidth={1.5} />
+                      <button onClick={() => setIsOpen(true)} className="text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] flex flex-col items-center gap-1 active:scale-95 transition-transform hover:scale-110">
+                          <SafeIcon name="MessageSquare" size={34} strokeWidth={1.5} />
                       </button>
-                      <button onClick={toggleMic} className={`${isListening ? 'text-rose-500 opacity-100 scale-110' : 'text-white/80 opacity-80 hover:opacity-100'} drop-shadow-md flex flex-col items-center gap-1 active:scale-95 relative transition-transform hover:scale-110`}>
-                          <SafeIcon name="Mic" size={32} strokeWidth={1.5} />
+                      <button onClick={toggleMic} className={`${isListening ? 'text-rose-500 scale-110' : 'text-white'} drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] flex flex-col items-center gap-1 active:scale-95 relative transition-transform hover:scale-110`}>
+                          <SafeIcon name="Mic" size={34} strokeWidth={1.5} />
                           {isListening && <span className="absolute inset-0 rounded-full border-2 border-rose-500 animate-ping opacity-75"></span>}
                       </button>
                       {roleplayPhase === 'playing_scenario' && (
-                          <button onClick={triggerScenarioNegotiation} className="text-white/80 hover:text-white drop-shadow-md flex flex-col items-center gap-1 active:scale-95 transition-all animate-pulse mt-4">
-                              <SafeIcon name="ChevronRight" size={32} strokeWidth={1.5} />
+                          <button onClick={triggerScenarioNegotiation} className="text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] flex flex-col items-center gap-1 active:scale-95 transition-all animate-pulse mt-4">
+                              <SafeIcon name="PlayCircle" size={34} strokeWidth={1.5} />
                           </button>
                       )}
                   </div>
 
                   {/* Bottom Left Floating Profile & Caption */}
-                  <div className={`absolute left-4 bottom-8 z-20 flex gap-3 items-end w-[75%] transition-opacity duration-300 ${isOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
-                      <div className="w-12 h-12 rounded-full overflow-hidden border-[2px] border-white/80 drop-shadow-md shrink-0">
+                  <div className={`absolute left-4 bottom-10 z-20 flex gap-3 items-end w-[75%] transition-opacity duration-300 ${isOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+                      <div className="w-12 h-12 rounded-full overflow-hidden border-[2.5px] border-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] shrink-0 shadow-lg">
                           <img src={FAH_PROFILE_PIC} className="w-full h-full object-cover scale-110" alt="Fah AI" />
                       </div>
-                      <div className="flex flex-col text-white drop-shadow-md w-full">
-                          <h3 className="font-extrabold text-sm mb-0.5 tracking-wide">@SkillLab_bot</h3>
-                          <p className="text-xs font-medium line-clamp-2 leading-snug opacity-90">
+                      <div className="flex flex-col text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] w-full">
+                          <h3 className="font-extrabold text-sm mb-1 tracking-wide">@SkillLab_bot</h3>
+                          <p className="text-sm font-medium line-clamp-2 leading-snug opacity-95">
                               {messages[messages.length-1]?.text || 'พร้อมเจรจา เปิดไมค์พูดหรือพิมพ์แชทได้เลยค่ะ'}
                           </p>
                       </div>
                   </div>
 
-                  {/* Chat Overlay (Transparent Gradient instead of Solid Card) */}
-                  <div className={`absolute inset-x-0 bottom-0 z-30 flex flex-col transition-transform duration-300 ease-out ${isOpen ? 'translate-y-0 h-[65vh]' : 'translate-y-full h-[65vh]'}`}>
-                      {/* Transparent Gradient Background */}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/80 to-transparent pointer-events-none rounded-t-[2rem]"></div>
-                      
-                      <div className="flex justify-center p-4 shrink-0 relative z-40"><div onClick={() => setIsOpen(false)} className="w-12 h-1.5 bg-white/40 rounded-full cursor-pointer hover:bg-white/60 transition-colors"></div></div>
-                      
-                      <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3 custom-scrollbar relative z-40 pb-20">
+                  {/* Chat Bottom Sheet Overlay (Slides up when chat is open) */}
+                  <div className={`absolute inset-x-0 bottom-0 bg-[#0f172a]/95 backdrop-blur-2xl rounded-t-[2rem] z-30 flex flex-col border-t border-white/20 transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] shadow-[0_-10px_40px_rgba(0,0,0,0.3)] ${isOpen ? 'translate-y-0 h-[70vh]' : 'translate-y-full h-[70vh]'}`}>
+                      <div className="flex justify-center p-3 shrink-0"><div onClick={() => setIsOpen(false)} className="w-12 h-1.5 bg-white/30 rounded-full cursor-pointer hover:bg-white/50 transition-colors"></div></div>
+                      <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3 custom-scrollbar">
                           {messages.map((m, idx) => (
                              <div key={idx} className={`flex gap-2 ${m.sender === 'user' ? 'justify-end' : 'justify-start'} ${m.isHidden ? 'hidden' : ''}`}>
                                {m.sender === 'ai' ? (
-                                 <div className="p-3 rounded-2xl max-w-[85%] text-sm leading-relaxed whitespace-pre-wrap bg-white/10 text-white border border-white/20 rounded-tl-none shadow-sm backdrop-blur-sm">
+                                 <div className="p-3.5 rounded-2xl max-w-[85%] text-sm leading-relaxed whitespace-pre-wrap bg-white/10 text-white border border-white/20 rounded-tl-none shadow-sm backdrop-blur-md">
                                    {m.image && <img src={m.image} className="w-full rounded-lg mb-2 object-cover border border-white/20" />}
                                    {m.isVoiceOnly && !m.isContext ? <div className={`flex items-center gap-2 font-bold px-1 ${m.speakerName === 'เมฆ' ? 'text-blue-400' : 'text-pink-400'}`}><SafeIcon name="Volume2" size={16} className="animate-pulse" /> <span>{m.speakerName || 'ฟ้า'}กำลังพูด...</span></div> : m.text}
                                  </div>
                                ) : (
-                                 <div className="p-3 rounded-2xl max-w-[85%] text-sm leading-relaxed whitespace-pre-wrap bg-line-500/90 text-white font-medium rounded-tr-none shadow-md border border-line-400 backdrop-blur-sm">
+                                 <div className="p-3.5 rounded-2xl max-w-[85%] text-sm leading-relaxed whitespace-pre-wrap bg-line-500 text-white font-medium rounded-tr-none shadow-md border border-line-400">
                                    {m.image && <img src={m.image} className="w-full rounded-lg mb-2 object-cover" />}
                                    {m.text}
                                  </div>
                                )}
                              </div>
                           ))}
-                          {isTyping && <div className="flex gap-2 justify-start animate-in fade-in"><div className="p-3 rounded-2xl bg-white/10 border border-white/20 rounded-tl-none flex gap-1.5 backdrop-blur-sm"><div className="w-1.5 h-1.5 bg-white/60 rounded-full animate-bounce"></div><div className="w-1.5 h-1.5 bg-white/60 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div><div className="w-1.5 h-1.5 bg-white/60 rounded-full animate-bounce" style={{animationDelay: '0.4s'}}></div></div></div>}
+                          {isTyping && <div className="flex gap-2 justify-start animate-in fade-in"><div className="p-3.5 rounded-2xl bg-white/10 border border-white/20 rounded-tl-none flex gap-1.5 backdrop-blur-md"><div className="w-1.5 h-1.5 bg-white/60 rounded-full animate-bounce"></div><div className="w-1.5 h-1.5 bg-white/60 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div><div className="w-1.5 h-1.5 bg-white/60 rounded-full animate-bounce" style={{animationDelay: '0.4s'}}></div></div></div>}
                           {!isTyping && messages[messages.length-1]?.sender === 'ai' && (
                              <div className="flex flex-wrap gap-2 mt-1 animate-in fade-in">
                                  {roleplayPhase === 'negotiating' && <button onClick={() => handleQuickAction('end_roleplay')} className="text-xs bg-rose-500/90 text-white px-4 py-2.5 rounded-full font-bold shadow-sm border border-rose-400">🛑 จบการเจรจา</button>}
@@ -1232,8 +1252,7 @@
                           )}
                           <div ref={messagesEndRef} />
                       </div>
-                      
-                      <div className="absolute bottom-0 left-0 right-0 p-4 pb-safe z-50">
+                      <div className="shrink-0 p-4 bg-[#0f172a] border-t border-white/10 pb-safe relative z-40">
                           {isVadMode && <div className="absolute top-0 left-0 h-0.5 bg-transparent w-full"><div className="h-full bg-green-500 transition-all duration-100 shadow-[0_0_8px_rgba(34,197,94,0.8)]" style={{ width: `${Math.min(100, audioLevel * 2)}%` }}></div></div>}
                           <form onSubmit={handleSendChat} className={`flex items-center gap-2 bg-white/10 border border-white/20 rounded-full p-1.5 pl-4 w-full transition-colors backdrop-blur-md ${isVadMode ? '!border-green-400 bg-green-900/20' : ''}`}>
                               <input type="text" value={chatInput} onChange={e => setChatInput(e.target.value)} placeholder={isListening ? "กำลังฟัง..." : "พิมพ์ข้อความ..."} disabled={isTyping || roleplayPhase === 'playing_scenario'} className="flex-1 bg-transparent text-white placeholder-white/50 px-1 outline-none text-sm font-medium" />
@@ -1279,7 +1298,6 @@
           );
         }
 
-        // --- 6. SCREENS ---
         function LandingScreen({ store, actions }) {
           return (
             <div className="flex min-h-screen w-full relative overflow-hidden items-center justify-center bg-transparent z-50">
@@ -1594,10 +1612,17 @@
           
           const actionConfig = hasPosttest ? { t: "ยินดีด้วย คุณเรียนจบแล้ว 🎉", d: "ผ่านการทดสอบและได้รับประกาศนียบัตร", b: "ดูโปรไฟล์", i: "Award", c: "from-emerald-400 to-emerald-600", a: () => globalStore.setState({ activeTab: 'profile' }) } : isUnlocked ? { t: "พร้อมสอบ Posttest แล้ว!", d: "คุณทำเวลาเรียนและผ่านการประเมินปฏิบัติครบถ้วนแล้ว", b: "เริ่มทำ Posttest", i: "FileText", c: "from-rose-400 to-pink-600", a: () => { globalStore.setState({ quizData: { type: 'posttest', questions: store.questionSets[user.quizSetIndex || 0] || store.questionSets[0] || [], currentIndex: 0, answers: {}, score: 0, isFinished: false }}); actions.nav('quiz'); } } : isTimeMet ? { t: "ภารกิจถัดไป: ฝึกภาคปฏิบัติ", d: "เวลาเรียนครบเกณฑ์แล้ว ขั้นตอนต่อไปคือห้องเจรจา", b: "เข้าห้องเจรจา", i: "Globe", c: "from-orange-400 to-amber-500", a: () => globalStore.setState({ activeTab: 'skill_lab', selectedLabId: null }) } : { t: `เรียนต่อ: บทที่ ${user?.lastVideoId || 1}`, d: activeLesson?.title || "กลับเข้าสู่บทเรียนล่าสุด", b: "เล่นวิดีโอต่อ", i: "PlayCircle", c: "from-line-500 to-line-600", a: () => globalStore.setState({ activeTab: 'video', currentVideoId: user?.lastVideoId || 1 }) };
 
+          // 🔥 ดึงข้อมูลผู้ใช้งานจริงมาโชว์ใน Leaderboard 🔥
           const leaderboardData = store.dbUsers.map(u => {
               const history = u.skillLabHistory || [];
               const avgScore = history.length > 0 ? Math.round(history.reduce((sum, record) => sum + (record.score || 0), 0) / history.length) : 0;
-              return { id: u.id, name: u.name || 'ผู้ใช้งาน', hosp: u.hospital || '-', score: avgScore, isMe: u.id === user?.id };
+              return {
+                  id: u.id,
+                  name: u.name || 'ผู้ใช้งาน',
+                  hosp: u.hospital || '-',
+                  score: avgScore,
+                  isMe: u.id === user?.id
+              };
           }).filter(u => u.score > 0).sort((a,b) => b.score - a.score).slice(0, 50);
 
           return (
@@ -2042,7 +2067,6 @@
           );
         }
 
-        // --- 7. MAIN APP INITIATOR ---
         function App() {
           const [store, setStore] = useGlobalState();
 
@@ -2117,12 +2141,12 @@
                  case 'auth_wizard': return <AuthWizard store={store} actions={actions} />;
                  case 'dashboard': return <StudentDashboard store={store} actions={actions} />;
                  case 'quiz': return <QuizScreen store={store} actions={actions} />;
-                 case 'quiz_result': return <QuizResultScreen store={store, actions} />;
-                 case 'quiz_fail': return <QuizFailScreen store={store, actions} />;
-                 case 'cert_confirm': return <CertConfirmScreen store={store, actions} />;
-                 case 'profile_summary': return <ProfileSummaryScreen store={store, actions} />;
-                 case 'admin_login': return <AdminLoginScreen store={store, actions} />;
-                 case 'admin_dashboard': return <AdminDashboard store={store, actions} />;
+                 case 'quiz_result': return <QuizResultScreen store={store} actions={actions} />;
+                 case 'quiz_fail': return <QuizFailScreen store={store} actions={actions} />;
+                 case 'cert_confirm': return <CertConfirmScreen store={store} actions={actions} />;
+                 case 'profile_summary': return <ProfileSummaryScreen store={store} actions={actions} />;
+                 case 'admin_login': return <AdminLoginScreen store={store} actions={actions} />;
+                 case 'admin_dashboard': return <AdminDashboard store={store} actions={actions} />;
                  default: return <LandingScreen store={store} actions={actions} />;
              }
           };
