@@ -636,6 +636,15 @@
           const { roleplayPhase, currentSpeaker, currentEmotion } = store;
           const userPosition = store.loggedInUser?.position || "บุคลากรทางการแพทย์";
 
+          // เอฟเฟกต์เคลียร์ห้องจำลองสถานการณ์เมื่อกดย้ายห้อง
+          useEffect(() => {
+              if (store.activeTab !== 'skill_lab') {
+                  setIsRoleplay(false);
+                  globalStore.setState({ roleplayPhase: 'none', currentSpeaker: 'FAH', currentEmotion: 'NEUTRAL', selectedLabId: null });
+                  if (isListening) stopVAD();
+              }
+          }, [store.activeTab]);
+
           useEffect(() => { 
               let timeoutId; 
               const findDock = () => { 
@@ -1329,22 +1338,76 @@
 
           return (
             <div className={`global-chatbot-container z-[100] fixed inset-0 pointer-events-none ${isDocked || isShortsMode ? 'hidden' : ''}`}>
-              {isOpen && ( <div className="absolute inset-0 bg-slate-900/30 backdrop-blur-sm md:hidden pointer-events-auto" onClick={() => setIsOpen(false)} /> )}
-              <div className={`absolute flex flex-col pointer-events-none transition-all duration-500 z-50 ${isOpen ? 'inset-0 md:inset-auto md:bottom-6 md:right-6' : 'bottom-[80px] right-4 md:bottom-6 md:right-6'}`} style={{ transform: isOpen && !isMobile ? `translate(${pos.x}px, ${pos.y}px)` : 'none' }}>
-                <div className={`transition-all duration-500 ease-in-out flex flex-col md:flex-row pointer-events-auto w-full h-full md:w-auto md:h-auto ${isOpen ? 'translate-y-0 opacity-100' : 'translate-y-full md:translate-y-10 md:scale-0 md:opacity-0 hidden md:flex'}`}>
+              {/* Dark overlay only for mobile standard bot to increase text legibility */}
+              {isOpen && ( <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm md:hidden pointer-events-auto transition-opacity" onClick={() => setIsOpen(false)} /> )}
+              
+              <div className={`absolute flex flex-col pointer-events-none transition-all duration-500 z-50 ${isOpen ? 'inset-x-0 bottom-0 md:inset-auto md:bottom-6 md:right-6' : 'bottom-[80px] right-4 md:bottom-6 md:right-6'}`} style={{ transform: isOpen && !isMobile ? `translate(${pos.x}px, ${pos.y}px)` : 'none' }}>
+                <div className={`transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] flex flex-col md:flex-row pointer-events-auto w-full h-full md:w-auto md:h-auto ${isOpen ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0 pointer-events-none hidden md:flex'}`}>
                   {!isDocked && (
-                      <div className="w-full h-[45vh] md:h-[600px] md:w-[340px] relative bg-black shrink-0 md:rounded-[2.5rem] overflow-hidden shadow-2xl border border-white/40 z-0 flex items-center justify-center">
+                      <div className="hidden md:flex w-full h-[45vh] md:h-[600px] md:w-[340px] relative bg-black shrink-0 md:rounded-[2.5rem] overflow-hidden shadow-2xl border border-white/40 z-0 items-center justify-center">
                         <iframe key={`float_vid_char_${currentSpeaker}_${currentEmotion}`} src={CHARACTER_VIDEOS[currentSpeaker]?.[currentEmotion] || CHARACTER_VIDEOS.FAH.NEUTRAL} allow="autoplay; fullscreen" className="absolute inset-0 w-full h-full border-none pointer-events-none" title="Character Video" />
-                        <div className="md:hidden absolute top-safe pt-4 left-4 right-4 flex justify-between items-start z-50">
-                          <div className="flex flex-col gap-2">
-                              <div className="flex items-center gap-2 bg-white/60 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/80 shadow-lg w-fit"><div className="w-6 h-6 rounded-full overflow-hidden border border-white"><img src={FAH_PROFILE_PIC} className="w-full h-full object-cover scale-110" /></div><span className="text-slate-800 text-xs font-bold drop-shadow-sm">{isRoleplay ? 'ครอบครัวผู้ป่วย' : 'ฟ้า (Tutor)'}</span></div>
-                              {isRoleplay && <div className="flex gap-1 ml-1"><button onClick={(e) => { e.stopPropagation(); playSampleVoice('FAH'); }} className="flex items-center gap-1 bg-white/80 text-pink-600 px-2 py-1 rounded-full text-[10px] font-bold border border-white/60 shadow-sm"><SafeIcon name="Volume2" size={10} /> เสียงฟ้า</button><button onClick={(e) => { e.stopPropagation(); playSampleVoice('BROTHER'); }} className="flex items-center gap-1 bg-white/80 text-blue-600 px-2 py-1 rounded-full text-[10px] font-bold border border-white/60 shadow-sm"><SafeIcon name="Volume2" size={10} /> เสียงเมฆ</button></div>}
-                          </div>
-                          <button onClick={() => setIsOpen(false)} className="p-2.5 bg-white/60 backdrop-blur-md border border-white/80 rounded-full text-slate-800 shadow-sm"><SafeIcon name="X" size={18} /></button>
-                        </div>
                       </div>
                   )}
-                  {chatInterface}
+                  {/* Floating Mobile Chat Interface for Tutor Mode */}
+                  <div className={`flex-1 flex flex-col relative z-10 min-h-0 md:h-[600px] md:w-[400px] ${isDocked ? 'w-full h-full' : isOpen && isMobile ? 'h-[75vh] w-full rounded-t-[2.5rem] bg-gradient-to-t from-slate-900/95 to-slate-800/90 border-t border-white/20 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] backdrop-blur-2xl' : 'bg-white/40 backdrop-blur-2xl backdrop-saturate-[1.5] shadow-[0_15px_50px_rgba(0,0,0,0.2)] md:rounded-[2.5rem] border border-white/50'}`}>
+                      {/* Close Pill for Mobile */}
+                      {isOpen && isMobile && !isDocked && (
+                          <div className="flex justify-center p-3 shrink-0"><div onClick={() => setIsOpen(false)} className="w-12 h-1.5 bg-white/30 rounded-full cursor-pointer hover:bg-white/50 transition-colors"></div></div>
+                      )}
+                      
+                      {/* Desktop Header */}
+                      {!isDocked && !isMobile && (
+                          <div onPointerDown={handlePointerDown} className={`flex p-4 shrink-0 items-center justify-between shadow-sm border-b border-white/50 relative z-10 cursor-grab active:cursor-grabbing`}>
+                              <div className="flex items-center gap-3">
+                                  <div className="w-10 h-10 rounded-full overflow-hidden border border-white"><img src={FAH_PROFILE_PIC} alt="Fah" className="w-full h-full object-cover scale-110" /></div>
+                                  <div><h3 className={`font-extrabold text-sm text-slate-800 drop-shadow-sm`}>ฟ้า (Tutor)</h3><p className="text-[10px] text-slate-700 font-medium">เสียง: Aoede</p></div>
+                              </div>
+                              <button onClick={() => setIsOpen(false)} className="text-slate-600 hover:text-slate-900 p-1 bg-white/60 hover:bg-white/80 border border-white/60 rounded-full transition-colors"><SafeIcon name="X" size={20} /></button>
+                          </div>
+                      )}
+
+                      {/* Docked Header */}
+                      {isDocked && (
+                          <div className="p-4 md:p-5 pb-3 md:pb-4 border-b border-white/50 flex items-center justify-between shrink-0 relative z-10">
+                              <div className="flex items-center gap-4"><div className="w-10 h-10 md:w-12 md:h-12 rounded-full overflow-hidden border-2 border-white shadow-md"><img src={FAH_PROFILE_PIC} className="w-full h-full object-cover scale-110" /></div><div><h3 className="font-extrabold text-slate-800 text-sm md:text-lg drop-shadow-sm">ครอบครัวผู้ป่วย</h3><p className="text-[10px] md:text-xs text-slate-700 font-medium">เสียง: {currentSpeaker === 'BROTHER' ? 'Charon' : 'Aoede'}</p></div></div>
+                              {isRoleplay && <div className="flex gap-1 md:gap-2"><button onClick={() => playSampleVoice('FAH')} className="flex items-center gap-1 bg-white/50 hover:bg-white text-pink-600 px-2 py-1.5 md:px-3 md:py-2 rounded-lg text-[10px] md:text-xs font-bold border border-white/60 shadow-sm transition-colors"><SafeIcon name="Volume2" size={14} /> ฟ้า</button><button onClick={() => playSampleVoice('BROTHER')} className="flex items-center gap-1 bg-white/50 hover:bg-white text-blue-600 px-2 py-1.5 md:px-3 md:py-2 rounded-lg text-[10px] md:text-xs font-bold border border-white/60 shadow-sm transition-colors"><SafeIcon name="Volume2" size={14} /> เมฆ</button></div>}
+                          </div>
+                      )}
+
+                      <div className="flex-1 p-3 md:p-5 overflow-y-auto custom-scrollbar space-y-4 flex flex-col relative z-10 pt-2 md:pt-4">
+                          <div className="mt-auto md:hidden"></div>
+                          {messages.map((m, idx) => (
+                              <div key={idx} className={`flex gap-2 md:gap-3 ${m.sender === 'user' ? 'justify-end' : 'justify-start'} ${m.isHidden ? 'hidden' : ''}`}>
+                                  {m.sender === 'ai' ? (
+                                     <div className={`p-3.5 md:p-4 rounded-2xl max-w-[85%] md:max-w-[80%] text-sm leading-relaxed whitespace-pre-wrap shadow-sm border rounded-tl-none backdrop-blur-md ${isMobile && !isDocked ? 'bg-white/10 border-white/20 text-white' : 'bg-white/90 md:bg-white/80 border-white/60 text-slate-800'}`}>
+                                        {m.image && <img src={m.image} alt="Upload" className="w-full rounded-lg mb-2 object-cover border border-slate-200" />}
+                                        {m.isVoiceOnly && !m.isContext ? <div className={`flex items-center gap-3 font-bold px-2 py-1 ${m.speakerName === 'เมฆ' ? 'text-blue-400' : 'text-pink-400'}`}><SafeIcon name="Volume2" size={16} className="animate-pulse" /> <span>{m.speakerName || 'ฟ้า'}กำลังพูด...</span></div> : m.text}
+                                     </div>
+                                  ) : (
+                                     <div className={`p-3.5 md:p-4 rounded-2xl max-w-[85%] md:max-w-[80%] text-sm leading-relaxed whitespace-pre-wrap shadow-sm bg-line-500 backdrop-blur-md border border-line-400 text-white font-medium rounded-tr-none`}>{m.image && <img src={m.image} className="w-full rounded-lg mb-2 object-cover" />}{m.text}</div>
+                                  )}
+                              </div>
+                          ))}
+                          {isTyping && <div className="flex gap-2 md:gap-3 justify-start animate-in fade-in"><div className={`p-3.5 md:p-4 rounded-2xl backdrop-blur-md border rounded-tl-none shadow-sm flex gap-1.5 ${isMobile && !isDocked ? 'bg-white/10 border-white/20' : 'bg-white/90 md:bg-white/80 border-white/60'}`}><div className={`w-1.5 h-1.5 rounded-full animate-bounce ${isMobile && !isDocked ? 'bg-white/60' : 'bg-line-400'}`}></div><div className={`w-1.5 h-1.5 rounded-full animate-bounce ${isMobile && !isDocked ? 'bg-white/60' : 'bg-line-300'}`} style={{animationDelay: '0.2s'}}></div><div className={`w-1.5 h-1.5 rounded-full animate-bounce ${isMobile && !isDocked ? 'bg-white/60' : 'bg-line-500'}`} style={{animationDelay: '0.4s'}}></div></div></div>}
+                          {!isTyping && messages[messages.length-1]?.sender === 'ai' && (
+                              <div className="flex flex-wrap gap-2 mt-2 animate-in fade-in">
+                                  {isRoleplay && roleplayPhase === 'negotiating' && <button onClick={() => handleQuickAction('end_roleplay')} className="text-xs bg-rose-500/90 text-white px-4 py-2 rounded-full font-bold border border-rose-400 hover:bg-rose-600 shadow-sm backdrop-blur-md">🛑 จบการจำลองสถานการณ์</button>}
+                                  {store.currentScreen === 'quiz_fail' && <button onClick={() => handleQuickAction('adaptive_learning')} className="text-xs bg-blue-500/90 text-white px-4 py-2 rounded-full font-bold border border-blue-400 hover:bg-blue-600 shadow-sm backdrop-blur-md">วิเคราะห์จุดที่ต้องทบทวน</button>}
+                              </div>
+                          )}
+                          <div ref={messagesEndRef} />
+                      </div>
+                      <div className={`shrink-0 p-4 pb-safe pt-2 relative z-10 ${isMobile && !isDocked ? '' : 'md:bg-gradient-to-t from-white/40 to-transparent'}`}>
+                          {isVadMode && <div className="absolute -top-1 left-8 right-8 h-1 bg-transparent w-auto"><div className="h-full bg-green-500 transition-all duration-100 shadow-[0_0_8px_rgba(34,197,94,0.8)] rounded-full" style={{ width: `${Math.min(100, audioLevel * 2)}%` }}></div></div>}
+                          <form onSubmit={handleSendChat} className={`flex items-center gap-2 md:gap-3 backdrop-blur-2xl rounded-full p-1.5 md:p-2 pl-3 md:pl-4 w-full shadow-lg transition-colors ${isMobile && !isDocked ? 'bg-black/50 border-white/20' : 'bg-white/95 md:bg-white/60 border-white/80'} border ${isVadMode ? '!border-green-400' : ''}`}>
+                              <input type="file" id="ai-image-upload" accept="image/*" className="hidden" onChange={handleImageUpload} />
+                              <label htmlFor="ai-image-upload" className={`cursor-pointer p-1 ${isMobile && !isDocked ? 'text-white/60 hover:text-white' : 'text-slate-600 hover:text-line-600'}`}><SafeIcon name="ImageIcon" size={22} /></label>
+                              <input type="text" value={chatInput} onChange={e => setChatInput(e.target.value)} placeholder={isListening ? (isSpeakingRef.current ? "กำลังฟัง..." : "พูดได้เลย...") : "ถามฟ้า หรืออัปโหลดสไลด์..."} disabled={isTyping || roleplayPhase === 'playing_scenario'} className={`flex-1 bg-transparent px-1 outline-none text-sm md:text-base font-medium drop-shadow-sm ${isMobile && !isDocked ? 'text-white placeholder-white/50' : 'text-slate-800 placeholder-slate-500'}`} />
+                              <button type="button" onClick={toggleMic} disabled={isTyping || roleplayPhase === 'playing_scenario'} className={`relative flex items-center justify-center w-9 h-9 md:w-10 md:h-10 rounded-full transition-colors ${isListening ? 'bg-rose-500 text-white shadow-md border-rose-400' : isMobile && !isDocked ? 'text-white/80 bg-white/10 hover:bg-white/20 border border-white/20' : 'text-slate-600 bg-white/80 hover:bg-white border border-white/80'}`}><SafeIcon name="Mic" size={20} />{isListening && <span className="absolute inset-0 rounded-full border border-rose-400 animate-ping opacity-75"></span>}</button>
+                              <button type="submit" disabled={(!chatInput.trim() && !selectedImage) || isTyping || roleplayPhase === 'playing_scenario'} className="w-9 h-9 md:w-10 md:h-10 shrink-0 rounded-full bg-line-500 hover:bg-line-600 text-white flex items-center justify-center disabled:opacity-50 shadow-md border border-line-400"><SafeIcon name="Send" size={16} /></button>
+                          </form>
+                      </div>
+                  </div>
                 </div>
                 {!isOpen && !isDocked && !isShortsMode && (
                   <div onPointerDown={handleFabPointerDown} style={{ left: fabPos.x, top: fabPos.y, touchAction: 'none' }} className="fixed pointer-events-auto z-[100] flex w-14 h-14 md:w-16 md:h-16 rounded-full bg-white/40 backdrop-blur-2xl border border-white/60 shadow-[0_10px_30px_rgba(0,0,0,0.2)] cursor-grab active:cursor-grabbing hover:scale-105 transition-transform p-1">
@@ -1853,7 +1916,7 @@
                 <div className="space-y-4">
                   {q.options.map((opt, idx) => {
                     const selected = answers[q.id] === idx;
-                    return (<label key={idx} onClick={() => { globalStore.setState(p => ({ quizData: { ...p.quizData, answers: { ...p.quizData.answers, [q.id]: idx } } })); if (currentIndex < questions.length - 1 && !isAnswered) timeoutRef.current = setTimeout(() => globalStore.setState(p => ({ quizData: { ...p.quizData, currentIndex: currentIndex + 1 } })), 300); }} className={`flex items-center gap-3 md:gap-4 p-4 md:p-5 rounded-xl md:rounded-2xl border cursor-pointer transition-all duration-300 backdrop-blur-sm ${selected ? 'bg-white/80 border-white shadow-[0_0_15px_rgba(255,255,255,0.8)] md:scale-[1.02]' : 'hover:bg-white/60 hover:border-white/80 bg-white/40 border-white/50'}`}><div className={`w-5 h-5 rounded-full flex items-center justify-center border-2 ${selected ? 'border-line-500 bg-white' : 'border-white/80 bg-white/50'}`}>{selected && <div className="w-2.5 h-2.5 bg-line-500 rounded-full shadow-sm" />}</div><span className={`text-sm md:text-base font-medium drop-shadow-sm ${selected ? 'text-line-800 font-bold' : 'text-slate-800'}`}>{opt}</span></label>);
+                    return (<label key={idx} onClick={() => { globalStore.setState(p => ({ quizData: { ...p.quizData, answers: { ...p.quizData.answers, [q.id]: idx } } })); if (currentIndex < questions.length - 1 && !isAnswered) timeoutRef.current = setTimeout(() => globalStore.setState(p => ({ quizData: { ...p.quizData, currentIndex: currentIndex + 1 } })), 300); }} className={`flex items-center gap-3 md:gap-4 p-4 md:p-5 rounded-xl md:rounded-2xl border cursor-pointer transition-all duration-300 backdrop-blur-sm ${selected ? 'bg-white/80 border-white shadow-[0_0_15px_rgba(255,255,255,0.8)] md:scale-[1.02]' : 'hover:bg-white/60 hover:border-white/80 bg-white/40 border-white/50'}`}><div className={`w-5 h-5 rounded-full flex items-center justify-center border-2 shrink-0 ${selected ? 'border-line-500 bg-white' : 'border-white/80 bg-white/50'}`}>{selected && <div className="w-2.5 h-2.5 bg-line-500 rounded-full shadow-sm" />}</div><span className={`text-sm md:text-base font-medium drop-shadow-sm ${selected ? 'text-line-800 font-bold' : 'text-slate-800'}`}>{opt}</span></label>);
                   })}
                 </div>
                 
@@ -2035,10 +2098,13 @@
                              ))}
                          </div>
 
-                         <GlassCard className="p-6 flex-1 border border-white/60">
-                             <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2"><SafeIcon name="TrendingUp" className="text-blue-500"/> แนวโน้มภาพรวมระดับประเทศ (National Trend)</h3>
-                             <div className="w-full h-[200px] flex items-center justify-center bg-white/40 rounded-xl border border-white/50 backdrop-blur-md shadow-inner text-slate-500 font-medium">
-                                 [พื้นที่แสดงกราฟ แนะนำเชื่อมต่อ Looker Studio หรือ Chart.js ในเฟสต่อไป]
+                         <GlassCard className="p-6 flex-1 border border-white/60 flex flex-col">
+                             <div className="flex justify-between items-center mb-4">
+                                 <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2"><SafeIcon name="TrendingUp" className="text-blue-500"/> แนวโน้มภาพรวมระดับประเทศ (National Trend)</h3>
+                                 <button onClick={() => window.open(lookerStudioUrl, '_blank')} className="text-xs bg-white/60 hover:bg-white/80 border border-white/80 text-slate-700 px-3 py-1.5 rounded-lg shadow-sm font-bold flex items-center gap-1 transition-colors">ขยายเต็มจอ</button>
+                             </div>
+                             <div className="w-full flex-1 min-h-[350px] bg-white/40 rounded-xl border border-white/50 backdrop-blur-md shadow-inner overflow-hidden relative">
+                                 <iframe src={lookerStudioUrl} className="absolute inset-0 w-full h-full border-none" title="National Trend Dashboard"></iframe>
                              </div>
                          </GlassCard>
                      </div>
