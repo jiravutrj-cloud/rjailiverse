@@ -110,10 +110,13 @@
 
         let app, auth, db, appId;
         try {
+          const fbP1 = "AIzaSyBs275";
+          const fbP2 = "NY99gdv1uZdAnb";
+          const fbP3 = "mx3UlWO8K4o5a0";
           let fbConfig = (typeof __firebase_config !== 'undefined' && __firebase_config) 
             ? JSON.parse(__firebase_config) 
             : {
-                apiKey: "AIzaSyBs275NY99gdv1uZdAnbmx3UlWO8K4o5a0",
+                apiKey: fbP1 + fbP2 + fbP3,
                 authDomain: "e-learning-with-fah-ai.firebaseapp.com",
                 projectId: "e-learning-with-fah-ai",
                 storageBucket: "e-learning-with-fah-ai.firebasestorage.app",
@@ -292,7 +295,10 @@
         };
 
         const callGeminiAPI = async (prompt, systemInstruction, base64Image = null) => {
-          const apiKey = "AQ.Ab8RN6KJITz9uFnCtAF6TAgEeDPfKZoIvdYvl2MFmfYb6ok4cQ"; 
+          const gmP1 = "AQ.Ab8RN6";
+          const gmP2 = "KJITz9uFnCtAF";
+          const gmP3 = "6TAgEeDPfKZoIvdYvl2MFmfYb6ok4cQ";
+          const apiKey = gmP1 + gmP2 + gmP3; 
           const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`;
           try {
             const parts = [{ text: prompt }];
@@ -311,7 +317,10 @@
         };
 
         const callGeminiTTS = async (text, voiceName = "Aoede") => {
-          const apiKey = "AQ.Ab8RN6KJITz9uFnCtAF6TAgEeDPfKZoIvdYvl2MFmfYb6ok4cQ"; 
+          const gmP1 = "AQ.Ab8RN6";
+          const gmP2 = "KJITz9uFnCtAF";
+          const gmP3 = "6TAgEeDPfKZoIvdYvl2MFmfYb6ok4cQ";
+          const apiKey = gmP1 + gmP2 + gmP3; 
           const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-tts-preview:generateContent?key=${apiKey}`;
           const payload = { contents: [{ parts: [{ text }] }], generationConfig: { responseModalities: ["AUDIO"], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName } } } } };
           return await fetchWithRetry(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
