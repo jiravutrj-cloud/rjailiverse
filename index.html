@@ -1250,6 +1250,32 @@
                       ))}
                   </div>
 
+                  {/* Floating Vitals for Mobile */}
+                  {roleplayPhase !== 'speaking_intro' && (
+                      <div className="absolute left-4 top-24 z-20 flex flex-col gap-2 w-[110px] animate-in fade-in slide-in-from-left-4 duration-500">
+                          <div className={`bg-slate-900/40 backdrop-blur-md rounded-2xl p-2.5 border border-white/20 shadow-[0_5px_15px_rgba(0,0,0,0.3)] transition-colors duration-500 ${isChaos ? 'border-rose-500/50 bg-rose-950/40' : ''}`}>
+                              <div className="flex flex-col gap-1.5">
+                                  <div className="flex justify-between items-baseline">
+                                      <span className="text-[10px] font-bold text-green-400 opacity-90">HR</span>
+                                      <span className={`text-lg font-black font-mono leading-none drop-shadow-md ${isChaos ? 'text-rose-400 animate-pulse' : 'text-green-50'}`}>{hrRate}</span>
+                                  </div>
+                                  <div className="flex justify-between items-baseline">
+                                      <span className="text-[10px] font-bold text-cyan-400 opacity-90">SpO2</span>
+                                      <span className="text-lg font-black font-mono leading-none text-cyan-50 drop-shadow-md">{spo2}</span>
+                                  </div>
+                                  <div className="mt-1">
+                                      <div className="text-[8px] font-bold tracking-wider flex justify-between text-slate-300 mb-1">
+                                          <span>STRESS</span><span>{stressLevel}%</span>
+                                      </div>
+                                      <div className="w-full h-1.5 bg-slate-800/80 rounded-full overflow-hidden border border-slate-600/50">
+                                          <div className={`h-full rounded-full transition-all duration-700 ease-in-out ${stressColor}`} style={{ width: `${stressLevel}%` }}></div>
+                                      </div>
+                                  </div>
+                              </div>
+                          </div>
+                      </div>
+                  )}
+
                   {/* Right Action Bar (Vertical Floating - Pure Icons without Glass Cards) */}
                   <div className="absolute right-4 top-safe pt-16 flex flex-col gap-6 items-center z-20">
                       <button onClick={() => { stopAudio(); stopVAD(); globalStore.setState({ selectedLabId: null, chatTrigger: null, roleplayPhase: 'none' }); setMessages([]); setIsOpen(false); }} className="text-white/60 hover:text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] flex flex-col items-center gap-1 active:scale-95 transition-all mb-4">
