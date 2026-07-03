@@ -110,7 +110,6 @@
 
         let app, auth, db, appId;
         try {
-          // ซ่อน API Key เพื่อป้องกัน GitHub แบน (Obfuscation)
           const fbP1 = "AIzaSyBs275";
           const fbP2 = "NY99gdv1uZdAnb";
           const fbP3 = "mx3UlWO8K4o5a0";
@@ -299,14 +298,10 @@
           }
         };
 
+        // URL ของ Apps Script ตัวใหม่ที่เป็น Proxy
+        const GEMINI_PROXY_URL = "https://script.google.com/macros/s/AKfycby_Z0eS21NE_jWN-Q-4g-PO3IdftYg5VgSFQNEZG2zd_oDxqvisxnaHgPoZWy-AassWnw/exec";
+
         const callGeminiAPI = async (prompt, systemInstruction, base64Image = null) => {
-          // ซ่อน API Key ด้วยการหั่น String เพื่อป้องกัน GitHub ตรวจจับและแบนคีย์
-          const kP1 = "AQ.Ab8RN6I";
-          const kP2 = "GDqSH1ewnUTRZ14XIxsN6";
-          const kP3 = "KBtUoaStU9BXLsxvkgkIKA";
-          const apiKey = kP1 + kP2 + kP3; 
-          
-          const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
           try {
             const parts = [{ text: prompt }];
             if (base64Image) {
@@ -320,9 +315,26 @@
                 { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
                 { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
             ];
-            const payload = { contents: [{ parts }], systemInstruction: { parts: [{ text: systemInstruction }] }, safetySettings };
-            const data = await fetchWithRetry(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-            return data.candidates?.[0]?.content?.parts?.[0]?.text ?? "ขออภัยค่ะ ฟ้าไม่สามารถหาคำตอบได้ในขณะนี้";
+            
+            // เตรียมข้อมูล Payload ที่จะส่งให้ Apps Script
+            const geminiPayload = { contents: [{ parts }], systemInstruction: { parts: [{ text: systemInstruction }] }, safetySettings };
+            
+            // ยิง Fetch ไปหา Apps Script ของเราแทน
+            const data = await fetchWithRetry(GEMINI_PROXY_URL, { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // ใช้ text/plain ป้องกันปัญหา CORS กับ Apps script
+                body: JSON.stringify({
+                    action: 'generateText',
+                    payload: geminiPayload
+                }) 
+            });
+
+            if (data.status === 'success' && data.data.candidates) {
+                 return data.data.candidates?.[0]?.content?.parts?.[0]?.text ?? "ขออภัยค่ะ ฟ้าไม่สามารถหาคำตอบได้ในขณะนี้";
+            } else {
+                 console.error("Proxy Error:", data);
+                 return "ระบบขัดข้องชั่วคราว กรุณาลองใหม่อีกครั้งค่ะ";
+            }
           } catch (e) { 
               console.error("API Error", e); 
               return "ระบบขัดข้องชั่วคราว กรุณาลองใหม่อีกครั้งค่ะ"; 
@@ -330,15 +342,8 @@
         };
 
         const callGeminiTTS = async (text, voiceName = "Aoede") => {
-          // ซ่อน API Key ด้วยการหั่น String เพื่อป้องกัน GitHub ตรวจจับและแบนคีย์
-          const kP1 = "AQ.Ab8RN6I";
-          const kP2 = "GDqSH1ewnUTRZ14XIxsN6";
-          const kP3 = "KBtUoaStU9BXLsxvkgkIKA";
-          const apiKey = kP1 + kP2 + kP3; 
-          
-          const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`;
-          
-          const payload = {
+          // เตรียม Payload สำหรับ TTS (ยังคงใช้เสียง Aoede และอื่นๆ ตามค่าเริ่มต้น)
+          const geminiPayload = {
             contents: [{ parts: [{ text: text }] }],
             generationConfig: {
               responseModalities: ["AUDIO"],
@@ -353,12 +358,21 @@
           };
           
           try {
-            const rawData = await fetchWithRetry(url, { 
+            // ยิง Fetch ไปหา Apps Script ของเรา
+            const responseData = await fetchWithRetry(GEMINI_PROXY_URL, { 
                 method: 'POST', 
-                headers: { 'Content-Type': 'application/json' }, 
-                body: JSON.stringify(payload) 
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' }, 
+                body: JSON.stringify({
+                    action: 'generateTTS',
+                    payload: geminiPayload
+                }) 
             });
 
+            if (responseData.status === 'error') {
+                throw new Error(responseData.message);
+            }
+
+            const rawData = responseData.data;
             const inlineData = rawData.candidates?.[0]?.content?.parts?.[0]?.inlineData;
             
             if (!inlineData || !inlineData.data) {
@@ -505,6 +519,7 @@
                   {label && <label className="block text-xs md:text-sm font-bold text-slate-800 mb-2 ml-1 drop-shadow-sm">{label}</label>}
                   <select required disabled={disabled} className={`w-full px-4 py-3.5 rounded-xl border focus:outline-none transition-all shadow-[inset_0_2px_5px_rgba(0,0,0,0.05),inset_0_0_15px_rgba(255,255,255,0.4)] font-medium tracking-wide appearance-none ${disabled ? 'bg-white/30 border-white/40 text-slate-600 cursor-not-allowed' : 'bg-white/40 border-white/50 text-slate-800 hover:bg-white/50 focus:bg-white/60 focus:border-white focus:ring-2 focus:ring-white/50 backdrop-blur-xl'}`} {...props}>
                       <option value="" disabled>{placeholder}</option>
+                      <option value="อื่นๆ" className="text-slate-800">อื่นๆ</option>
                       {options.map(opt => <option key={opt} value={opt} className="text-slate-800">{opt}</option>)}
                   </select>
               </div>
