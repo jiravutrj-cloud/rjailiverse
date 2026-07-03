@@ -586,6 +586,10 @@
           const vadSilenceTimerRef = useRef(null); 
           const isSpeakingRef = useRef(false); 
           const latestTranscriptRef = useRef('');
+
+          // --- เพิ่ม State สำหรับซ่อน/แสดง Vitals และ Caption บนมือถือ ---
+          const [showMobileVitals, setShowMobileVitals] = useState(false);
+          const [showMobileCaption, setShowMobileCaption] = useState(false);
           
           // Adaptive Layout States (Detecting Mobile or Portrait mode)
           const [isMobile, setIsMobile] = useState(window.innerWidth < 1024 || window.innerHeight > window.innerWidth);
@@ -1118,7 +1122,7 @@
                 window.removeEventListener('mousemove', handlePointerMove); 
                 window.removeEventListener('mouseup', handlePointerUp); 
                 window.removeEventListener('touchmove', handlePointerMove); 
-                window.removeEventListener('touchend', handlePointerUp); 
+                window.removeEventListener('touchmove', handlePointerUp); 
             };
           }, [isDragging]);
 
@@ -1244,14 +1248,14 @@
           // 📱 Mobile Shorts UI View (Clean & Floating)
           const shortsModeUI = (
               <div className="fixed inset-0 z-[9999] bg-black flex flex-col animate-in fade-in overflow-hidden">
-                  <div className="absolute inset-0 z-0">
+                  <div className="absolute inset-0 z-0" onClick={() => setIsOpen(false)}>
                       {/* Dark gradient for text readability ONLY at bottom */}
                       <div className="absolute inset-x-0 bottom-0 h-[65%] bg-gradient-to-t from-black via-black/50 to-transparent z-10 pointer-events-none"></div>
                       
                       {isChaos && <div className="absolute inset-0 bg-rose-500/20 mix-blend-overlay z-10 pointer-events-none animate-pulse"></div>}
 
                       {roleplayPhase === 'playing_scenario' ?
-                          <iframe key="vid_scenario_mobile" src={`${scenario?.videoUrl}?autoplay=1&muted=0&api=1&player_id=scenario_vid_m&loop=0`} className="absolute inset-0 w-full h-full border-none z-0 object-cover" allow="autoplay; fullscreen" title="Scenario Video Mobile" /> :
+                          <iframe key="vid_scenario_mobile" src={`${scenario?.videoUrl}?autoplay=1&muted=0&api=1&player_id=scenario_vid_m&loop=0`} className="absolute inset-0 w-full h-full border-none z-0 object-cover pointer-events-none" allow="autoplay; fullscreen" title="Scenario Video Mobile" /> :
                           <iframe key={`vid_char_m_${currentSpeaker}_${currentEmotion}`} src={CHARACTER_VIDEOS[currentSpeaker]?.[currentEmotion] || CHARACTER_VIDEOS.FAH.NEUTRAL} className="absolute inset-0 w-full h-full border-none pointer-events-none z-0 object-cover" allow="autoplay; fullscreen" title="Character Video Mobile" />
                       }
                   </div>
@@ -1265,8 +1269,8 @@
                       ))}
                   </div>
 
-                  {/* Floating Vitals for Mobile */}
-                  {roleplayPhase !== 'speaking_intro' && (
+                  {/* Floating Vitals for Mobile (Toggleable) */}
+                  {roleplayPhase !== 'speaking_intro' && showMobileVitals && (
                       <div className="absolute left-4 top-24 z-20 flex flex-col gap-2 w-[110px] animate-in fade-in slide-in-from-left-4 duration-500">
                           <div className={`bg-slate-900/40 backdrop-blur-md rounded-2xl p-2.5 border border-white/20 shadow-[0_5px_15px_rgba(0,0,0,0.3)] transition-colors duration-500 ${isChaos ? 'border-rose-500/50 bg-rose-950/40' : ''}`}>
                               <div className="flex flex-col gap-1.5">
@@ -1298,30 +1302,44 @@
                       </button>
                   </div>
 
-                  <div className="absolute right-4 bottom-28 flex flex-col gap-6 items-center z-20">
-                      <button onClick={() => { if(store.selectedLabId !== 1) { stopAudio(); stopVAD(); setMessages([]); setIsOpen(false); actions.startSkillLabRoleplay(SKILL_LAB_SCENARIOS[0]); } }} className={`${store.selectedLabId === 1 ? 'text-white font-black opacity-100 scale-110' : 'text-white/60 font-normal opacity-60 hover:opacity-100'} drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] flex flex-col items-center gap-1 active:scale-95 transition-all`}>
-                          <span className="text-xl tracking-tighter">TH</span>
-                      </button>
-                      <button onClick={() => { if(store.selectedLabId !== 2) { stopAudio(); stopVAD(); setMessages([]); setIsOpen(false); actions.startSkillLabRoleplay(SKILL_LAB_SCENARIOS[1]); } }} className={`${store.selectedLabId === 2 ? 'text-white font-black opacity-100 scale-110' : 'text-white/60 font-normal opacity-60 hover:opacity-100'} drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] flex flex-col items-center gap-1 active:scale-95 transition-all`}>
-                          <span className="text-xl tracking-tighter">EN</span>
-                      </button>
+                  <div className="absolute right-4 bottom-24 flex flex-col gap-5 items-center z-20">
+                      {/* TH/EN Switcher */}
+                      <div className="flex flex-col gap-2 mb-2 bg-black/40 p-1.5 rounded-full backdrop-blur-md border border-white/20">
+                          <button onClick={() => { if(store.selectedLabId !== 1) { stopAudio(); stopVAD(); setMessages([]); setIsOpen(false); actions.startSkillLabRoleplay(SKILL_LAB_SCENARIOS[0]); } }} className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-black transition-colors ${store.selectedLabId === 1 ? 'bg-line-500 text-white shadow-sm' : 'text-white/60 hover:text-white'}`}>TH</button>
+                          <button onClick={() => { if(store.selectedLabId !== 2) { stopAudio(); stopVAD(); setMessages([]); setIsOpen(false); actions.startSkillLabRoleplay(SKILL_LAB_SCENARIOS[1]); } }} className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-black transition-colors ${store.selectedLabId === 2 ? 'bg-teal-500 text-white shadow-sm' : 'text-white/60 hover:text-white'}`}>EN</button>
+                      </div>
                       
-                      <button onClick={() => setIsOpen(true)} className="text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] flex flex-col items-center gap-1 active:scale-95 transition-transform hover:scale-110">
-                          <SafeIcon name="MessageSquare" size={34} strokeWidth={1.5} />
+                      {/* Vitals Toggle */}
+                      <button onClick={() => setShowMobileVitals(!showMobileVitals)} className={`${showMobileVitals ? 'text-green-400 scale-110 drop-shadow-[0_0_8px_rgba(74,222,128,0.8)]' : 'text-white/70 hover:text-white'} drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] flex flex-col items-center gap-1 active:scale-95 transition-all`}>
+                          <SafeIcon name="Activity" size={30} strokeWidth={1.5} />
                       </button>
+
+                      {/* Caption Toggle */}
+                      <button onClick={() => setShowMobileCaption(!showMobileCaption)} className={`${showMobileCaption ? 'text-white scale-110 drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]' : 'text-white/50 hover:text-white/80'} drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] flex flex-col items-center gap-1 active:scale-95 transition-all`}>
+                          <SafeIcon name="Eye" size={30} strokeWidth={1.5} />
+                      </button>
+
+                      {/* Full Chat Toggle */}
+                      <button onClick={() => setIsOpen(true)} className="text-white/90 hover:text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] flex flex-col items-center gap-1 active:scale-95 transition-transform hover:scale-110">
+                          <SafeIcon name="MessageSquare" size={30} strokeWidth={1.5} />
+                      </button>
+
+                      {/* Mic Toggle */}
                       <button onClick={toggleMic} className={`${isListening ? 'text-rose-500 scale-110' : 'text-white'} drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] flex flex-col items-center gap-1 active:scale-95 relative transition-transform hover:scale-110`}>
-                          <SafeIcon name="Mic" size={34} strokeWidth={1.5} />
+                          <SafeIcon name="Mic" size={30} strokeWidth={1.5} />
                           {isListening && <span className="absolute inset-0 rounded-full border-2 border-rose-500 animate-ping opacity-75"></span>}
                       </button>
+
+                      {/* Skip Video */}
                       {roleplayPhase === 'playing_scenario' && (
-                          <button onClick={triggerScenarioNegotiation} className="text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] flex flex-col items-center gap-1 active:scale-95 transition-all animate-pulse mt-4">
-                              <SafeIcon name="PlayCircle" size={34} strokeWidth={1.5} />
+                          <button onClick={triggerScenarioNegotiation} className="text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] flex flex-col items-center gap-1 active:scale-95 transition-all animate-pulse mt-2">
+                              <SafeIcon name="PlayCircle" size={30} strokeWidth={1.5} />
                           </button>
                       )}
                   </div>
 
-                  {/* Bottom Left Floating Profile & Caption */}
-                  <div className={`absolute left-4 bottom-10 z-20 flex gap-3 items-end w-[75%] transition-opacity duration-300 ${isOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+                  {/* Bottom Left Floating Profile & Caption (Toggleable via showMobileCaption) */}
+                  <div onClick={() => setIsOpen(true)} className={`absolute left-4 bottom-24 z-20 flex gap-3 items-end w-[75%] transition-opacity duration-300 cursor-pointer ${isOpen || !showMobileCaption ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
                       <div className="w-12 h-12 rounded-full overflow-hidden border-[2.5px] border-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] shrink-0 shadow-lg">
                           <img src={FAH_PROFILE_PIC} className="w-full h-full object-cover scale-110" alt="Fah AI" />
                       </div>
@@ -1802,7 +1820,7 @@
             }).filter(u => u.score > 0).sort((a,b) => b.score - a.score).slice(0, 50);
 
             return (
-              <div className="w-full max-w-7xl mx-auto z-10 px-4 py-8 relative mt-6 pb-24 md:pb-8">
+              <div className="w-full max-w-7xl mx-auto z-10 px-4 py-8 relative mt-6 pb-28 md:pb-8">
                 <GlassCard className="p-5 md:p-6 mb-8 flex flex-col lg:flex-row justify-between items-center gap-6">
                   <div className="flex items-center gap-4 relative z-10 w-full lg:w-auto"><div className="w-12 h-12 md:w-16 md:h-16 rounded-full bg-white/60 border border-white/80 flex items-center justify-center text-line-600 shadow-md backdrop-blur-md"><SafeIcon name="User" className="w-6 h-6 md:w-8 md:h-8" /></div><div><h2 className="text-lg md:text-2xl font-extrabold text-slate-800 drop-shadow-sm">{user.name || 'ผู้เรียน'}</h2><p className="text-slate-700 font-medium text-xs md:text-sm mt-1 drop-shadow-sm">สิทธิ์: <span className="text-line-800 bg-white/60 border border-white/80 px-2 py-0.5 rounded font-bold shadow-sm">{user.userType || 'เรียนใหม่'}</span></p></div></div>
                   <div className="flex items-center gap-4 md:gap-6 w-full lg:w-auto relative z-10">
@@ -1819,7 +1837,7 @@
                   <GradientButton onClick={actionConfig.a} className="w-full md:w-auto relative z-10 shrink-0 border border-white/40 backdrop-blur-md">{actionConfig.b} <SafeIcon name="ChevronRight" size={20} className="text-white" /></GradientButton>
                 </GlassCard>
 
-                <div className={`fixed bottom-4 left-4 right-4 bg-white/20 backdrop-blur-xl border border-white/40 rounded-[2rem] p-2 shadow-xl md:static md:bg-transparent md:border-none md:shadow-none md:p-0 flex-row md:flex-nowrap md:overflow-x-auto justify-around md:justify-start gap-2 md:gap-3 md:mb-8 relative z-40 md:z-10 custom-scrollbar md:snap-x ${selectedLabId ? 'hidden md:flex' : 'flex'}`}>
+                <div className={`fixed bottom-4 left-4 right-4 z-50 bg-white/20 backdrop-blur-xl border border-white/40 rounded-[2rem] p-2 shadow-[0_10px_40px_rgba(0,0,0,0.3)] md:relative md:inset-auto md:z-10 md:bg-transparent md:border-none md:shadow-none md:p-0 flex flex-row md:flex-nowrap overflow-x-auto justify-around md:justify-start gap-2 md:gap-3 md:mb-8 custom-scrollbar md:snap-x ${selectedLabId ? 'hidden md:flex' : 'flex'} mx-auto`}>
                   {[{t:'video', l:'วิดีโอ', i:'MonitorPlay'}, {t:'live', l:'Live สด', i:'Radio', e:lc?.status==='live'}, {t:'skill_lab', l:'ห้องเจรจา', i:'Globe', a:()=>globalStore.setState({ activeTab: 'skill_lab', selectedLabId: null })}, {t:'leaderboard', l:'จัดอันดับ', i:'Award'}, {t:'profile', l:'โปรไฟล์', i:'History'}].map(({t, l, i, e, a}) => {
                      const isActive = tab === t; 
                      const activeClass = isActive ? '!bg-white/60 border-white text-line-700 shadow-[0_5px_15px_rgba(0,0,0,0.1)]' : e ? '!bg-rose-100/60 text-rose-600 border-rose-300/60 animate-pulse' : 'text-slate-700 border-white/20 hover:text-slate-900 hover:!bg-white/40';
@@ -1828,11 +1846,13 @@
                 </div>
 
                 {tab === 'video' && (
-                  <div className="flex flex-col gap-6 animate-in fade-in">
-                    <GlassCard className="w-full aspect-video !p-0 bg-slate-900/60 shadow-2xl overflow-hidden border border-white/40"><iframe src={activeLesson?.videoId ? `https://drive.google.com/file/d/${activeLesson.videoId}/preview` : ''} className="absolute inset-0 w-full h-full border-none" allow="autoplay; fullscreen" /></GlassCard>
+                  <div className="flex flex-col gap-6 animate-in fade-in w-full max-w-full overflow-hidden px-1 md:px-0">
+                    <GlassCard className="w-full aspect-video !p-0 bg-slate-900/60 shadow-2xl overflow-hidden border border-white/40 relative flex items-center justify-center">
+                      <iframe src={activeLesson?.videoId ? `https://drive.google.com/file/d/${activeLesson.videoId}/preview` : ''} className="absolute inset-0 w-full h-full border-none" allow="autoplay; fullscreen" />
+                    </GlassCard>
                     <GlassCard className="p-6 md:p-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-6"><div><h3 className="text-xl md:text-2xl font-black text-slate-800 drop-shadow-md">บทที่ {vId || 1}: {activeLesson?.title}</h3><p className="text-sm text-slate-700 mt-1 font-medium drop-shadow-sm">เนื้อหาภาคบังคับ กรุณาดูให้จบเพื่อสะสมเวลาเรียน</p></div>{activeLesson?.documentUrl && (<a href={activeLesson.documentUrl} target="_blank" rel="noreferrer" className="flex items-center gap-2 bg-white/60 text-line-700 hover:bg-white/80 border border-white/80 px-6 py-3 rounded-xl font-bold text-sm shadow-lg active:scale-95 backdrop-blur-md"><SafeIcon name="FileText" size={18} /> โหลดเอกสารประกอบ</a>)}</GlassCard>
                     <div className="mt-4"><h3 className="text-lg font-extrabold text-slate-800 mb-4 flex items-center gap-2 drop-shadow-md"><SafeIcon name="MonitorPlay" className="text-line-600" /> บทเรียนทั้งหมด ({lessons?.length || 0} บท)</h3>
-                       <div ref={sliderRef} onMouseDown={handleMouseDown} onMouseLeave={handleMouseLeave} onMouseUp={handleMouseUp} onMouseMove={handleMouseMove} className={`flex overflow-x-auto gap-4 md:gap-6 pb-6 custom-scrollbar snap-x scroll-smooth ${isDraggingSlider ? 'cursor-grabbing select-none' : 'cursor-grab'}`}>
+                       <div ref={sliderRef} onMouseDown={handleMouseDown} onMouseLeave={handleMouseLeave} onMouseUp={handleMouseUp} onMouseMove={handleMouseMove} className={`flex overflow-x-auto gap-4 md:gap-6 pb-6 custom-scrollbar snap-x scroll-smooth w-full ${isDraggingSlider ? 'cursor-grabbing select-none' : 'cursor-grab'}`}>
                           {lessons?.map((l) => {
                              const isPlaying = (vId || 1) === l.id;
                              return (
@@ -1847,9 +1867,9 @@
                   </div>
                 )}
                 {tab === 'skill_lab' && (
-                  <div className="animate-in fade-in slide-in-from-bottom-4 relative z-10">
+                  <div className="animate-in fade-in slide-in-from-bottom-4 relative z-10 w-full max-w-full">
                      {!selectedLabId ? (
-                       <div className="max-w-6xl mx-auto"><div className="flex flex-col lg:flex-row gap-6"><div className="w-full lg:w-1/3 flex flex-col gap-6"><GlassCard className="!p-0 overflow-hidden aspect-[9/16] lg:h-[600px] w-full max-w-[300px] mx-auto relative bg-slate-900/40 border border-white/40 shadow-xl"><iframe src={FAH_IDLE_VIDEO} className="absolute inset-0 w-full h-full border-none" allow="autoplay; fullscreen" /></GlassCard></div>
+                       <div className="max-w-6xl mx-auto"><div className="flex flex-col lg:flex-row gap-6"><div className="w-full lg:w-1/3 flex flex-col gap-6"><GlassCard className="!p-0 overflow-hidden aspect-[9/16] lg:h-[600px] w-full max-w-[300px] mx-auto relative bg-slate-900/40 border border-white/40 shadow-xl flex items-center justify-center"><iframe src={FAH_IDLE_VIDEO} className="absolute inset-0 w-full h-full border-none" allow="autoplay; fullscreen" /></GlassCard></div>
                            <div className="w-full lg:w-2/3 flex flex-col gap-4"><div className="flex flex-col items-center md:items-start text-center md:text-left mb-2"><h2 className="text-2xl font-black text-slate-800 flex items-center gap-2 drop-shadow-md"><SafeIcon name="Globe" className="text-line-600"/> ห้องเจรจา</h2><p className="text-slate-700 font-medium mt-1 drop-shadow-sm">เลือกกรณีศึกษาด้านล่าง เพื่อเริ่มฝึกเจรจากับญาติจำลอง</p></div>
                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                {SKILL_LAB_SCENARIOS.map(sc => (<GlassCard key={sc.id} onClick={() => actions.startSkillLabRoleplay(sc)} className="!p-6 md:!p-8 text-center hover:bg-white/60 transition-all group active:scale-[0.98] flex flex-col items-center justify-center border border-white/40"><div className={`w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center text-white shadow-lg border border-white/50 ${sc.language === 'en' ? 'bg-gradient-to-br from-teal-500 to-emerald-600' : 'bg-gradient-to-br from-line-500 to-line-400'}`}><span className="text-xl font-black">{sc.language === 'en' ? 'EN' : 'TH'}</span></div><h3 className="font-extrabold text-lg text-slate-800 mb-2 drop-shadow-md group-hover:text-line-600 group-hover:scale-105 transition-transform">{sc.title}</h3><p className="text-sm text-slate-700 line-clamp-2 mt-2 drop-shadow-sm">{sc.description}</p></GlassCard>))}
@@ -1865,7 +1885,7 @@
                   </div>
                 )}
                 {tab === 'leaderboard' && (
-                  <div className="animate-in fade-in slide-in-from-bottom-4 pb-20 md:pb-4 min-h-[60vh] flex flex-col items-center justify-center">
+                  <div className="animate-in fade-in slide-in-from-bottom-4 pb-20 md:pb-4 min-h-[60vh] flex flex-col items-center justify-center w-full max-w-full">
                      <div className="flex flex-col items-center mb-8 text-center mt-4 relative z-10">
                          <div className="w-20 h-20 bg-gradient-to-br from-amber-300 to-orange-500 rounded-full flex items-center justify-center text-white shadow-[0_0_20px_rgba(245,158,11,0.6)] mb-4 border-2 border-white/80">
                              <SafeIcon name="Award" size={40} />
@@ -1902,9 +1922,9 @@
                      </div>
                   </div>
                 )}
-                {tab === 'profile' && <div className="animate-in fade-in zoom-in"><ProfileSummaryScreen store={store} actions={actions} inline={true} /></div>}
+                {tab === 'profile' && <div className="animate-in fade-in zoom-in w-full max-w-full"><ProfileSummaryScreen store={store} actions={actions} inline={true} /></div>}
                 {tab === 'live' && (
-                  <GlassCard className="min-h-[400px] md:min-h-[500px] flex flex-col justify-center p-5 md:p-8 animate-in fade-in">
+                  <GlassCard className="min-h-[400px] md:min-h-[500px] flex flex-col justify-center p-5 md:p-8 animate-in fade-in w-full max-w-full overflow-hidden">
                     {lc?.status !== 'offline' ? (
                       <div className="flex flex-col lg:flex-row gap-6 w-full"><div className="w-full lg:w-[70%] relative z-10">
                           {lc?.status === 'paused' && (<div className="absolute inset-0 bg-white/60 backdrop-blur-xl z-20 flex flex-col items-center justify-center text-slate-800 rounded-2xl border border-white/60"><SafeIcon name="PauseCircle" size={60} className="mb-2 md:mb-4 text-line-600 animate-pulse" /><h2 className="text-xl md:text-3xl font-extrabold drop-shadow-md">พักการถ่ายทอดสด</h2></div>)}
