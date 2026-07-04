@@ -26,10 +26,10 @@
         "react": "https://esm.sh/react@18.2.0",
         "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
         "react-dom": "https://esm.sh/react-dom@18.2.0",
-        "lucide-react": "https://esm.sh/lucide-react@0.294.0",
-        "firebase/app": "https://esm.sh/firebase@10.8.0/app",
-        "firebase/auth": "https://esm.sh/firebase@10.8.0/auth",
-        "firebase/firestore": "https://esm.sh/firebase@10.8.0/firestore"
+        "lucide-react": "https://esm.sh/lucide-react@0.294.0?external=react",
+        "firebase/app": "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js",
+        "firebase/auth": "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js",
+        "firebase/firestore": "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js"
       }
     }
     </script>
@@ -52,7 +52,7 @@
           Search: LucideIcons.Search, Edit: LucideIcons.Edit, CheckCircle: LucideIcons.CheckCircle,
           XCircle: LucideIcons.XCircle, Save: LucideIcons.Save, UploadCloud: LucideIcons.UploadCloud,
           Trash2: LucideIcons.Trash2, Plus: LucideIcons.Plus, Download: LucideIcons.Download,
-          RefreshCw: LucideIcons.RefreshCw, ShieldCheck: LucideIcons.ShieldCheck
+          RefreshCw: LucideIcons.RefreshCw, ShieldCheck: LucideIcons.ShieldCheck, Info: LucideIcons.Info
         };
 
         function SafeIcon({ name, size = 20, className = "" }) {
@@ -90,24 +90,32 @@
 
             useEffect(() => {
                 const initFb = async () => {
-                    await signInAnonymously(auth);
-                    onAuthStateChanged(auth, (user) => {
-                        if (user) {
-                            onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'elearning_users'), (snapshot) => {
-                                const arr = []; snapshot.forEach(doc => arr.push({ id: doc.id, ...doc.data() })); setUsersList(arr);
-                            });
-                            onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_config', 'settings'), (docSnap) => {
-                                if (docSnap.exists()) {
-                                    const data = docSnap.data();
-                                    if (data.liveConfig) setLiveConfig(data.liveConfig);
-                                    setSystemConfig(prev => ({ ...prev, ...data }));
-                                }
-                            });
-                            onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_config', 'content'), (docSnap) => {
-                                if (docSnap.exists() && docSnap.data().lessons) setContentConfig({ lessons: docSnap.data().lessons });
-                            });
-                        }
-                    });
+                    if (!auth || !db) {
+                        console.error("Firebase is not initialized properly.");
+                        return;
+                    }
+                    try {
+                        await signInAnonymously(auth);
+                        onAuthStateChanged(auth, (user) => {
+                            if (user) {
+                                onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'elearning_users'), (snapshot) => {
+                                    const arr = []; snapshot.forEach(doc => arr.push({ id: doc.id, ...doc.data() })); setUsersList(arr);
+                                });
+                                onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_config', 'settings'), (docSnap) => {
+                                    if (docSnap.exists()) {
+                                        const data = docSnap.data();
+                                        if (data.liveConfig) setLiveConfig(data.liveConfig);
+                                        setSystemConfig(prev => ({ ...prev, ...data }));
+                                    }
+                                });
+                                onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_config', 'content'), (docSnap) => {
+                                    if (docSnap.exists() && docSnap.data().lessons) setContentConfig({ lessons: docSnap.data().lessons });
+                                });
+                            }
+                        });
+                    } catch (err) {
+                        console.error("Auth/Firestore connection error:", err);
+                    }
                 };
                 initFb();
             }, []);
@@ -173,6 +181,17 @@
                     await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_config', 'settings'), newSettings, { merge: true });
                     showAlert('บันทึกการตั้งค่าเรียบร้อย');
                 } catch (e) { showAlert('เกิดข้อผิดพลาด', 'error'); }
+            };
+
+            // 🚀 ฟังก์ชันสำหรับบันทึกระบบ Live 🚀
+            const saveLiveConfig = async () => {
+                try {
+                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_config', 'settings'), { liveConfig }, { merge: true });
+                    showAlert('อัปเดตและเผยแพร่สถานะ Live สำเร็จ');
+                } catch (e) { 
+                    showAlert('เกิดข้อผิดพลาดในการบันทึก Live', 'error'); 
+                    console.error("Save Live Error:", e);
+                }
             };
 
             const updateUserStatus = async (userId, newStatus, newType) => {
