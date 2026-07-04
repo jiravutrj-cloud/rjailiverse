@@ -43,7 +43,7 @@
         import { createRoot } from 'react-dom/client';
         import * as LucideIcons from 'lucide-react';
         import { initializeApp } from 'firebase/app';
-        import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from 'firebase/auth';
         import { getFirestore, collection, doc, setDoc, onSnapshot, deleteDoc } from 'firebase/firestore';
 
         const ICONS = {
@@ -52,8 +52,21 @@
           Search: LucideIcons.Search, Edit: LucideIcons.Edit, CheckCircle: LucideIcons.CheckCircle,
           XCircle: LucideIcons.XCircle, Save: LucideIcons.Save, UploadCloud: LucideIcons.UploadCloud,
           Trash2: LucideIcons.Trash2, Plus: LucideIcons.Plus, Download: LucideIcons.Download,
-          RefreshCw: LucideIcons.RefreshCw, ShieldCheck: LucideIcons.ShieldCheck, Info: LucideIcons.Info
+          RefreshCw: LucideIcons.RefreshCw, ShieldCheck: LucideIcons.ShieldCheck, Info: LucideIcons.Info, CheckSquare: LucideIcons.CheckSquare
         };
+
+        function parseRawExams(raw) {
+            if (!raw || !Array.isArray(raw)) return [];
+            return raw.map((str, idx) => {
+                const parts = str.split('|').map(s => s.trim());
+                return {
+                    id: idx + 1,
+                    question: parts[0] ? parts[0].replace(/^[0-9]+\.\s*/, '') : '',
+                    options: parts.slice(1, parts.length - 1),
+                    answer: parseInt((parts[parts.length - 1] || '0').replace(/[^0-9]/g, ''), 10) || 0
+                };
+            });
+        }
 
         function SafeIcon({ name, size = 20, className = "" }) {
           const IconComponent = ICONS[name] || ICONS['Activity'];
@@ -70,11 +83,15 @@
         } catch (error) { console.error("Firebase init error", error); }
 
         function AdminApp() {
+            const [user, setUser] = useState(null);
             const [isAuth, setIsAuth] = useState(false);
             const [password, setPassword] = useState('');
             const [activeTab, setActiveTab] = useState('users');
             const [usersList, setUsersList] = useState([]);
-            const [contentConfig, setContentConfig] = useState({ lessons: window.INITIAL_LESSONS || [] });
+            const [contentConfig, setContentConfig] = useState({ 
+                lessons: window.INITIAL_LESSONS || [],
+                questionSets: window.QUIZ_QUESTIONS_RAW ? [parseRawExams(window.QUIZ_QUESTIONS_RAW)] : [[]]
+            });
             const [liveConfig, setLiveConfig] = useState({ status: 'offline', topic: '', url: '', documentUrl: '' });
             const [systemConfig, setSystemConfig] = useState({ appsScriptUrl: '', certScriptUrl: '', lookerStudioUrl: '', masterCsvUrl: '', autoSyncFromSheet: false });
             const [alertMsg, setAlertMsg] = useState({ show: false, text: '', type: 'success' });
@@ -89,36 +106,54 @@
             };
 
             useEffect(() => {
-                const initFb = async () => {
-                    if (!auth || !db) {
-                        console.error("Firebase is not initialized properly.");
-                        return;
-                    }
+                if (!auth || !db) return;
+                const initAuth = async () => {
                     try {
-                        await signInAnonymously(auth);
-                        onAuthStateChanged(auth, (user) => {
-                            if (user) {
-                                onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'elearning_users'), (snapshot) => {
-                                    const arr = []; snapshot.forEach(doc => arr.push({ id: doc.id, ...doc.data() })); setUsersList(arr);
-                                });
-                                onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_config', 'settings'), (docSnap) => {
-                                    if (docSnap.exists()) {
-                                        const data = docSnap.data();
-                                        if (data.liveConfig) setLiveConfig(data.liveConfig);
-                                        setSystemConfig(prev => ({ ...prev, ...data }));
-                                    }
-                                });
-                                onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_config', 'content'), (docSnap) => {
-                                    if (docSnap.exists() && docSnap.data().lessons) setContentConfig({ lessons: docSnap.data().lessons });
-                                });
-                            }
-                        });
+                        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                            await signInWithCustomToken(auth, __initial_auth_token);
+                        } else {
+                            await signInAnonymously(auth);
+                        }
                     } catch (err) {
-                        console.error("Auth/Firestore connection error:", err);
+                        console.error("Auth init error:", err);
                     }
                 };
-                initFb();
+                initAuth();
+                const unsubscribe = onAuthStateChanged(auth, setUser);
+                return () => unsubscribe();
             }, []);
+
+            useEffect(() => {
+                if (!user || !db) return;
+                
+                const unsubUsers = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'elearning_users'), (snapshot) => {
+                    const arr = []; snapshot.forEach(doc => arr.push({ id: doc.id, ...doc.data() })); setUsersList(arr);
+                }, (err) => console.error("Users sync error:", err));
+
+                const unsubSettings = onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_config', 'settings'), (docSnap) => {
+                    if (docSnap.exists()) {
+                        const data = docSnap.data();
+                        if (data.liveConfig) setLiveConfig(data.liveConfig);
+                        setSystemConfig(prev => ({ ...prev, ...data }));
+                    }
+                }, (err) => console.error("Settings sync error:", err));
+
+                const unsubContent = onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_config', 'content'), (docSnap) => {
+                    if (docSnap.exists() && docSnap.data()) {
+                        const data = docSnap.data();
+                        setContentConfig(prev => ({
+                            lessons: data.lessons || prev.lessons,
+                            questionSets: data.questionSets || prev.questionSets
+                        }));
+                    }
+                }, (err) => console.error("Content sync error:", err));
+                
+                return () => {
+                    unsubUsers();
+                    unsubSettings();
+                    unsubContent();
+                };
+            }, [user]);
 
             // 🚀 ฟังก์ชัน: ดึงข้อมูลและอัปเดตสิทธิ์จาก Google Sheets อัตโนมัติ 🚀
             const syncFromGoogleSheet = async (isManual = false) => {
@@ -221,6 +256,19 @@
                 } catch (e) { showAlert('เพิ่มข้อมูลไม่สำเร็จ', 'error'); }
             };
 
+            const saveContentConfig = async () => {
+                try { 
+                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_config', 'content'), { 
+                        lessons: contentConfig.lessons, 
+                        questionSets: contentConfig.questionSets,
+                        updatedAt: new Date().toISOString() 
+                    }, { merge: true }); 
+                    showAlert('อัปโหลดข้อมูลขึ้นระบบสำเร็จ'); 
+                } catch(e) { 
+                    showAlert('เกิดข้อผิดพลาดในการบันทึก', 'error'); 
+                }
+            };
+
             const filteredUsers = usersList.filter(u => u.name?.toLowerCase().includes(searchTerm.toLowerCase()) || u.license?.includes(searchTerm));
 
             if (!isAuth) {
@@ -250,7 +298,7 @@
                             <p className="text-xs font-bold text-slate-400 mt-1 uppercase tracking-widest">RJ Ailiverse</p>
                         </div>
                         <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-                            {[{id: 'users', label: 'จัดการสิทธิ์ผู้เรียน', icon: 'Users'}, {id: 'data', label: 'Auto-Sync & ระบบคิว', icon: 'Database'}, {id: 'live', label: 'ระบบถ่ายทอดสด', icon: 'Radio'}, {id: 'content', label: 'แก้ไขบทเรียน', icon: 'BookOpen'}, {id: 'analytics', label: 'Dashboard', icon: 'Activity'}].map(t => (
+                            {[{id: 'users', label: 'จัดการสิทธิ์ผู้เรียน', icon: 'Users'}, {id: 'data', label: 'Auto-Sync & ระบบคิว', icon: 'Database'}, {id: 'live', label: 'ระบบถ่ายทอดสด', icon: 'Radio'}, {id: 'content', label: 'แก้ไขบทเรียน', icon: 'BookOpen'}, {id: 'quiz', label: 'จัดการข้อสอบ', icon: 'CheckSquare'}, {id: 'analytics', label: 'Dashboard', icon: 'Activity'}].map(t => (
                                 <button key={t.id} onClick={() => setActiveTab(t.id)} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-colors ${activeTab === t.id ? 'bg-line-50 text-line-700' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'}`}><SafeIcon name={t.icon} /> {t.label}</button>
                             ))}
                         </nav>
@@ -386,7 +434,7 @@
                             <div className="animate-in fade-in max-w-5xl">
                                 <div className="flex justify-between items-center mb-6">
                                     <h2 className="text-2xl font-black text-slate-800 flex items-center gap-2"><SafeIcon name="BookOpen" className="text-line-600" /> แก้ไขรายวิชา</h2>
-                                    <button onClick={async () => { try { await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_config', 'content'), { lessons: contentConfig.lessons, updatedAt: new Date().toISOString() }, { merge: true }); showAlert('อัปโหลดเนื้อหาล่าสุดขึ้นระบบสำเร็จ'); } catch(e) { showAlert('เกิดข้อผิดพลาดในการบันทึก', 'error'); } }} className="bg-line-500 text-white px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-sm hover:bg-line-600 transition-colors"><SafeIcon name="UploadCloud" size={18}/> เผยแพร่ขึ้น Cloud</button>
+                                    <button onClick={saveContentConfig} className="bg-line-500 text-white px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-sm hover:bg-line-600 transition-colors"><SafeIcon name="UploadCloud" size={18}/> เผยแพร่ขึ้น Cloud</button>
                                 </div>
                                 <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
                                     <div className="space-y-4 max-h-[65vh] overflow-y-auto pr-2 custom-scrollbar">
@@ -394,11 +442,88 @@
                                             <div key={l.id} className="p-4 bg-slate-50 border border-slate-200 rounded-xl flex flex-col md:flex-row gap-4 items-start md:items-center">
                                                 <div className="w-10 h-10 bg-slate-200 rounded-full flex items-center justify-center font-black text-slate-500 shrink-0">{l.id}</div>
                                                 <div className="flex-1 w-full space-y-2">
-                                                    <input type="text" value={l.title} onChange={e => setContentConfig(p => ({ lessons: p.lessons.map(x => x.id === l.id ? { ...x, title: e.target.value } : x) }))} className="w-full text-sm font-bold p-2 border rounded-lg outline-none focus:border-line-500" placeholder="ชื่อบทเรียน" />
-                                                    <input type="text" value={l.videoId} onChange={e => setContentConfig(p => ({ lessons: p.lessons.map(x => x.id === l.id ? { ...x, videoId: e.target.value } : x) }))} className="w-full text-xs font-mono p-2 border rounded-lg outline-none focus:border-line-500 text-slate-500" placeholder="Google Drive Video ID" />
+                                                    <input type="text" value={l.title} onChange={e => setContentConfig(p => ({ ...p, lessons: p.lessons.map(x => x.id === l.id ? { ...x, title: e.target.value } : x) }))} className="w-full text-sm font-bold p-2 border rounded-lg outline-none focus:border-line-500" placeholder="ชื่อบทเรียน" />
+                                                    <input type="text" value={l.videoId} onChange={e => setContentConfig(p => ({ ...p, lessons: p.lessons.map(x => x.id === l.id ? { ...x, videoId: e.target.value } : x) }))} className="w-full text-xs font-mono p-2 border rounded-lg outline-none focus:border-line-500 text-slate-500" placeholder="Google Drive Video ID" />
                                                 </div>
                                             </div>
                                         ))}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* แท็บจัดการข้อสอบ */}
+                        {activeTab === 'quiz' && (
+                            <div className="animate-in fade-in max-w-5xl">
+                                <div className="flex justify-between items-center mb-6">
+                                    <h2 className="text-2xl font-black text-slate-800 flex items-center gap-2"><SafeIcon name="CheckSquare" className="text-line-600" /> จัดการข้อสอบ (Pretest / Posttest)</h2>
+                                    <button onClick={saveContentConfig} className="bg-line-500 text-white px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-sm hover:bg-line-600 transition-colors"><SafeIcon name="UploadCloud" size={18}/> เผยแพร่ข้อสอบขึ้น Cloud</button>
+                                </div>
+                                
+                                <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col h-[70vh]">
+                                    <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-6">
+                                        {(contentConfig.questionSets[0] || []).map((q, qIndex) => (
+                                            <div key={q.id || qIndex} className="p-5 bg-slate-50 border border-slate-200 rounded-xl relative">
+                                                <button onClick={() => {
+                                                    const newQuiz = [...contentConfig.questionSets[0]];
+                                                    newQuiz.splice(qIndex, 1);
+                                                    setContentConfig(p => ({ ...p, questionSets: [newQuiz] }));
+                                                }} className="absolute top-4 right-4 text-rose-400 hover:text-rose-600 hover:bg-rose-50 p-2 rounded-lg transition-colors" title="ลบข้อนี้"><SafeIcon name="Trash2" size={18}/></button>
+                                                
+                                                <div className="mb-4 pr-12">
+                                                    <label className="block text-xs font-bold text-slate-500 mb-1">ข้อที่ {qIndex + 1} (คำถาม)</label>
+                                                    <textarea value={q.question} onChange={e => {
+                                                        const newQuiz = [...contentConfig.questionSets[0]];
+                                                        newQuiz[qIndex] = { ...newQuiz[qIndex], question: e.target.value };
+                                                        setContentConfig(p => ({ ...p, questionSets: [newQuiz] }));
+                                                    }} className="w-full text-sm font-bold p-3 border rounded-lg outline-none focus:border-line-500 min-h-[80px]" placeholder="ระบุคำถาม..." />
+                                                </div>
+                                                
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                    {q.options.map((opt, optIndex) => (
+                                                        <div key={optIndex} className="flex items-center gap-2">
+                                                            <input type="radio" name={`correct-${qIndex}`} checked={q.answer === optIndex} onChange={() => {
+                                                                const newQuiz = [...contentConfig.questionSets[0]];
+                                                                newQuiz[qIndex] = { ...newQuiz[qIndex], answer: optIndex };
+                                                                setContentConfig(p => ({ ...p, questionSets: [newQuiz] }));
+                                                            }} className="w-4 h-4 text-line-600 cursor-pointer" title="เลือกเป็นคำตอบที่ถูกต้อง" />
+                                                            <input type="text" value={opt} onChange={e => {
+                                                                const newQuiz = [...contentConfig.questionSets[0]];
+                                                                const newOptions = [...newQuiz[qIndex].options];
+                                                                newOptions[optIndex] = e.target.value;
+                                                                newQuiz[qIndex] = { ...newQuiz[qIndex], options: newOptions };
+                                                                setContentConfig(p => ({ ...p, questionSets: [newQuiz] }));
+                                                            }} className={`w-full text-sm p-2 border rounded-lg outline-none focus:border-line-500 ${q.answer === optIndex ? 'border-line-500 bg-line-50 font-bold text-line-800' : 'text-slate-700'}`} placeholder={`ตัวเลือกที่ ${optIndex + 1}`} />
+                                                            <button onClick={() => {
+                                                                const newQuiz = [...contentConfig.questionSets[0]];
+                                                                const newOptions = [...newQuiz[qIndex].options];
+                                                                newOptions.splice(optIndex, 1);
+                                                                if (newQuiz[qIndex].answer === optIndex) newQuiz[qIndex].answer = 0;
+                                                                else if (newQuiz[qIndex].answer > optIndex) newQuiz[qIndex].answer -= 1;
+                                                                newQuiz[qIndex] = { ...newQuiz[qIndex], options: newOptions };
+                                                                setContentConfig(p => ({ ...p, questionSets: [newQuiz] }));
+                                                            }} className="text-slate-400 hover:text-rose-500 p-1"><SafeIcon name="XCircle" size={16}/></button>
+                                                        </div>
+                                                    ))}
+                                                    <button onClick={() => {
+                                                        const newQuiz = [...contentConfig.questionSets[0]];
+                                                        newQuiz[qIndex] = { ...newQuiz[qIndex], options: [...newQuiz[qIndex].options, "ตัวเลือกใหม่"] };
+                                                        setContentConfig(p => ({ ...p, questionSets: [newQuiz] }));
+                                                    }} className="text-xs font-bold text-line-600 hover:bg-line-50 py-2 rounded-lg border border-dashed border-line-300 flex items-center justify-center gap-1"><SafeIcon name="Plus" size={14}/> เพิ่มตัวเลือก</button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <div className="pt-4 mt-4 border-t border-slate-100 flex justify-center shrink-0">
+                                        <button onClick={() => {
+                                            const newQuiz = [...(contentConfig.questionSets[0] || [])];
+                                            newQuiz.push({ id: Date.now(), question: "คำถามใหม่...", options: ["ก.", "ข.", "ค.", "ง."], answer: 0 });
+                                            setContentConfig(p => ({ ...p, questionSets: [newQuiz] }));
+                                            setTimeout(() => {
+                                                const container = document.querySelector('.custom-scrollbar');
+                                                if(container) container.scrollTop = container.scrollHeight;
+                                            }, 100);
+                                        }} className="bg-slate-800 text-white px-6 py-2.5 rounded-xl font-bold text-sm shadow-sm hover:bg-slate-700 flex items-center gap-2"><SafeIcon name="Plus" size={16}/> เพิ่มข้อสอบใหม่</button>
                                     </div>
                                 </div>
                             </div>
