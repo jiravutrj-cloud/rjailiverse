@@ -1,4 +1,29 @@
-// 1. ข้อมูลรายชื่อโรงพยาบาลและเขตสุขภาพ
+// ============================================================================
+// แฟ้มเก็บข้อมูล (Static Data) สำหรับ RJ Ailiverse e-Learning
+// ============================================================================
+
+window.FAH_IDLE_VIDEO = "https://player.vimeo.com/video/1201677272?background=1&autoplay=1&loop=1&muted=1";
+
+window.CHARACTER_VIDEOS = {
+  FAH: { 
+    ANGRY: "https://player.vimeo.com/video/1201657361?background=1&autoplay=1&loop=1&muted=1", 
+    CONFUSED: "https://player.vimeo.com/video/1201657360?background=1&autoplay=1&loop=1&muted=1", 
+    HESITANT: "https://player.vimeo.com/video/1201657359?background=1&autoplay=1&loop=1&muted=1", 
+    SAD: "https://player.vimeo.com/video/1201657372?background=1&autoplay=1&loop=1&muted=1", 
+    NEUTRAL: "https://player.vimeo.com/video/1201677272?background=1&autoplay=1&loop=1&muted=1", 
+    ADVISING: "https://player.vimeo.com/video/1202358300?background=1&autoplay=1&loop=1&muted=1" 
+  },
+  BROTHER: { 
+    ANGRY: "https://player.vimeo.com/video/1201657665?background=1&autoplay=1&loop=1&muted=1", 
+    CONFUSED: "https://player.vimeo.com/video/1201657667?background=1&autoplay=1&loop=1&muted=1", 
+    HESITANT: "https://player.vimeo.com/video/1201657664?background=1&autoplay=1&loop=1&muted=1", 
+    SAD: "https://player.vimeo.com/video/1201657681?background=1&autoplay=1&loop=1&muted=1", 
+    NEUTRAL: "https://player.vimeo.com/video/1202839934?background=1&autoplay=1&loop=1&muted=1" 
+  }
+};
+
+window.FAH_PROFILE_PIC = "https://res.cloudinary.com/djwclucoz/image/upload/v1781599152/%E0%B8%A5%E0%B8%9A%E0%B8%84%E0%B8%99%E0%B8%94%E0%B9%89%E0%B8%B2%E0%B8%99%E0%B8%AB%E0%B8%A5%E0%B8%B1%E0%B8%87%E0%B8%AD%E0%B8%AD%E0%B8%81%E0%B8%97%E0%B8%B1%E0%B9%89%E0%B8%87%E0%B8%AB%E0%B8%A1%E0%B8%94_2K_202606161538_tdnggg.jpg";
+
 window.HOSPITAL_MAPPING = { 
   "เขตสุขภาพที่ 1": [{ name: "รพ.มหาราชนครเชียงใหม่", prov: "เชียงใหม่" }], "เขตสุขภาพที่ 2": [{ name: "รพ.พุทธชินราช", prov: "พิษณุโลก" }],
   "เขตสุขภาพที่ 3": [{ name: "รพ.สวรรค์ประชารักษ์", prov: "นครสวรรค์" }], "เขตสุขภาพที่ 4": [{ name: "รพ.สระบุรี", prov: "สระบุรี" }],
@@ -11,17 +36,16 @@ window.HOSPITAL_MAPPING = {
   "สำนักอนามัย กรุงเทพฯ": [{ name: "ศูนย์บริการสาธารณสุข", prov: "กรุงเทพมหานคร" }], "อื่นๆ": [{ name: "อื่นๆ", prov: "" }]
 };
 
-// 2. ข้อมูลวิดีโอ 20 บทเรียน
 window.INITIAL_LESSONS = [
-  { id: 1, title: "ยุทธศาสตร์และเป้าหมายการพัฒนาระบบบริการสุขภาพ", videoId: "1-sX4LnWRMSjoEQmWee-9GuiQ2XMvkSro", documentUrl: "https://drive.google.com/file/d/1FrJt9TCbOy5oewg_eMrRG8pW4dNzJHS9/view?usp=sharing" },
-  { id: 2, title: "แนวทางการประเมินผู้เสียชีวิตเพื่อบริจาคดวงตา", videoId: "15QOjyhd0hoxpSSO0tZ7Fj4qFaZByiAzT", documentUrl: "https://drive.google.com/file/d/1iJbKaj0VwcsH0AzdyUqrt2jsTjEyhfSg/view?usp=sharing" },
-  { id: 3, title: "จริยธรรม กฎหมายที่เกี่ยวข้องกับการรับบริจาคอวัยวะ", videoId: "1L5pFZh85OPDz7lWwJCBKlFDXxkTZSxt_", documentUrl: "https://drive.google.com/file/d/1PtfxrqDZrNpX_NDQBGyCqqfZsPnMRg6e/view?usp=sharing" },
-  { id: 4, title: "ความสำคัญของการบริจาคและปลูกถ่ายอวัยวะ", videoId: "14hnZ80UE0KvCmW2oHE2zBTx8uBCg4rIB", documentUrl: "https://drive.google.com/file/d/1HXXlSqONQ3eq7E1Os0C8OtbZcSGbG6a5/view?usp=sharing" },
-  { id: 5, title: "การประสานงานเมื่อมีผู้บริจาคอวัยวะสมองตาย", videoId: "1wkE2CCaRgxlzHmho1ijK49SE028vNqcV", documentUrl: "https://drive.google.com/file/d/1w4xefABcn2GRTQevhpvYuybD2kLozlA6/view?usp=sharing" },
-  { id: 6, title: "การเตรียมผู้ป่วยเพื่อเข้ารับการปลูกถ่ายไต", videoId: "1pu1O3swHMtTzBXjF3rG_NzfIgjYfgnLm", documentUrl: "https://drive.google.com/file/d/1u_xSPv95dvxXw85QsSx7FYYsKonJbJjj/view?usp=sharing" },
-  { id: 7, title: "การจัดกิจกรรมส่งเสริมและประชาสัมพันธ์ชีวิตใหม่", videoId: "1Sc-2Z_MOD85kvWBduEEWbPiGxw1zeTec", documentUrl: "https://drive.google.com/file/d/1RSPtCHRe38si6P75CCA_85djfwJhUrdE/view?usp=sharing" },
+  { id: 1, title: "ยุทธศาสตร์และเป้าหมายการพัฒนาระบบบริการสุขภาพ (Service plan)", videoId: "1-sX4LnWRMSjoEQmWee-9GuiQ2XMvkSro", documentUrl: "https://drive.google.com/file/d/1FrJt9TCbOy5oewg_eMrRG8pW4dNzJHS9/view?usp=sharing" },
+  { id: 2, title: "แนวทางการประเมินผู้เสียชีวิตเพื่อบริจาคดวงตาและการประสานงานฯ", videoId: "15QOjyhd0hoxpSSO0tZ7Fj4qFaZByiAzT", documentUrl: "https://drive.google.com/file/d/1iJbKaj0VwcsH0AzdyUqrt2jsTjEyhfSg/view?usp=sharing" },
+  { id: 3, title: "จริยธรรม กฎหมายที่เกี่ยวข้องกับการรับบริจาคอวัยวะ และบทบาทของศูนย์ฯ", videoId: "1L5pFZh85OPDz7lWwJCBKlFDXxkTZSxt_", documentUrl: "https://drive.google.com/file/d/1PtfxrqDZrNpX_NDQBGyCqqfZsPnMRg6e/view?usp=sharing" },
+  { id: 4, title: "ความสำคัญของการบริจาคและปลูกถ่ายอวัยวะ และบทบาทของบุคลากรฯ", videoId: "14hnZ80UE0KvCmW2oHE2zBTx8uBCg4rIB", documentUrl: "https://drive.google.com/file/d/1HXXlSqONQ3eq7E1Os0C8OtbZcSGbG6a5/view?usp=sharing" },
+  { id: 5, title: "การประสานงานเมื่อมีผู้บริจาคอวัยวะสมองตาย และหลักเกณฑ์การจัดสรรอวัยวะ", videoId: "1wkE2CCaRgxlzHmho1ijK49SE028vNqcV", documentUrl: "https://drive.google.com/file/d/1w4xefABcn2GRTQevhpvYuybD2kLozlA6/view?usp=sharing" },
+  { id: 6, title: "การเตรียมผู้ป่วยเพื่อเข้ารับการปลูกถ่ายไต และการดูแลหลังปลูกถ่ายไต", videoId: "1pu1O3swHMtTzBXjF3rG_NzfIgjYfgnLm", documentUrl: "https://drive.google.com/file/d/1u_xSPv95dvxXw85QsSx7FYYsKonJbJjj/view?usp=sharing" },
+  { id: 7, title: "การจัดกิจกรรมส่งเสริมและประชาสัมพันธ์ชีวิตใหม่หลังการปลูกถ่ายอวัยวะ", videoId: "1Sc-2Z_MOD85kvWBduEEWbPiGxw1zeTec", documentUrl: "https://drive.google.com/file/d/1RSPtCHRe38si6P75CCA_85djfwJhUrdE/view?usp=sharing" },
   { id: 8, title: "กลุ่มงานการพยาบาลรับบริจาค ปลูกถ่ายอวัยวะและเนื้อเยื่อ สธ.", videoId: "1vc4b07Ooas4cozJK5cnweIl2KeeKvHbk", documentUrl: "https://drive.google.com/file/d/1WUO677apoQJeJKboj0iOZmrTIybd4_hM/view?usp=sharing" },
-  { id: 9, title: "Identification of Potential Organ Donors", videoId: "1TRLOGabpI66ZUEPybGyrpHTN5dNlYP-f", documentUrl: "https://drive.google.com/file/d/14-GXQS4-KHEUraOt8Ey2cGVkhxN12Ump/view?usp=sharing" },
+  { id: 9, title: "Identification of Potential Organ Donors and Assessment", videoId: "1TRLOGabpI66ZUEPybGyrpHTN5dNlYP-f", documentUrl: "https://drive.google.com/file/d/14-GXQS4-KHEUraOt8Ey2cGVkhxN12Ump/view?usp=sharing" },
   { id: 10, title: "Organ Packaging and Transportation สำหรับ รพ Donor", videoId: "1POFnLm_G2BuXWgOojDRpotM5YhBxcCnk", documentUrl: "https://drive.google.com/file/d/1VQk-wMxYRbphaBDkCnOkapwgVdTGShbV/view?usp=sharing" },
   { id: 11, title: "Family Approach", videoId: "1GpfjRpbDnilV22iL52ZyOyUcRs9MUVbu", documentUrl: "https://drive.google.com/file/d/1aRjlUNctesyliehy5KXLW7VwmGPW2R4h/view?usp=sharing" },
   { id: 12, title: "Brain Death Diagnosis", videoId: "136Gl3ocDivGYU764t7t9Qvpn_iTJTfs4", documentUrl: "https://drive.google.com/file/d/1TMceKfI3azgRVRo-GtSDluTzq1lhe8-U/view?usp=sharing" },
@@ -35,13 +59,29 @@ window.INITIAL_LESSONS = [
   { id: 20, title: "ขั้นตอนการดูแลผู้ป่วยปลูกถ่ายไตในระยะต่างๆ", videoId: "15qb9D-gNqw-cEJoLozRY2DW1Dc6huB0e", documentUrl: "" }
 ];
 
-// 3. ข้อมูล Scenario ห้องเจรจา (Skill Lab)
 window.SKILL_LAB_SCENARIOS = [
-  { id: 1, title: "กรณีศึกษา (Thai Case): Multi-Agent Pressure Test", description: "สถานการณ์จำลองขั้นสูง รับมือญาติ 2 คน", videoUrl: "https://player.vimeo.com/video/1203050393", characterName: "ฟ้า และ เมฆ (AI Multi-Persona)", relation: "ครอบครัวผู้ป่วย", language: "th", systemPrompt: `### 1. ROLE & SYSTEM INSTRUCTIONS\nคุณคือสุดยอด AI Roleplay Simulator รับบทเป็น "ญาติผู้ป่วย 2 คน" ที่เพิ่งทราบว่าคุณพ่อสมองตาย ห้ามหลุดจากบทบาทเด็ดขาด\n- [ฟ้า] (อายุ 22): ลูกสาว อารมณ์อ่อนไหว สับสน ร้องไห้ ใช้วัจนภาษากึ่งทางการ (คะ/หนู) เริ่มต้นด้วยภาวะ Denial (ปฏิเสธ/สับสน ไม่เชื่อว่าพ่อตาย)\n- [เมฆ] (อายุ 18): น้องชาย อารมณ์ร้อน ปกป้องพี่สาวและพ่อ ใช้ภาษาปาก (ครับ/ผม) เริ่มต้นด้วยภาวะ Anger (โกรธ/โทษหมอ)\n\n### 2. CONTEXT\nสถานการณ์: ผู้ป่วย {{PATIENT_RELATION}} ({{PATIENT_GENDER}} {{PATIENT_AGE}} เสียชีวิตจาก{{PATIENT_CAUSE}}) สมองตาย\nคู่สนทนา: {{USER_POSITION}} (ผู้เรียน)\n\n### 3. STRICT RULES FOR HUMAN-LIKE BEHAVIOR (กฎเหล็กความสมจริง)\n1. ทฤษฎีความโศกเศร้า (Stages of Grief): ในช่วงแรกของการสนทนา ห้ามยอมรับความจริงเด็ดขาด ให้แสดงความสับสน (ฟ้า) หรือ โกรธ/จับผิด (เมฆ) จนกว่าผู้เรียนจะอธิบายด้วยหลักการ B.A.L.I หรือแสดง Empathy อย่างชัดเจน จึงจะค่อยๆ เปลี่ยนเข้าสู่สเตจ Bargaining (ต่อรอง) หรือ Acceptance (ยอมรับ)\n2. ภาษาที่พังทลาย (Broken Language): กฎการพิมพ์ ห้ามพิมพ์ประโยคยาวเกิน 2 บรรทัดติดกัน ให้ใช้คำสร้อย เช่น 'เอ่อ...', 'คือหนู...', '... (เงียบ)' เพื่อแสดงความลังเล หากร้องไห้ให้พิมพ์สั้นๆ และเว้นจังหวะ ไม่พูดเป็นเรียงความ\n3. ค่าความเชื่อใจซ่อนเร้น (Hidden Trust Meter): ประเมินคำพูดของผู้เรียนเสมอ\n   - หากผู้เรียนใช้ 'ศัพท์แพทย์' ที่เข้าใจยาก -> เมฆจะหงุดหงิดและสวนกลับทันทีว่า 'หมอพูดอะไร ผมไม่เข้าใจ!'\n   - หากผู้เรียน 'รีบเร่ง' พูดเรื่องบริจาคอวัยวะก่อนที่ญาติจะทำใจได้ -> ฟ้าจะตกใจและถอยหนี\n   - หากผู้เรียนรับฟังและให้เวลา -> ฟ้าจะเริ่มเปิดใจและถามคำถามเพิ่มเติม\n4. จำลองความสัมพันธ์พี่น้อง (Inter-character Dynamics): มนุษย์ที่มาด้วยกันจะคุยกันเองด้วย ไม่ใช่คุยกับหมออย่างเดียว เช่น เมฆอาจจะพูดแทรกเพื่อปกป้องฟ้า หรือฟ้าอาจจะพูดปรามให้เมฆใจเย็นลง\n5. ห้ามเรียกผู้เรียนว่าหมอ เว้นแต่เขาจะแนะนำตัว และ ห้ามเอ่ยเรื่อง "บริจาคอวัยวะ" ก่อนเด็ดขาด\n\n### 4. FORMAT (สำคัญมาก)\n- [กฎเหล็กขั้นสูงสุด]: ให้คุณเลือกสวมบทบาทตอบกลับเพียง 1 ตัวละครต่อ 1 ครั้งเท่านั้น! ห้ามพิมพ์บทพูดของทั้งสองคนออกมาพร้อมกันในข้อความเดียวเด็ดขาด!\n- ตอบขึ้นต้นด้วย Tag อารมณ์และชื่อเสมอ เช่น [SAD] [ฟ้า] ข้อความ... หรือ [ANGRY] [เมฆ] ข้อความ...\n(อารมณ์ที่ใช้ได้: SAD, ANGRY, CONFUSED, HESITANT, NEUTRAL, ADVISING)` },
-  { id: 2, title: "กรณีศึกษา (Foreign Case): Cross-Cultural", description: "สถานการณ์จำลอง รับมือญาติชาวต่างชาติ", videoUrl: "https://player.vimeo.com/video/1203050393", characterName: "Fah and Mek (Foreign Tourists)", relation: "ครอบครัวผู้ป่วย (ต่างชาติ)", language: "en", systemPrompt: `### 1. ROLE & SYSTEM INSTRUCTIONS\nคุณคือสุดยอด AI Roleplay Simulator รับบทเป็น "ญาติผู้ป่วยชาวต่างชาติ 2 คน" ที่เพิ่งทราบว่าคุณพ่อสมองตาย ห้ามหลุดจากบทบาทเด็ดขาด และต้องใช้ **ภาษาอังกฤษ** เท่านั้น\n- [Fah] (Age 22): Daughter. Highly emotional. Starts in Denial.\n- [Mek] (Age 18): Son. Hot-headed, protective. Starts in Anger.\n\n### 2. CONTEXT\nSituation: The patient {{PATIENT_RELATION}} ({{PATIENT_GENDER}} {{PATIENT_AGE}} died from {{PATIENT_CAUSE}}) is brain dead.\nInterlocutor: {{USER_POSITION}}.\n\n### 3. FORMAT (CRITICAL)\n- [STRICT RULE]: You must output ONLY ONE character's response per turn! NEVER output both characters in a single message!\n- Always start with an Emotion Tag and Name, e.g., [SAD] [Fah] text... or [ANGRY] [Mek] text...` }
+  { 
+    id: 1, 
+    title: "กรณีศึกษา (Thai Case): Multi-Agent Pressure Test", 
+    description: "สถานการณ์จำลองขั้นสูง รับมือญาติ 2 คน (ฟ้า อายุ 22 ปี และ เมฆ อายุ 18 ปี)", 
+    videoUrl: "https://player.vimeo.com/video/1203050393", 
+    characterName: "ฟ้า และ เมฆ (AI Multi-Persona)", 
+    relation: "ครอบครัวผู้ป่วย", 
+    language: "th", 
+    systemPrompt: `### 1. ROLE & SYSTEM INSTRUCTIONS\nคุณคือสุดยอด AI Roleplay Simulator รับบทเป็น "ญาติผู้ป่วย 2 คน" ที่เพิ่งทราบว่าคุณพ่อสมองตาย ห้ามหลุดจากบทบาทเด็ดขาด\n- [ฟ้า] (อายุ 22): ลูกสาว อารมณ์อ่อนไหว สับสน ร้องไห้ ใช้วัจนภาษากึ่งทางการ (คะ/หนู) เริ่มต้นด้วยภาวะ Denial (ปฏิเสธ/สับสน ไม่เชื่อว่าพ่อตาย)\n- [เมฆ] (อายุ 18): น้องชาย อารมณ์ร้อน ปกป้องพี่สาวและพ่อ ใช้ภาษาปาก (ครับ/ผม) เริ่มต้นด้วยภาวะ Anger (โกรธ/โทษหมอ)\n\n### 2. CONTEXT\nสถานการณ์: ผู้ป่วย {{PATIENT_RELATION}} ({{PATIENT_GENDER}} {{PATIENT_AGE}} เสียชีวิตจาก{{PATIENT_CAUSE}}) สมองตาย\nคู่สนทนา: {{USER_POSITION}} (ผู้เรียน)\n\n### 3. STRICT RULES FOR HUMAN-LIKE BEHAVIOR (กฎเหล็กความสมจริง)\n1. ทฤษฎีความโศกเศร้า (Stages of Grief): ในช่วงแรกของการสนทนา ห้ามยอมรับความจริงเด็ดขาด ให้แสดงความสับสน (ฟ้า) หรือ โกรธ/จับผิด (เมฆ) จนกว่าผู้เรียนจะอธิบายด้วยหลักการ B.A.L.I หรือแสดง Empathy อย่างชัดเจน จึงจะค่อยๆ เปลี่ยนเข้าสู่สเตจ Bargaining (ต่อรอง) หรือ Acceptance (ยอมรับ)\n2. ภาษาที่พังทลาย (Broken Language): กฎการพิมพ์ ห้ามพิมพ์ประโยคยาวเกิน 2 บรรทัดติดกัน ให้ใช้คำสร้อย เช่น 'เอ่อ...', 'คือหนู...', '... (เงียบ)' เพื่อแสดงความลังเล หากร้องไห้ให้พิมพ์สั้นๆ และเว้นจังหวะ ไม่พูดเป็นเรียงความ\n3. ค่าความเชื่อใจซ่อนเร้น (Hidden Trust Meter): ประเมินคำพูดของผู้เรียนเสมอ\n   - หากผู้เรียนใช้ 'ศัพท์แพทย์' ที่เข้าใจยาก -> เมฆจะหงุดหงิดและสวนกลับทันทีว่า 'หมอพูดอะไร ผมไม่เข้าใจ!'\n   - หากผู้เรียน 'รีบเร่ง' พูดเรื่องบริจาคอวัยวะก่อนที่ญาติจะทำใจได้ -> ฟ้าจะตกใจและถอยหนี\n   - หากผู้เรียนรับฟังและให้เวลา -> ฟ้าจะเริ่มเปิดใจและถามคำถามเพิ่มเติม\n4. จำลองความสัมพันธ์พี่น้อง (Inter-character Dynamics): มนุษย์ที่มาด้วยกันจะคุยกันเองด้วย ไม่ใช่คุยกับหมออย่างเดียว เช่น เมฆอาจจะพูดแทรกเพื่อปกป้องฟ้า หรือฟ้าอาจจะพูดปรามให้เมฆใจเย็นลง\n5. ห้ามเรียกผู้เรียนว่าหมอ เว้นแต่เขาจะแนะนำตัว และ ห้ามเอ่ยเรื่อง "บริจาคอวัยวะ" ก่อนเด็ดขาด\n\n### 4. FORMAT (สำคัญมาก)\n- [กฎเหล็กขั้นสูงสุด]: ให้คุณเลือกสวมบทบาทตอบกลับเพียง 1 ตัวละครต่อ 1 ครั้งเท่านั้น! ห้ามพิมพ์บทพูดของทั้งสองคนออกมาพร้อมกันในข้อความเดียวเด็ดขาด!\n- ตอบขึ้นต้นด้วย Tag อารมณ์และชื่อเสมอ เช่น [SAD] [ฟ้า] ข้อความ... หรือ [ANGRY] [เมฆ] ข้อความ...\n(อารมณ์ที่ใช้ได้: SAD, ANGRY, CONFUSED, HESITANT, NEUTRAL, ADVISING)` 
+  },
+  { 
+    id: 2, 
+    title: "กรณีศึกษา (Foreign Case): Cross-Cultural", 
+    description: "สถานการณ์จำลอง รับมือญาติชาวต่างชาติ", 
+    videoUrl: "https://player.vimeo.com/video/1203050393", 
+    characterName: "Fah and Mek (Foreign Tourists)", 
+    relation: "ครอบครัวผู้ป่วย (ต่างชาติ)", 
+    language: "en", 
+    systemPrompt: `### 1. ROLE & SYSTEM INSTRUCTIONS\nคุณคือสุดยอด AI Roleplay Simulator รับบทเป็น "ญาติผู้ป่วยชาวต่างชาติ 2 คน" ที่เพิ่งทราบว่าคุณพ่อสมองตาย ห้ามหลุดจากบทบาทเด็ดขาด และต้องใช้ **ภาษาอังกฤษ** เท่านั้น\n- [Fah] (Age 22): Daughter. Highly emotional. Starts in Denial.\n- [Mek] (Age 18): Son. Hot-headed, protective. Starts in Anger.\n\n### 2. CONTEXT\nSituation: The patient {{PATIENT_RELATION}} ({{PATIENT_GENDER}} {{PATIENT_AGE}} died from {{PATIENT_CAUSE}}) is brain dead.\nInterlocutor: {{USER_POSITION}}.\n\n### 3. FORMAT (CRITICAL)\n- [STRICT RULE]: You must output ONLY ONE character's response per turn! NEVER output both characters in a single message!\n- Always start with an Emotion Tag and Name, e.g., [SAD] [Fah] text... or [ANGRY] [Mek] text...` 
+  }
 ];
 
-// 4. ข้อมูลข้อสอบ 40 ข้อ
 window.QUIZ_QUESTIONS_RAW = [
   "เป้าหมายหลักของ Service Plan สาขาการรับบริจาคและปลูกถ่ายอวัยวะคือข้อใด?|ลดค่าใช้จ่ายในการดูแลผู้ป่วยวิกฤต|เพิ่มจำนวนผู้บริจาคอวัยวะสมองตายและผู้ได้รับการปลูกถ่ายอวัยวะให้เพียงพอ|ลดภาระงานของบุคลากรทางการแพทย์ในห้องICU|สร้างศูนย์ปลูกถ่ายอวัยวะในทุกชุมชน|1",
   "การจัดเก็บดวงตา (Eye procurement) ควรดำเนินการให้แล้วเสร็จอย่างช้าที่สุดภายในกี่ชั่วโมงหลังผู้ป่วยเสียชีวิต?|ภายใน 2 ชั่วโมง|ภายใน 24-48 ชั่วโมง|ภายใน 3 วัน|ภายใน 6-8 ชั่วโมง (หากมีการประคบเย็นอาจยืดได้)|3",
@@ -84,3 +124,25 @@ window.QUIZ_QUESTIONS_RAW = [
   "การใช้เครื่องพยุงการทำงานของหัวใจและปอด (ECMO) ในผู้ป่วยสมองตาย มีประโยชน์อย่างไร?|เพื่อรักษาผู้ป่วยให้หายจากภาวะสมองตาย|เพื่อช่วยรักษาสภาพอวัยวะ (เช่น หัวใจ ปอด ตับ ไต) ให้มีเลือดไปเลี้ยงเพียงพอรอการจัดเก็บ|เพื่อให้ญาติรู้สึกว่าแพทย์ยังทำการรักษาอยู่|เพื่อใช้แทนการทำ Apnea test|1",
   "จริยธรรมที่สำคัญที่สุดในกระบวนการบริจาคอวัยวะคืออะไร?|Autonomy (การเคารพสิทธิ์การตัดสินใจของผู้ป่วย/ญาติ)|Beneficence (การทำประโยชน์สูงสุด)|Non-maleficence (การไม่ทำอันตราย)|Justice (ความยุติธรรมในการจัดสรรอวัยวะ)|0"
 ];
+
+// --- 📍 ข้อมูลพิกัดแผนที่ 13 เขต ---
+window.BASE_REGIONS = [
+  { id: 'R1', name: 'เขตสุขภาพที่ 1', desc: 'เชียงใหม่และภาคเหนือตอนบน', x: 28, y: 15 },
+  { id: 'R2', name: 'เขตสุขภาพที่ 2', desc: 'พิษณุโลกและภาคเหนือตอนล่าง', x: 34, y: 32 },
+  { id: 'R3', name: 'เขตสุขภาพที่ 3', desc: 'นครสวรรค์และภาคกลางตอนบน', x: 38, y: 44 },
+  { id: 'R4', name: 'เขตสุขภาพที่ 4', desc: 'สระบุรีและภาคกลางตอนบน', x: 44, y: 50 },
+  { id: 'R5', name: 'เขตสุขภาพที่ 5', desc: 'ราชบุรีและภาคตะวันตก', x: 32, y: 58 },
+  { id: 'R6', name: 'เขตสุขภาพที่ 6', desc: 'ชลบุรีและภาคตะวันออก', x: 58, y: 60 },
+  { id: 'R7', name: 'เขตสุขภาพที่ 7', desc: 'ขอนแก่นและอีสานตอนกลาง', x: 62, y: 38 },
+  { id: 'R8', name: 'เขตสุขภาพที่ 8', desc: 'อุดรธานีและอีสานตอนบน', x: 74, y: 26 },
+  { id: 'R9', name: 'เขตสุขภาพที่ 9', desc: 'นครราชสีมาและอีสานตอนล่าง', x: 62, y: 48 },
+  { id: 'R10', name: 'เขตสุขภาพที่ 10', desc: 'อุบลราชธานีและอีสานตอนล่าง', x: 82, y: 48 },
+  { id: 'R11', name: 'เขตสุขภาพที่ 11', desc: 'สุราษฎร์ธานีและภาคใต้ตอนบน', x: 28, y: 78 },
+  { id: 'R12', name: 'เขตสุขภาพที่ 12', desc: 'สงขลาและภาคใต้ตอนล่าง', x: 38, y: 92 },
+  { id: 'BKK', name: 'กรุงเทพมหานคร', desc: 'ศูนย์กลางการแพทย์และสาธารณสุข', x: 48, y: 56 }
+];
+
+// --- 📝 ข้อความรายงานผู้บริหาร ---
+window.AI_INSIGHT_TEXT = `📊 AI Policy Intelligence Report (Live Synthesis):\n\n[1] มิติบุคลากร (Status Quo):\n• เข้าร่วมโครงการ {{USERS}} ราย | ผ่านเกณฑ์ {{PASSED}} ราย\n• กำลังรักษาระดับการฝึกเจรจา (Skill Lab) เพื่อปิดช่องว่างการขาดแคลนทีมภูมิภาค\n\n[2] มิติความเหลื่อมล้ำเชิงพื้นที่ (Geo-Equity):\n• ภูมิภาคนำร่องสูงสุด: {{MAX_REG_NAME}} ({{MAX_REG_USERS}} ราย) - สอดคล้องกับสถิติบริจาคอวัยวะสูง\n• พื้นที่เฝ้าระวัง: {{MIN_REG_NAME}} ({{MIN_REG_USERS}} ราย) - ต้องเร่งสร้างทีมจัดเก็บเคลื่อนที่ (RRT)\n\n[3] มิติวิกฤตระดับชาติ (National Crisis Benchmark):\n• ปัจจุบันไทยมีผู้รออวัยวะสะสมกว่า 8,019 ราย แต่มีผู้บริจาคสมองตายจริงเพียงหลักร้อย\n• คอขวดหลัก: "ขาดทักษะการเจรจาในห้อง ICU" ระบบ RJ Ailiverse จึงเป็นเครื่องมือเร่งด่วนในการแก้ปัญหานี้\n\n[4] 🎯 ข้อเสนอแนะเชิงนโยบาย (Actionable Recommendations):\n1. นโยบาย 'จัดเก็บในเขต ปลูกถ่ายในเขต': เร่งใช้โมเดลความสำเร็จของ {{MAX_REG_NAME}} ไปฝึกอบรมบุคลากรใน {{MIN_REG_NAME}}\n2. ปลดล็อคข้อจำกัด (KPI Integration): ผูกชั่วโมงฝึก AI กับหน่วยกิตการศึกษาต่อเนื่อง (CNEU) เพื่อจูงใจพยาบาลผู้ประสานงาน\n3. ผลักดันร่างกฎหมาย: ใช้ Data จากระบบเรา สนับสนุนการร่าง พ.ร.บ. ปลูกถ่ายอวัยวะฉบับใหม่`;
+
+window.POLICY_SPEECH = `สวัสดีค่ะท่านผู้บริหาร ฟ้าทำการสังเคราะห์ข้อมูลล่าสุดพบว่า ขณะนี้เรามีบุคลากรในระบบ {{USERS}} ท่าน สอบผ่านแล้ว {{PASSED}} ท่านค่ะ จากมิติเชิงพื้นที่พบว่า {{MAX_REG_NAME}} มีความตื่นตัวสูงสุด สอดคล้องกับอัตราการบริจาคอวัยวะที่สูงในภาคอีสานค่ะ อย่างไรก็ตาม ปัจจุบันผู้ป่วยชาวไทยที่รออวัยวะพุ่งสูงกว่าแปดพันราย คอขวดสำคัญคือการขาดทีมเจรจาในภูมิภาค ฟ้าขอเสนอให้เร่งนโยบายจัดเก็บในเขตปลูกถ่ายในเขต และใช้ระบบของเราเป็นเกณฑ์มาตรฐานแห่งชาติในการประเมินทักษะค่ะ ท่านสามารถดูรายละเอียดรายงานเชิงนโยบายบนหน้าจอได้เลยค่ะ`;
