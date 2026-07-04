@@ -247,7 +247,7 @@
             setState: (updater) => { 
               state = Object.assign({}, state, typeof updater === 'function' ? updater(state) : updater);
               try { const { currentScreen, loggedInUser, activeTab, currentVideoId, selectedLabId, studySeconds, chatTrigger } = state; 
-                if (!['landing', 'intro', 'welcome', 'auth_wizard'].includes(currentScreen)) { localStorage.setItem('elearning_app_state', JSON.stringify({ currentScreen, loggedInUser, activeTab, currentVideoId, selectedLabId, studySeconds, chatTrigger })); }
+                if (!['landing', 'intro', 'auth_wizard'].includes(currentScreen)) { localStorage.setItem('elearning_app_state', JSON.stringify({ currentScreen, loggedInUser, activeTab, currentVideoId, selectedLabId, studySeconds, chatTrigger })); }
               } catch(e) {}
               listeners.forEach(l => l(state)); 
             },
@@ -291,7 +291,7 @@
               } 
           },
 
-          handleLogout: () => { const { loggedInUser: u, studySeconds: s, liveConfig: lc } = globalStore.getState(); if (u) { const up = { ...u, studySeconds: s, progress: calcProgress(s, (lc?.hours ?? 1) * 3600) }; actions.enqueueSync({ action: 'upsertUser', user: up }); actions.saveUserToDB(up); } globalStore.setState({ loggedInUser: null, studySeconds: 0, isLiveCheckedIn: false, currentSessionId: null, currentScreen: 'welcome' }); localStorage.removeItem('elearning_app_state'); actions.showMsg('ออกจากระบบแล้ว'); },
+          handleLogout: () => { const { loggedInUser: u, studySeconds: s, liveConfig: lc } = globalStore.getState(); if (u) { const up = { ...u, studySeconds: s, progress: calcProgress(s, (lc?.hours ?? 1) * 3600) }; actions.enqueueSync({ action: 'upsertUser', user: up }); actions.saveUserToDB(up); } globalStore.setState({ loggedInUser: null, studySeconds: 0, isLiveCheckedIn: false, currentSessionId: null, currentScreen: 'intro' }); localStorage.removeItem('elearning_app_state'); actions.showMsg('ออกจากระบบแล้ว'); },
           submitQuiz: () => { const { quizData, loggedInUser: u, dbUsers } = globalStore.getState(); if (quizData.isFinished) return; const score = calculateScore(quizData.questions, quizData.answers); const isPretest = quizData.type === 'pretest'; const isPassed = score >= Math.ceil(quizData.questions.length * 0.8); const upUser = { ...u, ...(isPretest ? { pretest: `${score}/${quizData.questions.length}` } : { posttest: `${score}/${quizData.questions.length}`, status: isPassed ? 'ผ่าน' : 'ไม่ผ่าน' }) }; actions.saveUserToDB(upUser); actions.enqueueSync({ action: 'upsertUser', user: upUser }); globalStore.setState({ loggedInUser: upUser, dbUsers: dbUsers.map(x => x.id === upUser.id ? upUser : x), quizData: { ...quizData, score, isFinished: true }, currentScreen: isPretest ? 'quiz_result' : isPassed ? 'cert_confirm' : 'quiz_fail' }); },
           startSkillLabRoleplay: (scenario) => globalStore.setState({ chatTrigger: { id: Date.now(), scenario } })
         };
@@ -735,7 +735,7 @@
             };
           }, [isDragging]);
 
-          if (['welcome', 'auth_wizard', 'intro', 'landing'].includes(store.currentScreen)) return null;
+          if (['auth_wizard', 'intro', 'landing'].includes(store.currentScreen)) return null;
 
           const scenario = SKILL_LAB_SCENARIOS.find(s => s.id === store.selectedLabId);
           
@@ -1252,8 +1252,8 @@
                             
                             {/* Action Buttons for Normal Users */}
                             <div className="pt-4 w-full relative z-10 flex flex-col sm:flex-row gap-3 md:gap-4 animate-in slide-in-from-bottom-4 fade-in no-print">
-                              <button onClick={() => { globalStore.setState({ interactionMode: 'chat' }); actions.nav('welcome'); }} className="flex-1 py-3.5 md:py-4 px-4 bg-white/40 backdrop-blur-xl border border-white/50 hover:bg-white/60 text-slate-800 rounded-2xl font-bold text-sm md:text-base transition-all shadow-[0_8px_20px_rgba(0,0,0,0.1)] flex items-center justify-center gap-2 active:scale-95 group"><SafeIcon name="MessageSquare" size={20} className="group-hover:scale-110 transition-transform" /> 💬 พิมพ์แชทสนทนา</button>
-                              <GradientButton onClick={async () => { try { await navigator.mediaDevices.getUserMedia({ audio: true }).then(s=>s.getTracks().forEach(t=>t.stop())); globalStore.setState({ interactionMode: 'voice' }); actions.nav('welcome'); } catch (err) { globalStore.setState({ interactionMode: 'chat' }); actions.nav('welcome'); } }} className="flex-1 py-3.5 md:py-4 px-4 text-sm md:text-base rounded-2xl !shadow-[0_10px_25px_rgba(0,185,0,0.3)] border border-line-400"><SafeIcon name="Mic" size={20} className="animate-pulse" /> 🎙️ เปิดไมค์คุย (VAD)</GradientButton>
+                              <button onClick={() => { globalStore.setState({ interactionMode: 'chat' }); actions.nav('auth_wizard'); }} className="flex-1 py-3.5 md:py-4 px-4 bg-white/40 backdrop-blur-xl border border-white/50 hover:bg-white/60 text-slate-800 rounded-2xl font-bold text-sm md:text-base transition-all shadow-[0_8px_20px_rgba(0,0,0,0.1)] flex items-center justify-center gap-2 active:scale-95 group"><SafeIcon name="MessageSquare" size={20} className="group-hover:scale-110 transition-transform" /> 💬 พิมพ์แชทสนทนา</button>
+                              <GradientButton onClick={async () => { try { await navigator.mediaDevices.getUserMedia({ audio: true }).then(s=>s.getTracks().forEach(t=>t.stop())); globalStore.setState({ interactionMode: 'voice' }); actions.nav('auth_wizard'); } catch (err) { globalStore.setState({ interactionMode: 'chat' }); actions.nav('auth_wizard'); } }} className="flex-1 py-3.5 md:py-4 px-4 text-sm md:text-base rounded-2xl !shadow-[0_10px_25px_rgba(0,185,0,0.3)] border border-line-400"><SafeIcon name="Mic" size={20} className="animate-pulse" /> 🎙️ เปิดไมค์คุย (VAD)</GradientButton>
                             </div>
                             
                             {/* The Executive Hook Button */}
@@ -1502,7 +1502,7 @@
 
               return (
                 <div className="flex flex-col h-full animate-in fade-in slide-in-from-right-8 justify-center">
-                  <button onClick={() => actions.nav('welcome')} className="text-slate-700 hover:text-slate-900 flex items-center gap-2 font-bold transition-colors w-fit mb-8 text-sm active:scale-95 bg-white/40 border border-white/60 backdrop-blur-md px-4 py-2 rounded-full shadow-sm"><SafeIcon name="ArrowLeft" size={16} /> กลับ</button>
+                  <button onClick={() => actions.nav('intro')} className="text-slate-700 hover:text-slate-900 flex items-center gap-2 font-bold transition-colors w-fit mb-8 text-sm active:scale-95 bg-white/40 border border-white/60 backdrop-blur-md px-4 py-2 rounded-full shadow-sm"><SafeIcon name="ArrowLeft" size={16} /> กลับ</button>
                   <div className="mb-6 text-center"><h2 className="text-2xl font-black text-slate-800 mb-2 drop-shadow-sm">ตรวจสอบสิทธิ์</h2><p className="text-slate-700 font-medium text-sm drop-shadow-sm">กรุณาระบุเลขใบประกอบวิชาชีพเพื่อตรวจสอบสถานะ</p></div>
                   <div className="flex-1 flex flex-col">
                     <div className="mb-8">
