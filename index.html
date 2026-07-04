@@ -313,7 +313,7 @@
         }
         function GlobalBackground() {
           return (
-              <><div className="sky-bg" style={{ background: 'linear-gradient(to bottom, #0f172a 0%, #1e40af 30%, #38bdf8 60%, #fcd34d 100%)' }}></div><div className="clouds-wrapper" style={{ opacity: 0.85 }}><div className="cloud-layer layer-1"></div><div className="cloud-layer layer-2"></div><div className="cloud-layer layer-3"></div></div></>
+              <><div className="sky-bg print:hidden" style={{ background: 'linear-gradient(to bottom, #0f172a 0%, #1e40af 30%, #38bdf8 60%, #fcd34d 100%)' }}></div><div className="clouds-wrapper print:hidden" style={{ opacity: 0.85 }}><div className="cloud-layer layer-1"></div><div className="cloud-layer layer-2"></div><div className="cloud-layer layer-3"></div></div></>
           );
         }
         function ScreenWrapper({ children, onBack, iconName, title, subtitle, maxWidth = "max-w-md", textLeft = false }) {
@@ -544,7 +544,7 @@
                 
                 const introMsg = `โหมดจำลองสถานการณ์ ที่นี่คือพื้นที่ปลอดภัยสำหรับฝึกเจรจานะคะ ไม่มีผลต่อคะแนนสอบ เตรียมชมวิดีโอปูเรื่องราวได้เลยค่ะ พร้อมนะคะ?`;
                 const introMsgId = Date.now(); 
-                setMessages([{ id: introMsgId, sender: 'ai', text: introMsg, isVoiceOnly: true, speakerName: 'ฟ้า', isContext: true true }]); 
+                setMessages([{ id: introMsgId, sender: 'ai', text: introMsg, isVoiceOnly: true, speakerName: 'ฟ้า', isContext: true }]); 
                 
                 speakThai(introMsg, () => { 
                     setMessages(prev => prev.map(m => m.id === introMsgId ? { ...m, isVoiceOnly: false } : m)); 
@@ -1060,15 +1060,13 @@
               let rId = null;
               const dept = user.department || '';
               
-              // ตรวจสอบว่าสังกัดอยู่เขตไหน
               if (dept.startsWith('เขตสุขภาพที่ ')) {
                   const num = dept.replace('เขตสุขภาพที่ ', '').trim();
                   rId = `R${num}`;
               } else if (['กรมการแพทย์', 'สำนักการแพทย์ กรุงเทพฯ', 'สำนักอนามัย กรุงเทพฯ', 'อื่นๆ'].includes(dept)) {
-                  rId = 'BKK'; // จัดกลุ่มที่เหลือ/ส่วนกลาง ลงในพื้นที่ กทม.
+                  rId = 'BKK'; 
               }
 
-              // หากพบเขตที่ตรงกัน ให้นับสถิติเพิ่มเข้าไป
               if (rId && regionStats[rId]) {
                   regionStats[rId].users += 1;
                   if (user.status === 'กำลังเรียน') regionStats[rId].learning += 1;
@@ -1138,7 +1136,7 @@
                     </div>
                  </div>
 
-                 {/* The Impact Dashboard Reveal (Executive Modal) */}
+                 {/* The Impact Dashboard Reveal (Executive Modal - Light/Gold Theme) */}
                  {showReport && (
                      <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6 md:p-8 animate-in fade-in zoom-in-95 duration-500 print:p-0 print:bg-white">
                          {/* Dark Overlay (ซ่อนตอนพรินต์) */}
@@ -1194,7 +1192,7 @@
                                          </div>
                                      </div>
 
-                                     {/* Right: Holographic Network Map (Light Theme) */}
+                                     {/* Right: Holographic Network Map (Light Theme + World Map) */}
                                      <div className="w-full lg:w-2/3 relative bg-white border border-slate-200 rounded-3xl aspect-[4/3] sm:aspect-video lg:aspect-auto flex items-center justify-center overflow-hidden shadow-sm group print:aspect-auto print:min-h-[400px]">
                                          
                                          {/* 1. World Map Background (Subtle) */}
@@ -1208,7 +1206,7 @@
                                              <span className="text-[4rem] sm:text-[6rem] lg:text-[7.5rem] font-black text-slate-100 uppercase tracking-[0.25em] select-none drop-shadow-sm">Thailand</span>
                                          </div>
 
-                                         {/* 4. Abstract Thailand SVG Outline (Keeping it as a soft base for nodes) */}
+                                         {/* 4. Abstract Thailand SVG Outline */}
                                          <svg className="absolute inset-0 w-full h-full opacity-5 pointer-events-none z-10" viewBox="0 0 100 100" preserveAspectRatio="none">
                                             <path d="M30,10 L45,10 L50,20 L65,25 L85,25 L90,40 L75,55 L65,60 L55,65 L50,75 L45,95 L35,95 L30,75 L25,60 L35,50 L30,40 Z" fill="#475569" />
                                          </svg>
