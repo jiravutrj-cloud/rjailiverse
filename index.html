@@ -1076,10 +1076,10 @@
              users: acc.users + curr.users, learning: acc.learning + curr.learning, lab: acc.lab + curr.lab, passed: acc.passed + curr.passed
           }), { users: 0, learning: 0, lab: 0, passed: 0 });
 
-          // 🤖 ข้อมูลสำหรับสมองกลวิเคราะห์นโยบาย อัปเดตข้อมูลจริง 🤖
-          const aiInsightText = "📊 สรุปข้อมูลเชิงนโยบายล่าสุด (Data-Driven Insights):\n• วิกฤตการณ์: ผู้ป่วยรอคอยอวัยวะสะสมพุ่งสูงถึง 8,019 ราย (กว่า 93% คือผู้ป่วยรอไต) เพิ่มขึ้นปีละเกือบพันราย\n• ข้อจำกัดเชิงระบบ: แม้ผู้แสดงความจำนงจะเพิ่มขึ้น แต่มีผู้บริจาคก้านสมองตายจริง (Actual Donors) เพียง ~250-545 ราย/ปี เนื่องจากขาดแคลนทีมเจรจาในภูมิภาค\n• ข้อเสนอแนะเชิงยุทธศาสตร์: เร่งขยายทีมจัดเก็บอวัยวะภูมิภาค (RRT) ผนวกกับการใช้ AI (RJ Ailiverse) ฝึกทักษะการเจรจา (Family Approach) เพื่อเพิ่มอัตราความยินยอมจากญาติ ซึ่งเป็นคอขวดที่ใหญ่ที่สุดของประเทศ";
+          // 🤖 ข้อมูลสำหรับสมองกลวิเคราะห์นโยบาย อัปเดตข้อมูลจริงจากปี 2567 🤖
+          const aiInsightText = "📊 สรุปข้อมูลเชิงนโยบายล่าสุด (Data-Driven Insights):\n• วิกฤตการณ์: ผู้ป่วยรอคอยอวัยวะสะสมพุ่งสูงถึง 8,019 ราย (กว่า 93% คือผู้ป่วยรอไต) และเพิ่มขึ้นอย่างต่อเนื่อง\n• คอขวดเชิงระบบ: ประเทศไทยมีผู้บริจาคก้านสมองตายจริง (Actual Donors) เพียง ~250-545 ราย/ปี แม้จะมีความพยายามตั้งศูนย์ปลูกถ่ายเพิ่มขึ้น\n• ข้อเสนอแนะเชิงยุทธศาสตร์: ปัญหาที่แท้จริงไม่ใช่การขาดแคลนเครื่องมือ แต่คือการขาดแคลนบุคลากรที่มีทักษะการเจรจา (Family Approach) ในระดับภูมิภาค RJ Ailiverse จึงถูกออกแบบมาเพื่ออุดช่องโหว่นี้ โดยตั้งเป้าสร้างทักษะระดับประเทศ เพื่อเพิ่มอัตราความยินยอมจากญาติ ซึ่งจะช่วยลดตัวเลขผู้รอคอยได้อย่างเป็นรูปธรรมที่สุด";
           
-          const policySpeech = "สวัสดีค่ะท่านผู้บริหาร ฟ้าอัปเดตข้อมูลสถิติเชิงนโยบายล่าสุดจากสภากาชาดไทยให้รับทราบค่ะ ปัจจุบันเรามีวิกฤตผู้ป่วยรอรับอวัยวะทะลุแปดพันรายแล้ว โดยส่วนใหญ่คือผู้ป่วยรอปลูกถ่ายไต แต่ในแต่ละปี เรามีผู้บริจาคก้านสมองตายจริงเพียงสองถึงห้าร้อยรายเท่านั้น ช่องว่างนี้มหาศาลมากค่ะ ฟ้าขอเสนอให้เร่งผลักดันการใช้ระบบ เอไอลิเวิร์ส ฝึกอบรมทักษะการเจรจาให้กับพยาบาลทั่วประเทศ เพื่อเพิ่มอัตราความยินยอมจากญาติ ผนวกกับการขยายทีมศัลยแพทย์จัดเก็บอวัยวะในภูมิภาค เพื่อเปลี่ยนความหวังของผู้ป่วย ให้กลายเป็นชีวิตใหม่ได้อย่างแท้จริงค่ะ";
+          const policySpeech = "สวัสดีค่ะท่านผู้บริหาร ฟ้าอัปเดตข้อมูลเชิงนโยบายล่าสุดจากสภากาชาดไทยให้รับทราบค่ะ ปัจจุบันเรากำลังเผชิญวิกฤตผู้ป่วยรอรับอวัยวะที่ทะลุ 8,000 รายไปแล้ว โดยส่วนใหญ่คือผู้ป่วยรอปลูกถ่ายไต แต่ในแต่ละปี เรากลับมีผู้บริจาคก้านสมองตายจริงเพียงแค่ 250 ถึง 500 กว่ารายเท่านั้น คอขวดที่สำคัญที่สุดในระบบตอนนี้ ไม่ใช่เรื่องของอุปกรณ์การแพทย์ค่ะ แต่คือการขาดแคลนทักษะการเจรจาเพื่อขอรับบริจาคอวัยวะอย่างเข้าถึงจิตใจญาติ หรือ Family Approach ในโรงพยาบาลระดับภูมิภาค ฟ้าขอเสนอให้เราเร่งผลักดันการใช้ระบบ อาร์เจ เอไอลิเวิร์ส เพื่อเป็นโครงสร้างพื้นฐานในการฝึกอบรมทักษะนี้ให้กับพยาบาลทั่วประเทศ เพื่อทลายคอขวดนี้และเปลี่ยนความหวังของผู้ป่วยกว่าแปดพันชีวิต ให้กลายเป็นความจริงค่ะ";
 
           const [typedInsight, setTypedInsight] = useState("");
 
@@ -1201,6 +1201,13 @@
                                              </div>
                                          </div>
 
+                                         <div className="bg-emerald-900/40 print-bg-white p-4 rounded-2xl border border-emerald-500/50 print-border-gold backdrop-blur-sm flex items-center justify-between">
+                                             <div className="flex items-center gap-2 text-emerald-400 print-text-dark font-bold"><SafeIcon name="CheckCircle" size={18}/> สอบผ่านแล้ว</div>
+                                             <div className="text-2xl font-black text-emerald-400 print-text-dark">{totalStats.passed.toLocaleString()}</div>
+                                         </div>
+
+                                         <p className="text-xs text-slate-500 print-text-dark font-medium italic mt-2">"Integrating Google's Gemini to democratize high-fidelity clinical training across all 12 Public Health Regions and Bangkok."</p>
+
                                          {/* 🌟 PROACTIVE AI EXECUTIVE INSIGHT BOX 🌟 */}
                                          <div className="mt-auto bg-gradient-to-br from-indigo-900/90 to-slate-900/90 print-bg-white p-5 rounded-2xl border border-indigo-500/50 print-border-gold shadow-[0_0_20px_rgba(99,102,241,0.3)] print-shadow-none relative overflow-hidden backdrop-blur-md">
                                              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-indigo-400 to-transparent animate-pulse no-print"></div>
@@ -1233,7 +1240,7 @@
                                          {/* Global Connectivity Background (100% Opacity) */}
                                          <div className="absolute inset-0 z-0 no-print" style={{ backgroundImage: 'url("https://res.cloudinary.com/djwclucoz/image/upload/v1783149499/Pngtree_global_connectivity_and_technical_networks_15770649_1_h9ggdv.jpg")', backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat', opacity: 1 }}></div>
 
-                                         {/* THAILAND Watermark Logo (Bottom Right) */}
+                                         {/* THAILAND Watermark Logo (Bottom Right, Small) */}
                                          <div className="absolute bottom-4 right-6 pointer-events-none z-10 opacity-60 no-print">
                                              <span className="text-4xl font-black text-white/50 uppercase tracking-[0.3em] select-none drop-shadow-sm">THAILAND</span>
                                          </div>
@@ -1276,6 +1283,9 @@
                                             )}
                                          </div>
                                          
+                                         {/* Guide Text */}
+                                         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/40 backdrop-blur-md px-4 py-1.5 rounded-full border border-slate-600/50 text-[10px] md:text-xs text-slate-300 font-medium no-print pointer-events-none">Hover or tap on nodes to view regional metrics</div>
+
                                      </div>
                                  </div>
 
@@ -1810,7 +1820,6 @@
              switch (store.currentScreen) {
                  case 'landing': return <LandingScreen store={store} actions={actions} />;
                  case 'intro': return <IntroScreen store={store} actions={actions} />;
-                 case 'welcome': return <WelcomeScreen store={store} actions={actions} />;
                  case 'auth_wizard': return <AuthWizard store={store} actions={actions} />;
                  case 'dashboard': return <StudentDashboard store={store} actions={actions} />;
                  case 'quiz': return <QuizScreen store={store} actions={actions} />;
