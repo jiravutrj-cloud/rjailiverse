@@ -544,7 +544,7 @@
                 
                 const introMsg = `โหมดจำลองสถานการณ์ ที่นี่คือพื้นที่ปลอดภัยสำหรับฝึกเจรจานะคะ ไม่มีผลต่อคะแนนสอบ เตรียมชมวิดีโอปูเรื่องราวได้เลยค่ะ พร้อมนะคะ?`;
                 const introMsgId = Date.now(); 
-                setMessages([{ id: introMsgId, sender: 'ai', text: introMsg, isVoiceOnly: true, speakerName: 'ฟ้า', isContext: true }]); 
+                setMessages([{ id: introMsgId, sender: 'ai', text: introMsg, isVoiceOnly: true, speakerName: 'ฟ้า', isContext: true true }]); 
                 
                 speakThai(introMsg, () => { 
                     setMessages(prev => prev.map(m => m.id === introMsgId ? { ...m, isVoiceOnly: false } : m)); 
