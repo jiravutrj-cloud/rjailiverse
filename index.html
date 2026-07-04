@@ -55,6 +55,18 @@
         .pt-safe { padding-top: env(safe-area-inset-top, 20px); }
         .pb-safe { padding-bottom: env(safe-area-inset-bottom, 20px); }
         .top-safe { top: env(safe-area-inset-top, 20px); }
+
+        /* Print Media Styles */
+        @media print {
+            body { background: white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .no-print { display: none !important; }
+            .print-only { display: block !important; }
+            .sky-bg, .clouds-wrapper { display: none !important; }
+            .print-border-gold { border: 2px solid #D4AF37 !important; border-radius: 12px; }
+            .print-text-dark { color: #1e293b !important; }
+            .print-bg-white { background-color: white !important; }
+            .print-shadow-none { box-shadow: none !important; }
+        }
     </style>
 
     <!-- Import Maps -->
@@ -313,17 +325,17 @@
         }
         function GlobalBackground() {
           return (
-              <><div className="sky-bg print:hidden" style={{ background: 'linear-gradient(to bottom, #0f172a 0%, #1e40af 30%, #38bdf8 60%, #fcd34d 100%)' }}></div><div className="clouds-wrapper print:hidden" style={{ opacity: 0.85 }}><div className="cloud-layer layer-1"></div><div className="cloud-layer layer-2"></div><div className="cloud-layer layer-3"></div></div></>
+              <><div className="sky-bg print-bg-white" style={{ background: 'linear-gradient(to bottom, #0f172a 0%, #1e40af 30%, #38bdf8 60%, #fcd34d 100%)' }}></div><div className="clouds-wrapper no-print" style={{ opacity: 0.85 }}><div className="cloud-layer layer-1"></div><div className="cloud-layer layer-2"></div><div className="cloud-layer layer-3"></div></div></>
           );
         }
         function ScreenWrapper({ children, onBack, iconName, title, subtitle, maxWidth = "max-w-md", textLeft = false }) {
           return (
             <div className="flex flex-col items-center justify-center min-h-screen w-full z-10 px-4 py-8 relative text-center">
-              <GlassCard className={`w-full ${maxWidth} p-6 md:p-12 ${textLeft ? 'text-left' : 'text-center'} flex flex-col relative`}>
-                {onBack && (<div className="w-full flex justify-start mb-2 relative z-20"><button onClick={onBack} className="text-slate-600 hover:text-slate-900 transition-colors p-2 -ml-2 rounded-full hover:bg-white/40 flex items-center justify-center bg-white/20 backdrop-blur-md shadow-sm border border-white/40"><SafeIcon name="ArrowLeft" size={20} /></button></div>)}
-                {iconName && (<div className="flex justify-center mb-6 mt-2 relative z-10"><div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-gradient-to-br from-white/60 to-white/30 backdrop-blur-xl text-line-700 flex items-center justify-center shadow-inner border border-white/60"><SafeIcon name="Sparkles" size={32} strokeWidth={1.5} /></div></div>)}
-                {title && <h2 className={`text-2xl md:text-3xl font-extrabold text-slate-800 ${subtitle ? 'mb-2' : 'mb-8'} relative z-10 drop-shadow-sm`}>{title}</h2>}
-                {subtitle && <p className="text-slate-700 font-medium text-xs md:text-sm mb-6 relative z-10 drop-shadow-sm">{subtitle}</p>}
+              <GlassCard className={`w-full ${maxWidth} p-6 md:p-12 ${textLeft ? 'text-left' : 'text-center'} flex flex-col relative print-bg-white print-border-gold print-shadow-none`}>
+                {onBack && (<div className="w-full flex justify-start mb-2 relative z-20 no-print"><button onClick={onBack} className="text-slate-600 hover:text-slate-900 transition-colors p-2 -ml-2 rounded-full hover:bg-white/40 flex items-center justify-center bg-white/20 backdrop-blur-md shadow-sm border border-white/40"><SafeIcon name="ArrowLeft" size={20} /></button></div>)}
+                {iconName && (<div className="flex justify-center mb-6 mt-2 relative z-10"><div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-gradient-to-br from-white/60 to-white/30 backdrop-blur-xl text-line-700 flex items-center justify-center shadow-inner border border-white/60 print-border-gold"><SafeIcon name="Sparkles" size={32} strokeWidth={1.5} /></div></div>)}
+                {title && <h2 className={`text-2xl md:text-3xl font-extrabold text-slate-800 print-text-dark ${subtitle ? 'mb-2' : 'mb-8'} relative z-10 drop-shadow-sm`}>{title}</h2>}
+                {subtitle && <p className="text-slate-700 print-text-dark font-medium text-xs md:text-sm mb-6 relative z-10 drop-shadow-sm">{subtitle}</p>}
                 <div className="relative z-10 w-full">{children}</div>
               </GlassCard>
             </div>
@@ -829,11 +841,9 @@
             </div>
           );
 
-          // 📱 Mobile Shorts UI View (Clean & Floating)
           const shortsModeUI = (
               <div className="fixed inset-0 z-[9999] bg-black flex flex-col animate-in fade-in overflow-hidden">
                   <div className="absolute inset-0 z-0" onClick={() => setIsOpen(false)}>
-                      {/* Dark gradient for text readability ONLY at bottom */}
                       <div className="absolute inset-x-0 bottom-0 h-[65%] bg-gradient-to-t from-black via-black/50 to-transparent z-10 pointer-events-none"></div>
                       
                       {isChaos && <div className="absolute inset-0 bg-rose-500/20 mix-blend-overlay z-10 pointer-events-none animate-pulse"></div>}
@@ -844,7 +854,6 @@
                       }
                   </div>
 
-                  {/* Top Navigation Floating (Room Switching) */}
                   <div className="absolute top-safe pt-2 left-0 right-0 px-4 flex justify-between items-center z-20 overflow-x-auto gap-4 custom-scrollbar">
                       {[{t:'video', i:'MonitorPlay'}, {t:'live', i:'Radio'}, {t:'skill_lab', i:'Globe'}, {t:'leaderboard', i:'Award'}, {t:'profile', i:'User'}].map(({t, i}) => (
                           <button key={t} onClick={() => { stopAudio(); stopVAD(); globalStore.setState({ activeTab: t, selectedLabId: null, roleplayPhase: 'none' }); setMessages([]); setIsOpen(false); }} className={`text-white drop-shadow-md active:scale-95 transition-all flex-shrink-0 ${store.activeTab === t ? 'scale-110 opacity-100 text-line-400' : 'opacity-50 hover:opacity-100'}`}>
@@ -853,7 +862,6 @@
                       ))}
                   </div>
 
-                  {/* Floating Vitals for Mobile (Toggleable) */}
                   {roleplayPhase !== 'speaking_intro' && showMobileVitals && (
                       <div className="absolute left-4 top-24 z-20 flex flex-col gap-2 w-[110px] animate-in fade-in slide-in-from-left-4 duration-500">
                           <div className={`bg-slate-900/40 backdrop-blur-md rounded-2xl p-2.5 border border-white/20 shadow-[0_5px_15px_rgba(0,0,0,0.3)] transition-colors duration-500 ${isChaos ? 'border-rose-500/50 bg-rose-950/40' : ''}`}>
@@ -879,7 +887,6 @@
                       </div>
                   )}
 
-                  {/* Right Action Bar (Vertical Floating - Pure Icons without Glass Cards) */}
                   <div className="absolute right-4 top-safe pt-16 flex flex-col gap-6 items-center z-20">
                       <button onClick={() => { stopAudio(); stopVAD(); globalStore.setState({ selectedLabId: null, chatTrigger: null, roleplayPhase: 'none' }); setMessages([]); setIsOpen(false); }} className="text-white/60 hover:text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] flex flex-col items-center gap-1 active:scale-95 transition-all mb-4">
                           <SafeIcon name="X" size={28} strokeWidth={1.5} />
@@ -887,34 +894,28 @@
                   </div>
 
                   <div className="absolute right-4 bottom-24 flex flex-col gap-5 items-center z-20">
-                      {/* TH/EN Switcher */}
                       <div className="flex flex-col gap-2 mb-2 bg-black/40 p-1.5 rounded-full backdrop-blur-md border border-white/20">
                           <button onClick={() => { if(store.selectedLabId !== 1) { stopAudio(); stopVAD(); setMessages([]); setIsOpen(false); actions.startSkillLabRoleplay(SKILL_LAB_SCENARIOS[0]); } }} className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-black transition-colors ${store.selectedLabId === 1 ? 'bg-line-500 text-white shadow-sm' : 'text-white/60 hover:text-white'}`}>TH</button>
                           <button onClick={() => { if(store.selectedLabId !== 2) { stopAudio(); stopVAD(); setMessages([]); setIsOpen(false); actions.startSkillLabRoleplay(SKILL_LAB_SCENARIOS[1]); } }} className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-black transition-colors ${store.selectedLabId === 2 ? 'bg-teal-500 text-white shadow-sm' : 'text-white/60 hover:text-white'}`}>EN</button>
                       </div>
                       
-                      {/* Vitals Toggle */}
                       <button onClick={() => setShowMobileVitals(!showMobileVitals)} className={`${showMobileVitals ? 'text-green-400 scale-110 drop-shadow-[0_0_8px_rgba(74,222,128,0.8)]' : 'text-white/70 hover:text-white'} drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] flex flex-col items-center gap-1 active:scale-95 transition-all`}>
                           <SafeIcon name="Activity" size={30} strokeWidth={1.5} />
                       </button>
 
-                      {/* Caption Toggle */}
                       <button onClick={() => setShowMobileCaption(!showMobileCaption)} className={`${showMobileCaption ? 'text-white scale-110 drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]' : 'text-white/50 hover:text-white/80'} drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] flex flex-col items-center gap-1 active:scale-95 transition-all`}>
                           <SafeIcon name="Eye" size={30} strokeWidth={1.5} />
                       </button>
 
-                      {/* Full Chat Toggle */}
                       <button onClick={() => setIsOpen(true)} className="text-white/90 hover:text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] flex flex-col items-center gap-1 active:scale-95 transition-transform hover:scale-110">
                           <SafeIcon name="MessageSquare" size={30} strokeWidth={1.5} />
                       </button>
 
-                      {/* Mic Toggle */}
                       <button onClick={toggleMic} className={`${isListening ? 'text-rose-500 scale-110' : 'text-white'} drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] flex flex-col items-center gap-1 active:scale-95 relative transition-transform hover:scale-110`}>
                           <SafeIcon name="Mic" size={30} strokeWidth={1.5} />
                           {isListening && <span className="absolute inset-0 rounded-full border-2 border-rose-500 animate-ping opacity-75"></span>}
                       </button>
 
-                      {/* Skip Video */}
                       {roleplayPhase === 'playing_scenario' && (
                           <button onClick={triggerScenarioNegotiation} className="text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] flex flex-col items-center gap-1 active:scale-95 transition-all animate-pulse mt-2">
                               <SafeIcon name="PlayCircle" size={30} strokeWidth={1.5} />
@@ -922,7 +923,6 @@
                       )}
                   </div>
 
-                  {/* Bottom Left Floating Profile & Caption (Toggleable via showMobileCaption) */}
                   <div onClick={() => setIsOpen(true)} className={`absolute left-4 bottom-24 z-20 flex gap-3 items-end w-[75%] transition-opacity duration-300 cursor-pointer ${isOpen || !showMobileCaption ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
                       <div className="w-12 h-12 rounded-full overflow-hidden border-[2.5px] border-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] shrink-0 shadow-lg">
                           <img src={FAH_PROFILE_PIC} className="w-full h-full object-cover scale-110" alt="Fah AI" />
@@ -935,9 +935,7 @@
                       </div>
                   </div>
 
-                  {/* Floating Chat Overlay (Replaces Solid Bottom Sheet) */}
                   <div className={`absolute inset-x-0 bottom-0 z-30 flex flex-col transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] ${isOpen ? 'translate-y-0 opacity-100 h-[70vh]' : 'translate-y-10 opacity-0 pointer-events-none h-[70vh]'}`}>
-                      {/* Invisible backdrop to close chat when tapping empty area */}
                       <div className="absolute inset-0 z-0" onClick={() => setIsOpen(false)}></div>
                       
                       <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3 custom-scrollbar relative z-10">
@@ -983,7 +981,7 @@
             <div className={`fixed inset-0 pointer-events-none z-[100] ${isDocked || isShortsMode ? 'hidden' : ''}`}>
               <div className={`absolute transition-all duration-500 z-50 flex ${isOpen ? 'bottom-4 right-4' : 'bottom-6 right-6'}`} style={{ transform: isOpen && !isMobile ? `translate(${pos.x}px, ${pos.y}px)` : 'none' }}>
                 <div className={`transition-all duration-500 pointer-events-auto ${isOpen ? 'opacity-100' : 'opacity-0 hidden'}`}>
-                  {chatContent}
+                  {chatInterface}
                 </div>
                 {!isOpen && !isDocked && (
                   <div onPointerDown={handleFabPointerDown} className="pointer-events-auto w-16 h-16 rounded-full bg-white/40 p-1 cursor-grab shadow-2xl">
@@ -1059,14 +1057,12 @@
           (store.dbUsers || []).forEach(user => {
               let rId = null;
               const dept = user.department || '';
-              
               if (dept.startsWith('เขตสุขภาพที่ ')) {
                   const num = dept.replace('เขตสุขภาพที่ ', '').trim();
                   rId = `R${num}`;
               } else if (['กรมการแพทย์', 'สำนักการแพทย์ กรุงเทพฯ', 'สำนักอนามัย กรุงเทพฯ', 'อื่นๆ'].includes(dept)) {
                   rId = 'BKK'; 
               }
-
               if (rId && regionStats[rId]) {
                   regionStats[rId].users += 1;
                   if (user.status === 'กำลังเรียน') regionStats[rId].learning += 1;
@@ -1076,10 +1072,37 @@
           });
 
           const REGION_DATA = Object.values(regionStats);
-
           const totalStats = REGION_DATA.reduce((acc, curr) => ({
              users: acc.users + curr.users, learning: acc.learning + curr.learning, lab: acc.lab + curr.lab, passed: acc.passed + curr.passed
           }), { users: 0, learning: 0, lab: 0, passed: 0 });
+
+          // 🤖 ข้อมูลสำหรับสมองกลวิเคราะห์นโยบาย อัปเดตข้อมูลจริง 🤖
+          const aiInsightText = "📊 สรุปข้อมูลเชิงนโยบายล่าสุด (Data-Driven Insights):\n• วิกฤตการณ์: ผู้ป่วยรอคอยอวัยวะสะสมพุ่งสูงถึง 8,019 ราย (กว่า 93% คือผู้ป่วยรอไต) เพิ่มขึ้นปีละเกือบพันราย\n• ข้อจำกัดเชิงระบบ: แม้ผู้แสดงความจำนงจะเพิ่มขึ้น แต่มีผู้บริจาคก้านสมองตายจริง (Actual Donors) เพียง ~250-545 ราย/ปี เนื่องจากขาดแคลนทีมเจรจาในภูมิภาค\n• ข้อเสนอแนะเชิงยุทธศาสตร์: เร่งขยายทีมจัดเก็บอวัยวะภูมิภาค (RRT) ผนวกกับการใช้ AI (RJ Ailiverse) ฝึกทักษะการเจรจา (Family Approach) เพื่อเพิ่มอัตราความยินยอมจากญาติ ซึ่งเป็นคอขวดที่ใหญ่ที่สุดของประเทศ";
+          
+          const policySpeech = "สวัสดีค่ะท่านผู้บริหาร ฟ้าอัปเดตข้อมูลสถิติเชิงนโยบายล่าสุดจากสภากาชาดไทยให้รับทราบค่ะ ปัจจุบันเรามีวิกฤตผู้ป่วยรอรับอวัยวะทะลุแปดพันรายแล้ว โดยส่วนใหญ่คือผู้ป่วยรอปลูกถ่ายไต แต่ในแต่ละปี เรามีผู้บริจาคก้านสมองตายจริงเพียงสองถึงห้าร้อยรายเท่านั้น ช่องว่างนี้มหาศาลมากค่ะ ฟ้าขอเสนอให้เร่งผลักดันการใช้ระบบ เอไอลิเวิร์ส ฝึกอบรมทักษะการเจรจาให้กับพยาบาลทั่วประเทศ เพื่อเพิ่มอัตราความยินยอมจากญาติ ผนวกกับการขยายทีมศัลยแพทย์จัดเก็บอวัยวะในภูมิภาค เพื่อเปลี่ยนความหวังของผู้ป่วย ให้กลายเป็นชีวิตใหม่ได้อย่างแท้จริงค่ะ";
+
+          const [typedInsight, setTypedInsight] = useState("");
+
+          useEffect(() => {
+              if (showReport) {
+                  let i = 0;
+                  setTypedInsight("");
+                  const interval = setInterval(() => {
+                      setTypedInsight(aiInsightText.substring(0, i));
+                      i++;
+                      if (i > aiInsightText.length) clearInterval(interval);
+                  }, 20); // ความเร็วในการพิมพ์
+
+                  // สั่งให้พูดอัตโนมัติเมื่อเปิด Dashboard
+                  setTimeout(() => {
+                      actions.speakText({ text: policySpeech, hidden: true });
+                  }, 800);
+
+                  return () => clearInterval(interval);
+              } else {
+                  setTypedInsight("");
+              }
+          }, [showReport]);
 
           useEffect(() => { 
             const handleMessage = (event) => { 
@@ -1099,32 +1122,32 @@
           }, []);
           
           return (
-              <div className="flex min-h-screen w-full relative overflow-hidden items-center justify-center p-4 pb-16 md:pb-24">
+              <div className="flex min-h-screen w-full relative overflow-hidden items-center justify-center p-4 pb-16 md:pb-24 print-bg-white">
                  <div className="relative z-10 w-full max-w-6xl mx-auto flex flex-col items-center justify-center">
                     <div className="items-center animate-in slide-in-from-bottom-8 fade-in duration-700 w-full">
                        <div className="flex flex-col lg:flex-row gap-8 lg:gap-12 items-center justify-center w-full max-w-4xl mx-auto">
                          <div className="w-[60%] sm:w-[50%] md:w-[320px] lg:w-[350px] shrink-0 flex items-center justify-center relative mx-auto lg:mx-0">
-                            <div className="w-full aspect-[9/16] relative rounded-[2rem] overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-white/40 bg-black z-10">
+                            <div className="w-full aspect-[9/16] relative rounded-[2rem] overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-white/40 bg-black z-10 print-shadow-none print-border-gold">
                                <iframe src="https://player.vimeo.com/video/1205670848?autoplay=1&loop=1&muted=0&api=1" className="absolute inset-0 w-full h-full border-none pointer-events-none" allow="autoplay; fullscreen; microphone" title="ฟ้าไตเติล" />
                             </div>
                          </div>
                          <div className="w-full lg:flex-1 space-y-4 md:space-y-6">
-                            <GlassCard className="p-6 md:p-8 !rounded-3xl flex items-center gap-4 cursor-default relative overflow-hidden shadow-xl">
-                               <div className="absolute right-0 top-1/2 -translate-y-1/2 opacity-20"><SafeIcon name="Brain" size={150} className="text-white"/></div>
+                            <GlassCard className="p-6 md:p-8 !rounded-3xl flex items-center gap-4 cursor-default relative overflow-hidden shadow-xl print-bg-white print-border-gold print-shadow-none">
+                               <div className="absolute right-0 top-1/2 -translate-y-1/2 opacity-20 no-print"><SafeIcon name="Brain" size={150} className="text-white"/></div>
                                <div className="relative z-10">
-                                   <h2 className="text-2xl md:text-3xl font-black text-slate-800 mb-2 drop-shadow-sm">ยินดีที่ได้รู้จักค่ะ! ฟ้าเอง 🙋🏻‍♀️</h2>
-                                   <p className="text-slate-700 text-sm md:text-base font-bold leading-relaxed drop-shadow-sm">ฟ้าเป็น AI ผู้ช่วยส่วนตัว ที่จะดูแลพี่ๆ ตลอดการเรียน e-Learning ค่ะ</p>
+                                   <h2 className="text-2xl md:text-3xl font-black text-slate-800 print-text-dark mb-2 drop-shadow-sm">ยินดีที่ได้รู้จักค่ะ! ฟ้าเอง 🙋🏻‍♀️</h2>
+                                   <p className="text-slate-700 print-text-dark text-sm md:text-base font-bold leading-relaxed drop-shadow-sm">ฟ้าเป็น AI ผู้ช่วยส่วนตัว ที่จะดูแลพี่ๆ ตลอดการเรียน e-Learning ค่ะ</p>
                                </div>
                             </GlassCard>
                             
                             {/* Action Buttons for Normal Users */}
-                            <div className="pt-4 w-full relative z-10 flex flex-col sm:flex-row gap-3 md:gap-4 animate-in slide-in-from-bottom-4 fade-in">
+                            <div className="pt-4 w-full relative z-10 flex flex-col sm:flex-row gap-3 md:gap-4 animate-in slide-in-from-bottom-4 fade-in no-print">
                               <button onClick={() => { globalStore.setState({ interactionMode: 'chat' }); actions.nav('welcome'); }} className="flex-1 py-3.5 md:py-4 px-4 bg-white/40 backdrop-blur-xl border border-white/50 hover:bg-white/60 text-slate-800 rounded-2xl font-bold text-sm md:text-base transition-all shadow-[0_8px_20px_rgba(0,0,0,0.1)] flex items-center justify-center gap-2 active:scale-95 group"><SafeIcon name="MessageSquare" size={20} className="group-hover:scale-110 transition-transform" /> 💬 พิมพ์แชทสนทนา</button>
                               <GradientButton onClick={async () => { try { await navigator.mediaDevices.getUserMedia({ audio: true }).then(s=>s.getTracks().forEach(t=>t.stop())); globalStore.setState({ interactionMode: 'voice' }); actions.nav('welcome'); } catch (err) { globalStore.setState({ interactionMode: 'chat' }); actions.nav('welcome'); } }} className="flex-1 py-3.5 md:py-4 px-4 text-sm md:text-base rounded-2xl !shadow-[0_10px_25px_rgba(0,185,0,0.3)] border border-line-400"><SafeIcon name="Mic" size={20} className="animate-pulse" /> 🎙️ เปิดไมค์คุย (VAD)</GradientButton>
                             </div>
                             
                             {/* The Executive Hook Button */}
-                            <div className="w-full relative z-10 mt-2 animate-in fade-in slide-in-from-bottom-6 duration-1000 delay-300">
+                            <div className="w-full relative z-10 mt-2 animate-in fade-in slide-in-from-bottom-6 duration-1000 delay-300 no-print">
                                 <button onClick={() => setShowReport(true)} className="w-full py-3.5 px-4 bg-slate-900/60 hover:bg-slate-900/80 backdrop-blur-xl border border-slate-700/50 text-white/90 rounded-2xl text-[13px] md:text-sm font-bold transition-all shadow-[0_10px_30px_rgba(0,0,0,0.3)] flex items-center justify-center gap-2 group">
                                     <SafeIcon name="ShieldCheck" size={18} className="text-line-400 group-hover:scale-110 transition-transform" />
                                     Executive Summary: National Impact & Strategy Report
@@ -1136,99 +1159,112 @@
                     </div>
                  </div>
 
-                 {/* The Impact Dashboard Reveal (Executive Modal - Light/Gold Theme) */}
+                 {/* The Impact Dashboard Reveal (Executive Modal) */}
                  {showReport && (
-                     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6 md:p-8 animate-in fade-in zoom-in-95 duration-500 print:p-0 print:bg-white">
-                         {/* Dark Overlay (ซ่อนตอนพรินต์) */}
-                         <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md print:hidden" onClick={() => setShowReport(false)}></div>
+                     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6 md:p-8 animate-in fade-in zoom-in-95 duration-500 print-bg-white">
+                         <div className="absolute inset-0 bg-slate-900/90 backdrop-blur-md no-print" onClick={() => setShowReport(false)}></div>
                          
-                         {/* Dashboard Container: Light Mode + Gold Border */}
-                         <div className="relative w-full max-w-6xl max-h-[90vh] print:max-h-none flex flex-col bg-slate-50 border-[3px] border-[#D4AF37] rounded-3xl print:rounded-none overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.4)] text-slate-800 print:shadow-none print:border-none">
+                         <div className="relative w-full max-w-6xl max-h-[90vh] flex flex-col bg-slate-900 print-bg-white border border-slate-700 print-border-gold rounded-3xl overflow-hidden shadow-[0_30px_100px_rgba(0,0,0,0.8)] print-shadow-none text-slate-100 print-text-dark">
                              
                              {/* Header */}
-                             <div className="px-6 py-4 md:px-8 md:py-6 border-b-2 border-[#D4AF37]/30 bg-white flex justify-between items-center shrink-0">
+                             <div className="px-6 py-4 md:px-8 md:py-6 border-b border-slate-700 print-border-gold bg-slate-800/80 print-bg-white flex justify-between items-center shrink-0 z-20">
                                  <div>
-                                     <h2 className="text-xl md:text-2xl font-black text-slate-900 flex items-center gap-2 tracking-wide"><SafeIcon name="Globe" className="text-[#D4AF37]" /> RJ Ailiverse Blueprint</h2>
-                                     <p className="text-xs md:text-sm text-slate-500 font-bold mt-1 uppercase tracking-widest flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Live Data Dashboard</p>
+                                     <h2 className="text-xl md:text-2xl font-black text-white print-text-dark flex items-center gap-2 tracking-wide"><SafeIcon name="Globe" className="text-blue-400" /> RJ Ailiverse Blueprint</h2>
+                                     <p className="text-xs md:text-sm text-slate-400 print-text-dark font-bold mt-1 uppercase tracking-widest flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse no-print"></span> Live Data Dashboard</p>
                                  </div>
-                                 {/* ซ่อนปุ่มปิดตอนพรินต์ */}
-                                 <button onClick={() => setShowReport(false)} className="w-10 h-10 rounded-full bg-slate-100 hover:bg-rose-500 text-slate-500 hover:text-white flex items-center justify-center transition-colors border border-slate-200 print:hidden"><SafeIcon name="X" size={20} /></button>
+                                 <button onClick={() => setShowReport(false)} className="no-print w-10 h-10 rounded-full bg-slate-700/50 hover:bg-rose-500/80 text-slate-300 hover:text-white flex items-center justify-center transition-colors border border-slate-600"><SafeIcon name="X" size={20} /></button>
                              </div>
 
                              {/* Content Scrollable Area */}
-                             <div className="flex-1 overflow-y-auto custom-scrollbar p-6 md:p-8 bg-slate-50 print:bg-white print:overflow-visible">
+                             <div className="flex-1 overflow-y-auto custom-scrollbar p-6 md:p-8 bg-black print-bg-white relative">
                                  
-                                 {/* 🚀 KPI Dashboard & Interactive Map Section 🚀 */}
-                                 <div className="flex flex-col lg:flex-row gap-6 md:gap-8 mb-4">
+                                 {/* 🚀 New KPI Dashboard & Interactive Map Section 🚀 */}
+                                 <div className="flex flex-col lg:flex-row gap-6 md:gap-8 relative z-10">
                                      
-                                     {/* Left: Overall KPI Stats */}
+                                     {/* Left: Overall KPI Stats & AI Insight */}
                                      <div className="w-full lg:w-1/3 flex flex-col gap-4">
-                                         <h3 className="text-lg font-extrabold text-slate-800 mb-2 flex items-center gap-2"><SafeIcon name="Activity" size={20} className="text-[#D4AF37]"/> National Scale Impact</h3>
-                                         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-                                             <div className="text-sm font-bold text-slate-500 uppercase tracking-widest mb-1">Target Users Nationwide</div>
-                                             <div className="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-600">{totalStats.users.toLocaleString()}</div>
-                                         </div>
-                                         <div className="grid grid-cols-2 gap-4">
-                                             <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
-                                                <div className="text-xs font-bold text-slate-500 mb-1">กำลังเรียน (Learning)</div>
-                                                <div className="text-2xl font-black text-amber-500">{totalStats.learning.toLocaleString()}</div>
-                                             </div>
-                                             <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
-                                                <div className="text-xs font-bold text-slate-500 mb-1">ฝึกเจรจา (Skill Lab)</div>
-                                                <div className="text-2xl font-black text-purple-600">{totalStats.lab.toLocaleString()}</div>
-                                             </div>
-                                         </div>
-                                         <div className="bg-emerald-50 p-5 rounded-2xl border border-emerald-200 shadow-sm">
-                                             <div className="flex justify-between items-center mb-2">
-                                                <div className="text-sm font-bold text-emerald-700 flex items-center gap-1"><SafeIcon name="CheckCircle" size={16}/> สอบผ่านแล้ว</div>
-                                                <div className="text-3xl font-black text-emerald-600">{totalStats.passed.toLocaleString()}</div>
-                                             </div>
-                                             <div className="w-full bg-emerald-200/50 rounded-full h-1.5"><div className="bg-emerald-500 h-1.5 rounded-full" style={{width: `${totalStats.users > 0 ? (totalStats.passed/totalStats.users)*100 : 0}%`}}></div></div>
+                                         <h3 className="text-lg font-extrabold text-blue-400 print-text-dark mb-2 flex items-center gap-2"><SafeIcon name="Activity" size={20}/> National Scale Impact</h3>
+                                         
+                                         <div className="bg-slate-900/60 print-bg-white p-6 rounded-2xl border border-slate-700 print-border-gold shadow-inner backdrop-blur-sm">
+                                             <div className="text-sm font-bold text-slate-400 print-text-dark uppercase tracking-widest mb-1">Target Users Nationwide</div>
+                                             <div className="text-4xl md:text-5xl font-black text-transparent print-text-dark bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-300">{totalStats.users.toLocaleString()}</div>
                                          </div>
                                          
-                                         {/* Context Card */}
-                                         <div className="mt-auto pt-4 border-t border-slate-300">
-                                             <div className="text-xs text-slate-600 font-medium italic">"Integrating Google's Gemini to democratize high-fidelity clinical training across all 12 Public Health Regions and Bangkok."</div>
+                                         <div className="grid grid-cols-2 gap-4">
+                                             <div className="bg-slate-900/60 print-bg-white p-4 rounded-2xl border border-slate-700/50 print-border-gold backdrop-blur-sm">
+                                                <div className="text-xs font-bold text-slate-400 print-text-dark mb-1">กำลังเรียน (Learning)</div>
+                                                <div className="text-2xl font-black text-amber-400 print-text-dark">{totalStats.learning.toLocaleString()}</div>
+                                             </div>
+                                             <div className="bg-slate-900/60 print-bg-white p-4 rounded-2xl border border-slate-700/50 print-border-gold backdrop-blur-sm">
+                                                <div className="text-xs font-bold text-slate-400 print-text-dark mb-1">ฝึกเจรจา (Skill Lab)</div>
+                                                <div className="text-2xl font-black text-purple-400 print-text-dark">{totalStats.lab.toLocaleString()}</div>
+                                             </div>
                                          </div>
+
+                                         {/* 🌟 PROACTIVE AI EXECUTIVE INSIGHT BOX 🌟 */}
+                                         <div className="mt-auto bg-gradient-to-br from-indigo-900/90 to-slate-900/90 print-bg-white p-5 rounded-2xl border border-indigo-500/50 print-border-gold shadow-[0_0_20px_rgba(99,102,241,0.3)] print-shadow-none relative overflow-hidden backdrop-blur-md">
+                                             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-indigo-400 to-transparent animate-pulse no-print"></div>
+                                             <div className="flex items-center gap-2 mb-3">
+                                                 <div className="w-6 h-6 rounded-full bg-indigo-500/30 print-bg-white flex items-center justify-center border border-indigo-400/50 print-border-gold"><SafeIcon name="Brain" size={14} className="text-indigo-300 print-text-dark animate-pulse" /></div>
+                                                 <span className="text-sm font-black text-indigo-300 print-text-dark tracking-widest uppercase">Fah AI Executive Intelligence</span>
+                                             </div>
+                                             
+                                             <div className="text-sm text-slate-200 print-text-dark leading-relaxed font-medium min-h-[140px] whitespace-pre-line">
+                                                 {typedInsight ? (
+                                                     <span>{typedInsight}<span className="animate-pulse text-indigo-400 no-print">_</span></span>
+                                                 ) : (
+                                                     <span className="animate-pulse text-indigo-400/50 print-text-dark">Analyzing live policy datastream...</span>
+                                                 )}
+                                             </div>
+                                             
+                                             <div className="mt-4 flex justify-between items-center border-t border-indigo-500/30 print-border-gold pt-3">
+                                                <span className="text-[9px] text-indigo-400/60 print-text-dark uppercase tracking-widest font-mono">Live Policy Sync: Active</span>
+                                                <button onClick={() => actions.speakText(policySpeech)} className="no-print text-[10px] bg-indigo-500/20 hover:bg-indigo-500/40 text-indigo-200 px-3 py-1.5 rounded-full flex items-center gap-1 transition-colors border border-indigo-400/30 active:scale-95">
+                                                    <SafeIcon name="Volume2" size={12} /> ฟังรายงานสรุป
+                                                </button>
+                                             </div>
+                                         </div>
+
                                      </div>
 
-                                     {/* Right: Holographic Network Map (Global Theme) */}
-                                     <div className="w-full lg:w-2/3 relative bg-slate-900 border border-slate-700 rounded-3xl aspect-[4/3] sm:aspect-video lg:aspect-auto flex items-center justify-center overflow-hidden shadow-xl group print:aspect-auto print:min-h-[400px]">
+                                     {/* Right: Holographic Network Map */}
+                                     <div className="w-full lg:w-2/3 relative bg-slate-900 print-bg-white border border-slate-700/50 print-border-gold rounded-3xl aspect-[4/3] sm:aspect-video lg:aspect-auto flex items-center justify-center overflow-hidden shadow-[inset_0_0_50px_rgba(0,0,0,0.8)] print-shadow-none group">
                                          
-                                         {/* 1. New Global Connectivity Background Image */}
-                                         <div className="absolute inset-0 pointer-events-none" style={{ backgroundImage: 'url("https://res.cloudinary.com/djwclucoz/image/upload/v1783149499/Pngtree_global_connectivity_and_technical_networks_15770649_1_h9ggdv.jpg")', backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat', opacity: 1 }}></div>
+                                         {/* Global Connectivity Background (100% Opacity) */}
+                                         <div className="absolute inset-0 z-0 no-print" style={{ backgroundImage: 'url("https://res.cloudinary.com/djwclucoz/image/upload/v1783149499/Pngtree_global_connectivity_and_technical_networks_15770649_1_h9ggdv.jpg")', backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat', opacity: 1 }}></div>
 
-                                         {/* 2. THAILAND Watermark Logo (Bottom Right) */}
-                                         <div className="absolute bottom-4 right-6 pointer-events-none z-10 opacity-70">
-                                             <span className="text-xl sm:text-2xl font-black text-white uppercase tracking-[0.4em] select-none drop-shadow-md">Thailand</span>
+                                         {/* THAILAND Watermark Logo (Bottom Right) */}
+                                         <div className="absolute bottom-4 right-6 pointer-events-none z-10 opacity-60 no-print">
+                                             <span className="text-4xl font-black text-white/50 uppercase tracking-[0.3em] select-none drop-shadow-sm">THAILAND</span>
                                          </div>
 
-                                         {/* Connecting Lines to BKK */}
-                                         <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-60 z-10" viewBox="0 0 100 100">
+                                         {/* Connecting Lines to BKK (Neural Network Effect) */}
+                                         <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-50 z-10 no-print" viewBox="0 0 100 100">
                                              {REGION_DATA.map(r => r.id !== 'BKK' && (
-                                                <line key={`line-${r.id}`} x1="48" y1="56" x2={r.x} y2={r.y} stroke="#38bdf8" strokeWidth="0.3" className="transition-all duration-300" strokeDasharray="1 1" />
+                                                <line key={`line-${r.id}`} x1="48" y1="56" x2={r.x} y2={r.y} stroke="#64748b" strokeWidth="0.3" className="transition-all duration-300" strokeDasharray="1 1" />
                                              ))}
                                          </svg>
 
-                                         {/* Map Nodes (Regions) */}
+                                         {/* Map Nodes (Regions) - Enhanced Glow */}
                                          {REGION_DATA.map(r => (
                                              <div key={r.id} onMouseEnter={() => setActiveRegion(r)} onMouseLeave={() => setActiveRegion(null)} onTouchStart={() => setActiveRegion(r)} className="absolute w-8 h-8 -ml-4 -mt-4 cursor-pointer z-20 flex items-center justify-center transition-transform hover:scale-125" style={{ left: `${r.x}%`, top: `${r.y}%` }}>
-                                                 {/* วงแหวนเรืองแสงชั้นนอกสุด (บางๆ) */}
-                                                 <div className={`absolute w-full h-full rounded-full opacity-40 ${r.id === 'BKK' ? 'bg-[#00B900]' : 'bg-[#3b82f6]'}`}></div>
-                                                 
-                                                 {/* วงแหวนเรืองแสงชั้นกลาง (กระพริบ) */}
-                                                 <div className={`absolute w-5 h-5 rounded-full animate-ping opacity-80 ${r.id === 'BKK' ? 'bg-[#3ec93e] shadow-[0_0_15px_#3ec93e]' : 'bg-[#60a5fa] shadow-[0_0_15px_#60a5fa]'}`}></div>
-                                                 
-                                                 {/* จุดศูนย์กลาง (สีเข้ม มีขอบขาว มีเงาเรืองแสง) */}
+                                                 {/* วงแหวนชั้นนอกสุด */}
+                                                 <div className={`absolute w-full h-full rounded-full opacity-40 no-print ${r.id === 'BKK' ? 'bg-[#00B900]' : 'bg-[#3b82f6]'}`}></div>
+                                                 {/* วงแหวนชั้นกลาง (กระพริบ) */}
+                                                 <div className={`absolute w-5 h-5 rounded-full animate-ping opacity-80 no-print ${r.id === 'BKK' ? 'bg-[#3ec93e] shadow-[0_0_15px_#3ec93e]' : 'bg-[#60a5fa] shadow-[0_0_15px_#60a5fa]'}`}></div>
+                                                 {/* จุดศูนย์กลาง (ขอบขาว) */}
                                                  <div className={`w-3.5 h-3.5 rounded-full shadow-[0_0_10px_rgba(255,255,255,1)] border-[1.5px] border-white relative z-10 ${r.id === 'BKK' ? 'bg-[#009400] w-4.5 h-4.5 shadow-[0_0_15px_#00B900]' : 'bg-[#2563eb] shadow-[0_0_15px_#3b82f6]'}`}></div>
+                                                 
+                                                 {/* Fallback for Print - Just simple colored dots */}
+                                                 <div className={`hidden print-only w-3 h-3 rounded-full border border-black ${r.id === 'BKK' ? 'bg-green-600' : 'bg-blue-600'}`}></div>
                                              </div>
                                          ))}
 
                                          {/* Floating Tooltip for Active Region */}
-                                         <div className={`absolute pointer-events-none z-30 transition-all duration-300 ease-out ${activeRegion ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`} style={{ left: activeRegion ? `max(10px, min(calc(${activeRegion.x}% + 20px), calc(100% - 220px)))` : '50%', top: activeRegion ? `max(10px, min(calc(${activeRegion.y}% - 60px), calc(100% - 150px)))` : '50%' }}>
+                                         <div className={`absolute pointer-events-none z-30 transition-all duration-300 ease-out no-print ${activeRegion ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`} style={{ left: activeRegion ? `max(10px, min(calc(${activeRegion.x}% + 20px), calc(100% - 220px)))` : '50%', top: activeRegion ? `max(10px, min(calc(${activeRegion.y}% - 60px), calc(100% - 150px)))` : '50%' }}>
                                             {activeRegion && (
-                                                <div className="bg-slate-900/90 backdrop-blur-xl border border-slate-600 rounded-xl p-4 shadow-2xl w-[200px]">
-                                                    <div className="flex items-center gap-1.5 mb-1"><SafeIcon name="MapPin" size={14} className="text-[#D4AF37]"/><h4 className="font-bold text-sm text-white">{activeRegion.name}</h4></div>
+                                                <div className="bg-slate-900/95 backdrop-blur-xl border border-slate-600 rounded-xl p-4 shadow-[0_10px_30px_rgba(0,0,0,0.8)] w-[200px]">
+                                                    <div className="flex items-center gap-1.5 mb-1"><SafeIcon name="MapPin" size={14} className="text-blue-400"/><h4 className="font-bold text-sm text-white">{activeRegion.name}</h4></div>
                                                     <div className="text-[10px] text-slate-400 mb-3 line-clamp-1">{activeRegion.desc}</div>
                                                     <div className="space-y-1.5">
                                                         <div className="flex justify-between text-xs"><span className="text-slate-300 font-medium">Total Users</span><span className="font-mono font-bold text-white">{activeRegion.users}</span></div>
@@ -1240,12 +1276,6 @@
                                             )}
                                          </div>
                                          
-                                         {/* Idle Instruction Text */}
-                                         {!activeRegion && (
-                                             <div className="absolute bottom-4 left-0 right-0 text-center pointer-events-none animate-pulse print:hidden z-10">
-                                                 <span className="bg-slate-900/80 backdrop-blur-md px-4 py-1.5 rounded-full text-xs text-slate-300 border border-slate-600 shadow-sm">Hover or tap on nodes to view regional metrics</span>
-                                             </div>
-                                         )}
                                      </div>
                                  </div>
 
@@ -1254,34 +1284,6 @@
                      </div>
                  )}
               </div>
-          );
-        }
-
-        function WelcomeScreen({ store, actions }) {
-          const [isMuted, setIsMuted] = useState(true); const iframeRef = useRef(null);
-          return (
-            <div className="flex min-h-screen w-full relative overflow-hidden items-center justify-center p-4 lg:p-16">
-               <div className="w-full max-w-5xl flex flex-col lg:flex-row items-center justify-center gap-8 lg:gap-16 relative z-10">
-                  <div className="w-[60%] sm:w-[50%] md:w-[320px] lg:w-[350px] shrink-0 flex items-center justify-center relative animate-in fade-in slide-in-from-left-8 duration-700">
-                     <GlassCard className="w-full aspect-[9/16] !p-0 relative rounded-[2rem] overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-white/40 bg-black">
-                        <iframe src="https://player.vimeo.com/video/1202358300?autoplay=1&loop=1&muted=1&background=1" className="absolute inset-0 w-full h-full border-none pointer-events-none" allow="autoplay; fullscreen" />
-                     </GlassCard>
-                  </div>
-                  <div className="w-full max-w-[450px] relative z-10 animate-in fade-in slide-in-from-right-8 duration-700">
-                     <GlassCard className="!p-6 md:!p-8 text-center flex flex-col items-center">
-                        <div className="w-full aspect-video rounded-[1.5rem] overflow-hidden relative shadow-xl mb-6 border border-white/40 bg-black group">
-                         <iframe ref={iframeRef} src="https://player.vimeo.com/video/1197039993?autoplay=1&loop=1&muted=1" className="absolute inset-0 w-full h-full border-none pointer-events-auto" allow="autoplay; fullscreen" />
-                         <button onClick={() => { const nm = !isMuted; iframeRef.current?.contentWindow.postMessage(JSON.stringify({ method: 'setVolume', value: nm ? 0 : 1 }), '*'); setIsMuted(nm); }} className="absolute bottom-2 right-2 w-10 h-10 bg-white/40 backdrop-blur-md border border-white/60 rounded-full flex items-center justify-center text-slate-800 transition-all hover:bg-white/60 shadow-sm z-20 active:scale-95">{isMuted ? <SafeIcon name="VolumeX" size={18} /> : <SafeIcon name="Volume2" size={18} />}</button>
-                        </div>
-                        <h2 className="text-xl font-extrabold text-slate-800 mb-1 tracking-wider uppercase drop-shadow-sm">เข้าสู่ระบบ</h2>
-                        <h1 className="text-4xl md:text-5xl font-black text-slate-900 mb-3 pb-2 tracking-tight drop-shadow-md">e-Learning</h1>
-                        <p className="text-base md:text-lg text-slate-700 font-medium leading-relaxed drop-shadow-sm">ประสบการณ์เรียนรู้มาตรฐานเดียวกัน</p>
-                        <GradientButton onClick={() => globalStore.setState({ currentScreen: 'auth_wizard', authStep: 'check_license', tempLicense: '' })} className="w-full py-4 mt-6 relative z-50 pointer-events-auto rounded-[1.5rem] border border-white/30 backdrop-blur-md">เริ่มต้นใช้งาน <SafeIcon name="ArrowRight" size={20}/></GradientButton>
-                        <div onClick={actions.handleAdminClick} className="text-[10px] md:text-xs text-slate-600 font-bold cursor-pointer hover:text-slate-800 transition-colors text-center mt-6">© ศูนย์ความเป็นเลิศทางการแพทย์ โรงพยาบาลราชวิถี</div>
-                     </GlassCard>
-                  </div>
-               </div>
-            </div>
           );
         }
 
