@@ -186,11 +186,9 @@
             } 
         };
 
-        const GEMINI_PROXY_URL = "https://script.google.com/macros/s/AKfycby_Z0eS21NE_jWN-Q-4g-PO3IdftYg5VgSFQNEZG2zd_oDxqvisxnaHgPoZWy-AassWnw/exec";
-
-        // 🛡️ ระบบความปลอดภัยสูงสุด: ดึง API Key จาก GitHub Secrets อัตโนมัติตอน Deploy
-        const GITHUB_INJECTED_KEY = "GEMINI_API_KEY";
-        const ACTUAL_API_KEY = GITHUB_INJECTED_KEY.includes("GEMINI_API_KEY") ? "" : GITHUB_INJECTED_KEY;
+        // 🔴 1. วาง API Key จริงลงไปตรงนี้เลยค่ะ (ทิ้งระบบ GitHub Secrets ไปได้เลย)
+        // คีย์จะปลอดภัยเพราะล็อคโดเมน (HTTP Referrers) ไว้ที่ฝั่ง Google Cloud แล้ว
+        const ACTUAL_API_KEY = "AQ.Ab8RN6IGDqSH1ewnUTRZ14XIxsN6KBtUoaStU9BXLsxvkgkIKA"; 
 
         const callGeminiAPI = async (prompt, systemInstruction, base64Image = null) => {
             try {
@@ -207,30 +205,27 @@
                     { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
                 ];
                 
-                // 🚀 วิ่งตรงเข้า API ด้วย ACTUAL_API_KEY จาก GitHub Secrets
-                if (ACTUAL_API_KEY) {
-                    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${ACTUAL_API_KEY}`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ contents: [{ parts }], systemInstruction: { parts: [{ text: systemInstruction }] }, safetySettings })
-                    });
-                    if (!res.ok) {
-                        const errData = await res.json();
-                        throw new Error(`API Error: ${errData.error?.message || res.status}`);
-                    }
-                    const data = await res.json();
-                    if (data.candidates && data.candidates.length > 0) return data.candidates[0].content.parts[0].text;
+                // ถอดระบบ Proxy เก่าออก วิ่งตรงเข้า Google 100%
+                if (!ACTUAL_API_KEY || ACTUAL_API_KEY.includes('ใส่_API_KEY')) {
+                    throw new Error("ลืมใส่ API Key ในโค้ด (index.html)");
                 }
 
-                // Fallback: ถ้าระบบยังไม่มี API Key (เช่นรันบนเครื่อง Local) ให้กลับไปใช้ Proxy เดิม
-                const geminiPayload = { contents: [{ parts }], systemInstruction: { parts: [{ text: systemInstruction }] }, safetySettings };
-                const data = await fetchWithRetry(GEMINI_PROXY_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'generateText', payload: geminiPayload }) });
-                if (data.status === 'error' && String(data.message).includes('429')) throw new Error("ระบบหนาแน่น");
-                if (data.status === 'success' && data.data.candidates) return data.data.candidates?.[0]?.content?.parts?.[0]?.text ?? "ขออภัยค่ะ ฟ้าไม่สามารถหาคำตอบได้ในขณะนี้";
-                else throw new Error("Proxy error");
+                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${ACTUAL_API_KEY}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contents: [{ parts }], systemInstruction: { parts: [{ text: systemInstruction }] }, safetySettings })
+                });
+                
+                if (!res.ok) {
+                    const errData = await res.json().catch(()=>({}));
+                    throw new Error(`API Error ${res.status}: ${errData.error?.message || ''}`);
+                }
+                const data = await res.json();
+                if (data.candidates && data.candidates.length > 0) return data.candidates[0].content.parts[0].text;
+                throw new Error("ไม่มีข้อมูลตอบกลับจาก AI");
             } catch (e) { 
                 console.error("Gemini API Error:", e);
-                return `[ระบบขัดข้อง] กรุณาตรวจสอบ API Key: ${e.message}`; 
+                return `[ระบบขัดข้อง] ${e.message}`; 
             }
         };
 
@@ -238,8 +233,9 @@
             const safetySettings = [{ category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" }, { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" }, { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" }, { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }];
             const payload = { contents: [{ parts: [{ text: text }] }], generationConfig: { responseModalities: ["AUDIO"], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: voiceName } } } }, safetySettings };
             
-            // 🚀 แก้ปัญหา 404 ตอนเจรจา: ให้ระบบเสียงวิ่งตรงเข้า Google โดยไม่ผ่าน Apps Script
-            if (!ACTUAL_API_KEY) throw new Error("ไม่พบ API Key (โปรดเช็ค GitHub Secrets)");
+            if (!ACTUAL_API_KEY || ACTUAL_API_KEY.includes('ใส่_API_KEY')) {
+                throw new Error("ลืมใส่ API Key ในโค้ด (index.html)");
+            }
 
             const maxRetries = 3;
             for (let i = 0; i < maxRetries; i++) {
@@ -261,10 +257,10 @@
                 } catch (e) {
                     console.warn(`TTS Attempt ${i + 1} failed:`, e);
                     if (i < maxRetries - 1) {
-                        if (window.showGlobalMsg) window.showGlobalMsg('ระบบเสียงกำลังประมวลผล...', 'info');
-                        await new Promise(resolve => setTimeout(resolve, 2500)); // หน่วงเวลาเนียนๆ 2.5 วินาที
+                        if (window.showGlobalMsg) window.showGlobalMsg('ระบบเสียงกำลังเชื่อมต่อ...', 'info');
+                        await new Promise(resolve => setTimeout(resolve, 2500)); 
                     } else {
-                        throw e; // โยน Error ของจริงออกไปให้หน้าจอแสดงผล
+                        throw e; 
                     }
                 }
             }
