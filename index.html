@@ -188,7 +188,8 @@
 
         const GEMINI_PROXY_URL = "https://script.google.com/macros/s/AKfycby_Z0eS21NE_jWN-Q-4g-PO3IdftYg5VgSFQNEZG2zd_oDxqvisxnaHgPoZWy-AassWnw/exec";
 
-        // 🛡️ ดึง API Key จากตู้เซฟ GitHub Secrets (จะถูกแทนที่อัตโนมัติด้วยคำสั่ง sed ใน main.yml)
+        // 🛡️ กุญแจชั้นที่ 1: ป้องกันคีย์หลุด! ห้ามพิมพ์ API Key ลงในโค้ดตรงๆ เด็ดขาด 
+        // ระบบจะใช้กลไก Actions ดึง Key จาก GitHub Secrets มาเสียบแทนคำว่า __GEMINI_API_KEY__ อัตโนมัติ
         const GITHUB_INJECTED_KEY = "__GEMINI_API_KEY__";
         const ACTUAL_API_KEY = GITHUB_INJECTED_KEY.includes("GEMINI_API_KEY") ? "" : GITHUB_INJECTED_KEY;
 
