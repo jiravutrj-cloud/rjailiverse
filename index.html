@@ -186,9 +186,7 @@
             } 
         };
 
-        // 🔴 1. วาง API Key จริงลงไปตรงนี้เลยค่ะ (ทิ้งระบบ GitHub Secrets ไปได้เลย)
-        // คีย์จะปลอดภัยเพราะล็อคโดเมน (HTTP Referrers) ไว้ที่ฝั่ง Google Cloud แล้ว
-        const ACTUAL_API_KEY = "AQ.Ab8RN6KGTlle2wIb3sOLE5A_xWz1gmfih_L747FUHcJgo3VdCQ"; 
+        const GEMINI_PROXY_URL = "https://script.google.com/macros/s/AKfycby_Z0eS21NE_jWN-Q-4g-PO3IdftYg5VgSFQNEZG2zd_oDxqvisxnaHgPoZWy-AassWnw/exec";
 
         const callGeminiAPI = async (prompt, systemInstruction, base64Image = null) => {
             try {
@@ -204,66 +202,27 @@
                     { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
                     { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
                 ];
-                
-                // ถอดระบบ Proxy เก่าออก วิ่งตรงเข้า Google 100%
-                if (!ACTUAL_API_KEY || ACTUAL_API_KEY.includes('ใส่_API_KEY')) {
-                    throw new Error("ลืมใส่ API Key ในโค้ด (index.html)");
-                }
-
-                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${ACTUAL_API_KEY}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ contents: [{ parts }], systemInstruction: { parts: [{ text: systemInstruction }] }, safetySettings })
-                });
-                
-                if (!res.ok) {
-                    const errData = await res.json().catch(()=>({}));
-                    throw new Error(`API Error ${res.status}: ${errData.error?.message || ''}`);
-                }
-                const data = await res.json();
-                if (data.candidates && data.candidates.length > 0) return data.candidates[0].content.parts[0].text;
-                throw new Error("ไม่มีข้อมูลตอบกลับจาก AI");
-            } catch (e) { 
-                console.error("Gemini API Error:", e);
-                return `[ระบบขัดข้อง] ${e.message}`; 
-            }
+                const geminiPayload = { contents: [{ parts }], systemInstruction: { parts: [{ text: systemInstruction }] }, safetySettings };
+                const data = await fetchWithRetry(GEMINI_PROXY_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'generateText', payload: geminiPayload }) });
+                if (data.status === 'error' && String(data.message).includes('429')) throw new Error("ระบบผู้ใช้งานหนาแน่น กรุณาลองอีกครั้งค่ะ");
+                if (data.status === 'success' && data.data.candidates) return data.data.candidates?.[0]?.content?.parts?.[0]?.text ?? "ขออภัยค่ะ ฟ้าไม่สามารถหาคำตอบได้ในขณะนี้";
+                else return "ระบบขัดข้องชั่วคราว กรุณาลองใหม่อีกครั้งค่ะ";
+            } catch (e) { return "ระบบขัดข้องชั่วคราว กรุณาลองใหม่อีกครั้งค่ะ"; }
         };
 
         const callGeminiTTS = async (text, voiceName = "Aoede") => {
-            const safetySettings = [{ category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" }, { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" }, { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" }, { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }];
-            const payload = { contents: [{ parts: [{ text: text }] }], generationConfig: { responseModalities: ["AUDIO"], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: voiceName } } } }, safetySettings };
-            
-            if (!ACTUAL_API_KEY || ACTUAL_API_KEY.includes('ใส่_API_KEY')) {
-                throw new Error("ลืมใส่ API Key ในโค้ด (index.html)");
-            }
-
-            const maxRetries = 3;
-            for (let i = 0; i < maxRetries; i++) {
-                try {
-                    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${ACTUAL_API_KEY}`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
-                    
-                    if (!res.ok) {
-                        const errData = await res.json().catch(() => ({}));
-                        throw new Error(`HTTP ${res.status}: ${errData.error?.message || 'API ถูกบล็อก'}`);
-                    }
-                    const data = await res.json();
-                    const inlineData = data.candidates?.[0]?.content?.parts?.[0]?.inlineData;
-                    if (inlineData && inlineData.data) return inlineData;
-                    throw new Error("ไม่มีข้อมูลเสียงส่งกลับมา");
-                } catch (e) {
-                    console.warn(`TTS Attempt ${i + 1} failed:`, e);
-                    if (i < maxRetries - 1) {
-                        if (window.showGlobalMsg) window.showGlobalMsg('ระบบเสียงกำลังเชื่อมต่อ...', 'info');
-                        await new Promise(resolve => setTimeout(resolve, 2500)); 
-                    } else {
-                        throw e; 
-                    }
-                }
-            }
+            const geminiPayload = {
+                contents: [{ parts: [{ text: text }] }],
+                generationConfig: { responseModalities: ["AUDIO"], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: voiceName } } } },
+                safetySettings: [{ category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" }, { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" }, { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" }, { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }]
+            };
+            try {
+                const responseData = await fetchWithRetry(GEMINI_PROXY_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'generateTTS', payload: geminiPayload }) });
+                if (responseData.status === 'error') throw new Error(responseData.message);
+                const inlineData = responseData.data.candidates?.[0]?.content?.parts?.[0]?.inlineData;
+                if (!inlineData || !inlineData.data) throw new Error("Google API ไม่ได้ส่งข้อมูลเสียงกลับมา");
+                return inlineData; 
+            } catch (e) { throw e; }
         };
 
         const pcm16ToWav = (base64PCM, sampleRate = 24000) => {
@@ -499,15 +458,13 @@
                 const audio = new Audio(pcm16ToWav(inlineData.data, sampleRate)); 
                 audioRef.current = audio; 
                 audio.onended = () => { if (onEndCallback) onEndCallback(); }; 
-                audio.onerror = () => { actions.showMsg('ระบบเสียงเล่นไม่ได้', 'error'); if (onEndCallback) onEndCallback(); }; 
+                audio.onerror = () => { actions.showMsg('ระบบเสียงเล่นไม่ได้ (Audio Error)', 'error'); if (onEndCallback) onEndCallback(); }; 
                 audio.play().catch(e => { console.error("Audio Play Error:", e); actions.showMsg('กรุณาแตะหน้าจอเพื่ออนุญาตเล่นเสียง', 'error'); if (onEndCallback) onEndCallback(); }); 
             } catch (error) { 
-                console.warn("TTS Failed:", error);
-                if (speechId === currentSpeechIdRef.current) {
-                    // ❌ โชว์ Error ของจริงออกมาเลย เพื่อให้เรารู้ว่า Google ฟ้องว่าอะไร
-                    actions.showMsg(`เสียงขัดข้อง: ${error.message}`, 'error');
-                    if (onEndCallback) onEndCallback();
-                }
+                console.error("speakThai Catch Error:", error);
+                const errMsg = error.message.replace('HTTP ', '');
+                actions.showMsg(`ดึงเสียงล้มเหลว (${errMsg.substring(0, 30)}...)`, 'error'); 
+                if (onEndCallback) onEndCallback(); 
             }
           };
 
@@ -768,7 +725,7 @@
                 window.addEventListener('mousemove', handlePointerMove, { passive: false }); 
                 window.addEventListener('mouseup', handlePointerUp); 
                 window.addEventListener('touchmove', handlePointerMove, { passive: false }); 
-                window.addEventListener('touchmove', handlePointerUp); 
+                window.addEventListener('touchend', handlePointerUp); 
             }
             return () => { 
                 window.removeEventListener('mousemove', handlePointerMove); 
@@ -889,7 +846,7 @@
                     <form onSubmit={handleSendChat} className={`flex items-center gap-2 md:gap-3 bg-white/60 border border-white/80 backdrop-blur-2xl rounded-full p-2 pl-3 md:pl-4 w-full shadow-lg transition-colors ${isVadMode ? '!border-green-400' : ''}`}>
                         <input type="file" id="ai-image-upload" accept="image/*" className="hidden" onChange={handleImageUpload} />
                         <label htmlFor="ai-image-upload" className="text-slate-600 hover:text-line-600 cursor-pointer p-1"><SafeIcon name="ImageIcon" size={22} /></label>
-                        <input type="text" value={chatInput} onChange={e => setChatInput(e.target.value)} placeholder={isListening ? (isSpeakingRef.current ? "กำลังฟัง..." : "พูดได้เลย...") : (isRoleplay ? "พิมพ์ข้อความ..." : "ถามฟ้า หรืออัปโหลดสไลด์...")} disabled={isTyping || roleplayPhase === 'playing_scenario'} className="flex-1 bg-transparent text-slate-800 placeholder-slate-600 px-1 outline-none text-sm md:text-base font-medium drop-shadow-sm" />
+                        <input type="text" value={chatInput} onChange={e => setChatInput(e.target.value)} placeholder={isListening ? (isSpeakingRef.current ? "กำลังฟัง..." : "พูดได้เลย...") : "ถามฟ้า หรืออัปโหลดสไลด์..."} disabled={isTyping || roleplayPhase === 'playing_scenario'} className="flex-1 bg-transparent text-slate-800 placeholder-slate-600 px-1 outline-none text-sm md:text-base font-medium drop-shadow-sm" />
                         <button type="button" onClick={toggleMic} disabled={isTyping || roleplayPhase === 'playing_scenario'} className={`relative flex items-center justify-center w-10 h-10 rounded-full transition-colors ${isListening ? 'bg-rose-500 text-white shadow-md border-rose-400' : 'text-slate-600 bg-white/80 hover:bg-white border border-white/80'}`}><SafeIcon name="Mic" size={20} />{isListening && <span className="absolute inset-0 rounded-full border border-rose-400 animate-ping opacity-75"></span>}</button>
                         <button type="submit" disabled={(!chatInput.trim() && selectedImage === null) || isTyping || roleplayPhase === 'playing_scenario'} className="w-9 h-9 md:w-10 md:h-10 shrink-0 rounded-full bg-line-500 hover:bg-line-600 text-white flex items-center justify-center disabled:opacity-50 shadow-md border border-line-400"><SafeIcon name="Send" size={16} /></button>
                     </form>
