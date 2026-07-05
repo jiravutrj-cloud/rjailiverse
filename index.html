@@ -239,7 +239,7 @@
             const payload = { contents: [{ parts: [{ text: text }] }], generationConfig: { responseModalities: ["AUDIO"], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: voiceName } } } }, safetySettings };
             
             // 🚀 แก้ปัญหา 404 ตอนเจรจา: ให้ระบบเสียงวิ่งตรงเข้า Google โดยไม่ผ่าน Apps Script
-            if (!ACTUAL_API_KEY) throw new Error("รอโหลด API Key จาก GitHub Secrets");
+            if (!ACTUAL_API_KEY) throw new Error("ไม่พบ API Key (โปรดเช็ค GitHub Secrets)");
 
             const maxRetries = 3;
             for (let i = 0; i < maxRetries; i++) {
@@ -250,18 +250,21 @@
                         body: JSON.stringify(payload)
                     });
                     
-                    if (!res.ok) throw new Error(`TTS API Error: ${res.status}`);
+                    if (!res.ok) {
+                        const errData = await res.json().catch(() => ({}));
+                        throw new Error(`HTTP ${res.status}: ${errData.error?.message || 'API ถูกบล็อก'}`);
+                    }
                     const data = await res.json();
                     const inlineData = data.candidates?.[0]?.content?.parts?.[0]?.inlineData;
                     if (inlineData && inlineData.data) return inlineData;
-                    throw new Error("No audio data");
+                    throw new Error("ไม่มีข้อมูลเสียงส่งกลับมา");
                 } catch (e) {
                     console.warn(`TTS Attempt ${i + 1} failed:`, e);
                     if (i < maxRetries - 1) {
                         if (window.showGlobalMsg) window.showGlobalMsg('ระบบเสียงกำลังประมวลผล...', 'info');
                         await new Promise(resolve => setTimeout(resolve, 2500)); // หน่วงเวลาเนียนๆ 2.5 วินาที
                     } else {
-                        throw e;
+                        throw e; // โยน Error ของจริงออกไปให้หน้าจอแสดงผล
                     }
                 }
             }
@@ -505,8 +508,8 @@
             } catch (error) { 
                 console.warn("TTS Failed:", error);
                 if (speechId === currentSpeechIdRef.current) {
-                    // ❌ ตัดเสียงหุ่นยนต์ทิ้ง 100% โชว์แค่ Error ให้เนียนตาที่สุด
-                    actions.showMsg('ระบบเสียงขัดข้องชั่วคราว (กรุณาใช้งานผ่านลิงก์เว็บจริง)', 'error');
+                    // ❌ โชว์ Error ของจริงออกมาเลย เพื่อให้เรารู้ว่า Google ฟ้องว่าอะไร
+                    actions.showMsg(`เสียงขัดข้อง: ${error.message}`, 'error');
                     if (onEndCallback) onEndCallback();
                 }
             }
