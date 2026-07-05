@@ -188,8 +188,9 @@
 
         const GEMINI_PROXY_URL = "https://script.google.com/macros/s/AKfycby_Z0eS21NE_jWN-Q-4g-PO3IdftYg5VgSFQNEZG2zd_oDxqvisxnaHgPoZWy-AassWnw/exec";
 
-        // 🔴 1. วาง API KEY จาก Google AI Studio ลงในเครื่องหมายคำพูดด้านล่างนี้ 🔴
-        const MY_GEMINI_API_KEY = "ใส่_API_KEY_ของพี่ตรงนี้_เช่น_AIzaSy...";
+        // 🛡️ ดึง API Key จากตู้เซฟ GitHub Secrets (จะถูกแทนที่อัตโนมัติด้วยคำสั่ง sed ใน main.yml)
+        const GITHUB_INJECTED_KEY = "__GEMINI_API_KEY__";
+        const ACTUAL_API_KEY = GITHUB_INJECTED_KEY.includes("GEMINI_API_KEY") ? "" : GITHUB_INJECTED_KEY;
 
         const callGeminiAPI = async (prompt, systemInstruction, base64Image = null) => {
             try {
@@ -206,8 +207,9 @@
                     { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
                 ];
                 
-                if (MY_GEMINI_API_KEY && MY_GEMINI_API_KEY.trim() !== "" && !MY_GEMINI_API_KEY.includes('ใส่_API_KEY')) {
-                    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${MY_GEMINI_API_KEY}`, {
+                // 🚀 วิ่งตรงเข้า API ด้วย ACTUAL_API_KEY จาก GitHub Secrets
+                if (ACTUAL_API_KEY) {
+                    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${ACTUAL_API_KEY}`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ contents: [{ parts }], systemInstruction: { parts: [{ text: systemInstruction }] }, safetySettings })
@@ -220,6 +222,7 @@
                     if (data.candidates && data.candidates.length > 0) return data.candidates[0].content.parts[0].text;
                 }
 
+                // Fallback: ถ้าระบบยังไม่มี API Key (เช่นรันบนเครื่อง Local) ให้กลับไปใช้ Proxy เดิม
                 const geminiPayload = { contents: [{ parts }], systemInstruction: { parts: [{ text: systemInstruction }] }, safetySettings };
                 const data = await fetchWithRetry(GEMINI_PROXY_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'generateText', payload: geminiPayload }) });
                 if (data.status === 'error' && String(data.message).includes('429')) throw new Error("ระบบหนาแน่น");
@@ -235,10 +238,10 @@
             const safetySettings = [{ category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" }, { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" }, { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" }, { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }];
             const payload = { contents: [{ parts: [{ text: text }] }], generationConfig: { responseModalities: ["AUDIO"], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: voiceName } } } }, safetySettings };
             
-            // 🚀 วิ่งตรงเข้า API ด้วย MY_GEMINI_API_KEY (แก้ 404 Not Found)
-            if (typeof MY_GEMINI_API_KEY !== 'undefined' && MY_GEMINI_API_KEY.trim() !== "" && !MY_GEMINI_API_KEY.includes('ใส่_API_KEY')) {
+            // 🚀 วิ่งตรงเข้า API ด้วย ACTUAL_API_KEY (แก้ 404 Not Found ของระบบเสียง)
+            if (ACTUAL_API_KEY) {
                 try {
-                    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${MY_GEMINI_API_KEY}`, {
+                    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${ACTUAL_API_KEY}`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(payload)
@@ -253,7 +256,7 @@
                 }
             }
 
-            // ถ้า API Key มีปัญหา ให้ระบบข้ามไปใช้เสียงสำรองของ Browser ทันที
+            // ถ้า API Key มีปัญหา หรือไม่ได้ตั้งค่า ให้ระบบข้ามไปใช้เสียงสำรองของ Browser ทันที
             throw new Error("TTS_FAILED");
         };
 
@@ -762,7 +765,7 @@
                 window.addEventListener('mousemove', handlePointerMove, { passive: false }); 
                 window.addEventListener('mouseup', handlePointerUp); 
                 window.addEventListener('touchmove', handlePointerMove, { passive: false }); 
-                window.addEventListener('touchend', handlePointerUp); 
+                window.addEventListener('touchmove', handlePointerUp); 
             }
             return () => { 
                 window.removeEventListener('mousemove', handlePointerMove); 
@@ -883,7 +886,7 @@
                     <form onSubmit={handleSendChat} className={`flex items-center gap-2 md:gap-3 bg-white/60 border border-white/80 backdrop-blur-2xl rounded-full p-2 pl-3 md:pl-4 w-full shadow-lg transition-colors ${isVadMode ? '!border-green-400' : ''}`}>
                         <input type="file" id="ai-image-upload" accept="image/*" className="hidden" onChange={handleImageUpload} />
                         <label htmlFor="ai-image-upload" className="text-slate-600 hover:text-line-600 cursor-pointer p-1"><SafeIcon name="ImageIcon" size={22} /></label>
-                        <input type="text" value={chatInput} onChange={e => setChatInput(e.target.value)} placeholder={isListening ? (isSpeakingRef.current ? "กำลังฟัง..." : "พูดได้เลย...") : "ถามฟ้า หรืออัปโหลดสไลด์..."} disabled={isTyping || roleplayPhase === 'playing_scenario'} className="flex-1 bg-transparent text-slate-800 placeholder-slate-600 px-1 outline-none text-sm md:text-base font-medium drop-shadow-sm" />
+                        <input type="text" value={chatInput} onChange={e => setChatInput(e.target.value)} placeholder={isListening ? (isSpeakingRef.current ? "กำลังฟัง..." : "พูดได้เลย...") : (isRoleplay ? "พิมพ์ข้อความ..." : "ถามฟ้า หรืออัปโหลดสไลด์...")} disabled={isTyping || roleplayPhase === 'playing_scenario'} className="flex-1 bg-transparent text-slate-800 placeholder-slate-600 px-1 outline-none text-sm md:text-base font-medium drop-shadow-sm" />
                         <button type="button" onClick={toggleMic} disabled={isTyping || roleplayPhase === 'playing_scenario'} className={`relative flex items-center justify-center w-10 h-10 rounded-full transition-colors ${isListening ? 'bg-rose-500 text-white shadow-md border-rose-400' : 'text-slate-600 bg-white/80 hover:bg-white border border-white/80'}`}><SafeIcon name="Mic" size={20} />{isListening && <span className="absolute inset-0 rounded-full border border-rose-400 animate-ping opacity-75"></span>}</button>
                         <button type="submit" disabled={(!chatInput.trim() && selectedImage === null) || isTyping || roleplayPhase === 'playing_scenario'} className="w-9 h-9 md:w-10 md:h-10 shrink-0 rounded-full bg-line-500 hover:bg-line-600 text-white flex items-center justify-center disabled:opacity-50 shadow-md border border-line-400"><SafeIcon name="Send" size={16} /></button>
                     </form>
@@ -1016,7 +1019,7 @@
                       <div className="shrink-0 px-4 pb-safe pt-2 mb-4 relative z-40">
                           {isVadMode && <div className="absolute -top-1 left-8 right-8 h-1 bg-transparent w-auto"><div className="h-full bg-green-500 transition-all duration-100 shadow-[0_0_8px_rgba(34,197,94,0.8)] rounded-full" style={{ width: `${Math.min(100, audioLevel * 2)}%` }}></div></div>}
                           <form onSubmit={handleSendChat} className={`flex items-center gap-2 bg-black/50 border border-white/20 rounded-full p-1.5 pl-4 w-full transition-colors backdrop-blur-xl shadow-[0_5px_15px_rgba(0,0,0,0.5)] ${isVadMode ? '!border-green-400 bg-green-900/50' : ''}`}>
-                              <input type="text" value={chatInput} onChange={e => setChatInput(e.target.value)} placeholder={isListening ? (isSpeakingRef.current ? "กำลังฟัง..." : "พูดได้เลย...") : (isRoleplay ? "พิมพ์ข้อความ..." : "ถามฟ้า หรืออัปโหลดสไลด์...")} disabled={isTyping || roleplayPhase === 'playing_scenario'} className="flex-1 bg-transparent text-white placeholder-white/60 px-1 outline-none text-sm font-medium" />
+                              <input type="text" value={chatInput} onChange={e => setChatInput(e.target.value)} placeholder={isListening ? "กำลังฟัง..." : "พิมพ์ข้อความ..."} disabled={isTyping || roleplayPhase === 'playing_scenario'} className="flex-1 bg-transparent text-white placeholder-white/60 px-1 outline-none text-sm font-medium" />
                               <button type="submit" disabled={(!chatInput.trim() && selectedImage === null) || isTyping || roleplayPhase === 'playing_scenario'} className="w-10 h-10 shrink-0 rounded-full bg-line-500 text-white flex items-center justify-center disabled:opacity-50 border border-line-400 shadow-sm"><SafeIcon name="Send" size={18} strokeWidth={1.5} /></button>
                           </form>
                       </div>
