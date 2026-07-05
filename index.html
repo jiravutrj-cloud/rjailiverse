@@ -35,12 +35,18 @@
       }
     </script>
     
-    <!-- Custom Styles -->
+    <!-- Custom Styles for Parallax Clouds & Glassmorphism -->
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&display=swap');
         
-        body { font-family: 'Sarabun', sans-serif; margin: 0; overflow-x: hidden; background-color: #0f172a; }
+        body { 
+            font-family: 'Sarabun', sans-serif; 
+            margin: 0; 
+            overflow-x: hidden; 
+            background-color: #0f172a;
+        }
 
+        /* --- Parallax Background --- */
         .sky-bg { position: fixed; inset: 0; z-index: 0; }
         .clouds-wrapper { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 2; pointer-events: none; }
         .cloud-layer { position: absolute; bottom: 0; left: 0; width: 200%; height: 100%; background-repeat: repeat-x; background-size: auto 100%; animation: drift linear infinite; }
@@ -50,15 +56,18 @@
 
         @keyframes drift { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
 
+        /* --- UI Utilities --- */
         .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background-color: rgba(255,255,255,0.4); border-radius: 10px; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background-color: rgba(255,255,255,0.6); }
         
+        /* Padding for safe areas (Notches/Home indicators) */
         .pt-safe { padding-top: env(safe-area-inset-top, 20px); }
         .pb-safe { padding-bottom: env(safe-area-inset-bottom, 20px); }
         .top-safe { top: env(safe-area-inset-top, 20px); }
 
+        /* Print Media Styles */
         @media print {
             body { background: white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
             .no-print { display: none !important; }
@@ -99,10 +108,13 @@
         import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from 'firebase/auth';
         import { getFirestore, collection, doc, setDoc, onSnapshot, deleteDoc } from 'firebase/firestore';
 
-        // --- 1. DATA CONSTANTS ---
+        // ============================================================================
+        // 1. CONFIGURATIONS & DATA CONSTANTS (ดึงตัวแปรมาจากไฟล์ data.js)
+        // ============================================================================
         const FAH_IDLE_VIDEO = window.FAH_IDLE_VIDEO || "";
         const CHARACTER_VIDEOS = window.CHARACTER_VIDEOS || {};
         const FAH_PROFILE_PIC = window.FAH_PROFILE_PIC || "";
+        
         const HOSPITAL_MAPPING = window.HOSPITAL_MAPPING || {};
         const INITIAL_LESSONS = window.INITIAL_LESSONS || [];
         const SKILL_LAB_SCENARIOS = window.SKILL_LAB_SCENARIOS || [];
@@ -122,7 +134,8 @@
           ImageIcon: LucideIcons.Image, Mic: LucideIcons.Mic, Brain: LucideIcons.Brain, ArrowRight: LucideIcons.ArrowRight, 
           Bot: LucideIcons.Bot, PlayCircle: LucideIcons.PlayCircle, Camera: LucideIcons.Camera, Eye: LucideIcons.Eye,
           Settings2: LucideIcons.Settings2, Search: LucideIcons.Search, CloudLightning: LucideIcons.CloudLightning,
-          Globe: LucideIcons.Globe, Heart: LucideIcons.Heart, TrendingUp: LucideIcons.TrendingUp, MapPin: LucideIcons.MapPin
+          Globe: LucideIcons.Globe, Heart: LucideIcons.Heart, TrendingUp: LucideIcons.TrendingUp, MapPin: LucideIcons.MapPin,
+          Cpu: LucideIcons.Cpu
         };
 
         function SafeIcon({ name, size = 24, className = "", strokeWidth = 2, ...rest }) {
@@ -1033,8 +1046,30 @@
           const [showReport, setShowReport] = useState(false);
           const [activeRegion, setActiveRegion] = useState(null);
           
-          // ดึงพิกัดแผนที่จาก data.js
-          const baseRegions = window.BASE_REGIONS || [];
+          // --- 🚀 State สำหรับแชทสอบถามเลขา AI ---
+          const [execInput, setExecInput] = useState('');
+          const [isExecTyping, setIsExecTyping] = useState(false);
+          const [isExecListening, setIsExecListening] = useState(false);
+          const [execMessages, setExecMessages] = useState([]);
+          const execRecRef = useRef(null);
+          const execEndRef = useRef(null);
+          
+          // 🇹🇭 โครงสร้างพิกัด 12 เขตสุขภาพ + กทม. (พิกัดคงที่สำหรับแสดงผลบนแผนที่)
+          const baseRegions = [
+            { id: 'R1', name: 'เขตสุขภาพที่ 1', desc: 'เชียงใหม่และภาคเหนือตอนบน', x: 28, y: 15 },
+            { id: 'R2', name: 'เขตสุขภาพที่ 2', desc: 'พิษณุโลกและภาคเหนือตอนล่าง', x: 34, y: 32 },
+            { id: 'R3', name: 'เขตสุขภาพที่ 3', desc: 'นครสวรรค์และภาคกลางตอนบน', x: 38, y: 44 },
+            { id: 'R4', name: 'เขตสุขภาพที่ 4', desc: 'สระบุรีและภาคกลางตอนบน', x: 44, y: 50 },
+            { id: 'R5', name: 'เขตสุขภาพที่ 5', desc: 'ราชบุรีและภาคตะวันตก', x: 32, y: 58 },
+            { id: 'R6', name: 'เขตสุขภาพที่ 6', desc: 'ชลบุรีและภาคตะวันออก', x: 58, y: 60 },
+            { id: 'R7', name: 'เขตสุขภาพที่ 7', desc: 'ขอนแก่นและอีสานตอนกลาง', x: 62, y: 38 },
+            { id: 'R8', name: 'เขตสุขภาพที่ 8', desc: 'อุดรธานีและอีสานตอนบน', x: 74, y: 26 },
+            { id: 'R9', name: 'เขตสุขภาพที่ 9', desc: 'นครราชสีมาและอีสานตอนล่าง', x: 62, y: 48 },
+            { id: 'R10', name: 'เขตสุขภาพที่ 10', desc: 'อุบลราชธานีและอีสานตอนล่าง', x: 82, y: 48 },
+            { id: 'R11', name: 'เขตสุขภาพที่ 11', desc: 'สุราษฎร์ธานีและภาคใต้ตอนบน', x: 28, y: 78 },
+            { id: 'R12', name: 'เขตสุขภาพที่ 12', desc: 'สงขลาและภาคใต้ตอนล่าง', x: 38, y: 92 },
+            { id: 'BKK', name: 'กรุงเทพมหานคร', desc: 'ศูนย์กลางการแพทย์และสาธารณสุข', x: 48, y: 56 },
+          ];
 
           // 🔥 ดึงข้อมูลผู้ใช้งานจริงจากฐานข้อมูลมาคำนวณแบบ Real-time 🔥
           const regionStats = {};
@@ -1057,39 +1092,117 @@
               }
           });
 
-          // Fallback Mock Data: ถ้ายังไม่มีผู้ใช้งาน ให้โชว์ข้อมูลจำลองเพื่อความน่าเชื่อถือ
           let REGION_DATA = Object.values(regionStats);
           let totalStats = REGION_DATA.reduce((acc, curr) => ({
               users: acc.users + curr.users, learning: acc.learning + curr.learning, lab: acc.lab + curr.lab, passed: acc.passed + curr.passed
           }), { users: 0, learning: 0, lab: 0, passed: 0 });
 
-          if (totalStats.users === 0) {
-              REGION_DATA = REGION_DATA.map(r => ({...r, users: Math.floor(Math.random() * 100) + 10, learning: 20, lab: 30, passed: 10}));
-              totalStats = { users: 854, learning: 320, lab: 412, passed: 122 };
-          }
+          // 🤖 ข้อมูลสำหรับสมองกลวิเคราะห์นโยบาย 🤖
+          const activeRegions = Object.entries(regionStats).filter(([id, data]) => id !== 'BKK' && data.users > 0).map(([id, data]) => data).sort((a,b) => b.users - a.users);
+          const maxReg = activeRegions.length > 0 ? activeRegions[0] : { name: 'รอข้อมูลบุคลากร', users: 0 };
+          const minReg = activeRegions.length > 1 ? activeRegions[activeRegions.length-1] : (activeRegions.length > 0 ? activeRegions[0] : { name: 'รอข้อมูลบุคลากร', users: 0 });
 
-          // 🤖 ข้อมูลสำหรับสมองกลวิเคราะห์นโยบาย อัปเดตข้อมูลจริง 🤖
-          const activeRegions = Object.entries(regionStats).filter(([id, data]) => id !== 'BKK').map(([id, data]) => data).sort((a,b) => b.users - a.users);
-          const maxReg = activeRegions.length > 0 && activeRegions[0].users > 0 ? activeRegions[0] : { name: 'เขตสุขภาพที่ 7', users: 120 };
-          const minReg = activeRegions.length > 1 && activeRegions[activeRegions.length-1].users > 0 ? activeRegions[activeRegions.length-1] : { name: 'เขตสุขภาพที่ 12', users: 15 };
+          const aiInsightText = `📊 AI Policy Intelligence Report (Live Synthesis):
 
-          const aiInsightText = (window.AI_INSIGHT_TEXT || "").replace('{{USERS}}', totalStats.users.toLocaleString()).replace('{{PASSED}}', totalStats.passed.toLocaleString()).replace(/{{MAX_REG_NAME}}/g, maxReg.name).replace('{{MAX_REG_USERS}}', maxReg.users).replace(/{{MIN_REG_NAME}}/g, minReg.name).replace('{{MIN_REG_USERS}}', minReg.users);
+[1] มิติบุคลากร (Status Quo):
+• เข้าร่วมโครงการ ${totalStats.users.toLocaleString()} ราย | ผ่านเกณฑ์ ${totalStats.passed.toLocaleString()} ราย
+• กำลังรักษาระดับการฝึกเจรจา (Skill Lab) เพื่อปิดช่องว่างการขาดแคลนทีมภูมิภาค
 
-          const policySpeech = (window.POLICY_SPEECH || "").replace('{{USERS}}', totalStats.users).replace('{{PASSED}}', totalStats.passed).replace('{{MAX_REG_NAME}}', maxReg.name).replace('{{MIN_REG_NAME}}', minReg.name);
+[2] มิติความเหลื่อมล้ำเชิงพื้นที่ (Geo-Equity):
+• ภูมิภาคนำร่องสูงสุด: ${maxReg.name} (${maxReg.users} ราย)
+• พื้นที่เฝ้าระวัง: ${minReg.name} (${minReg.users} ราย) - ต้องเร่งสร้างทีมจัดเก็บอวัยวะ
+
+[3] มิติวิกฤตระดับชาติ (National Crisis Benchmark):
+• ปัจจุบันไทยมีผู้รออวัยวะสะสมกว่า 8,019 ราย แต่มีผู้บริจาคสมองตายจริงเพียงหลักร้อย
+• คอขวดหลัก: "ขาดทักษะการเจรจาในห้อง ICU" ระบบ RJ Ailiverse จึงเป็นเครื่องมือเร่งด่วนในการแก้ปัญหานี้
+
+[4] 🎯 ข้อเสนอแนะเชิงนโยบาย (Actionable Recommendations):
+1. นโยบาย 'จัดเก็บในเขต ปลูกถ่ายในเขต': เร่งใช้โมเดลความสำเร็จของ ${maxReg.name} ไปฝึกอบรมบุคลากรใน ${minReg.name}
+2. ปลดล็อคข้อจำกัด (KPI Integration): ผูกชั่วโมงฝึก AI กับหน่วยกิตการศึกษาต่อเนื่อง (CNEU) เพื่อจูงใจพยาบาลผู้ประสานงาน`;
+
+          const policySpeech = `สวัสดีค่ะท่านผู้บริหาร ฟ้าทำการสังเคราะห์ข้อมูลล่าสุดพบว่า ขณะนี้เรามีบุคลากรในระบบ ${totalStats.users} ท่าน สอบผ่านแล้ว ${totalStats.passed} ท่านค่ะ จากมิติเชิงพื้นที่พบว่า ${maxReg.name} มีความตื่นตัวสูงสุดค่ะ ปัจจุบันผู้ป่วยชาวไทยที่รออวัยวะพุ่งสูงกว่าแปดพันราย คอขวดสำคัญคือการขาดทีมเจรจาในภูมิภาค ฟ้าขอเสนอให้เร่งนโยบายจัดเก็บในเขตปลูกถ่ายในเขต และใช้ระบบของเราเป็นเกณฑ์มาตรฐานแห่งชาติในการประเมินทักษะค่ะ ท่านสามารถดูรายละเอียด หรือพิมพ์สอบถามนโยบายเพิ่มเติมที่ช่องแชทด้านล่างได้เลยนะคะ`;
 
           const [typedInsight, setTypedInsight] = useState("");
+          const [isPlaying, setIsPlaying] = useState(false);
+
+          // Setup ระบบฟังเสียง (Mic) สำหรับหน้าผู้บริหาร
+          useEffect(() => {
+              const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+              if (SR) {
+                  execRecRef.current = new SR();
+                  execRecRef.current.continuous = false;
+                  execRecRef.current.interimResults = true;
+                  execRecRef.current.lang = 'th-TH';
+                  execRecRef.current.onresult = (e) => {
+                      let transcript = '';
+                      for (let i = e.resultIndex; i < e.results.length; ++i) {
+                          transcript += e.results[i][0].transcript;
+                      }
+                      setExecInput(transcript);
+                  };
+                  execRecRef.current.onend = () => setIsExecListening(false);
+                  execRecRef.current.onerror = () => setIsExecListening(false);
+              }
+          }, []);
+
+          const toggleExecMic = () => {
+              if (isExecListening) {
+                  execRecRef.current?.stop();
+                  setIsExecListening(false);
+              } else {
+                  setExecInput('');
+                  execRecRef.current?.start();
+                  setIsExecListening(true);
+              }
+          };
+
+          // 🚀 ฟังก์ชันส่งข้อความถาม AI (Executive Mode)
+          const handleExecSubmit = async (e) => {
+              e?.preventDefault();
+              if (!execInput.trim() || isExecTyping) return;
+              
+              const userQ = execInput.trim();
+              setExecInput('');
+              setIsExecListening(false);
+              execRecRef.current?.stop();
+              setIsPlaying(false); // ปิดเอฟเฟกต์พิมพ์ดีดข้อความแรก
+              
+              setExecMessages(prev => [...prev, { id: Date.now(), role: 'user', text: userQ }]);
+              setIsExecTyping(true);
+              
+              setTimeout(() => execEndRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
+
+              const prompt = `คุณคือ "Fah AI Executive Intelligence" เลขาธิการอัจฉริยะประจำกระทรวงสาธารณสุข ตอบคำถามผู้บริหารอย่างเป็นมืออาชีพ สั้น กระชับ มีวิสัยทัศน์ อ้างอิงจากข้อมูลวิกฤตผู้ป่วยรออวัยวะ 8,019 ราย และนโยบาย RJ Ailiverse (การใช้ AI จำลองสถานการณ์ฝึกเจรจาเพื่อเพิ่มยอดบริจาค)\n\nคำถามผู้บริหาร: ${userQ}`;
+
+              try {
+                  const response = await callGeminiAPI(userQ, prompt);
+                  setExecMessages(prev => [...prev, { id: Date.now()+1, role: 'ai', text: response }]);
+                  actions.speakText({ text: response.replace(/[*#]/g, ''), hidden: true });
+              } catch (err) {
+                  setExecMessages(prev => [...prev, { id: Date.now()+1, role: 'ai', text: "ขออภัยค่ะ ระบบฐานข้อมูลนโยบายขัดข้องชั่วคราว" }]);
+              }
+              setIsExecTyping(false);
+              setTimeout(() => execEndRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
+          };
 
           useEffect(() => {
               if (showReport) {
+                  if (execMessages.length === 0) {
+                      setExecMessages([{ id: 'init', role: 'ai', text: aiInsightText }]);
+                      setIsPlaying(true);
+                  }
+                  
                   let i = 0;
                   setTypedInsight("");
                   const interval = setInterval(() => {
                       setTypedInsight(aiInsightText.substring(0, i));
                       i++;
-                      if (i > aiInsightText.length) clearInterval(interval);
-                  }, 15); // ความเร็วในการพิมพ์
+                      if (i > aiInsightText.length) {
+                          clearInterval(interval);
+                          setIsPlaying(false);
+                      }
+                  }, 15);
 
-                  // สั่งให้พูดอัตโนมัติเมื่อเปิด Dashboard
                   setTimeout(() => {
                       actions.speakText({ text: policySpeech, hidden: true });
                   }, 800);
@@ -1097,8 +1210,9 @@
                   return () => clearInterval(interval);
               } else {
                   setTypedInsight("");
+                  setIsPlaying(false);
               }
-          }, [showReport, aiInsightText, policySpeech]);
+          }, [showReport]);
 
           useEffect(() => { 
             const handleMessage = (event) => { 
@@ -1160,18 +1274,18 @@
                      <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6 md:p-8 animate-in fade-in zoom-in-95 duration-500 print-bg-white">
                          <div className="absolute inset-0 bg-slate-900/90 backdrop-blur-md no-print" onClick={() => setShowReport(false)}></div>
                          
-                         <div className="relative w-full max-w-6xl max-h-[90vh] flex flex-col bg-slate-900 print-bg-white border border-slate-700 print-border-gold rounded-3xl overflow-hidden shadow-[0_30px_100px_rgba(0,0,0,0.8)] print-shadow-none text-slate-100 print-text-dark">
+                         <div className="relative w-full max-w-7xl max-h-[95vh] flex flex-col bg-slate-900 print-bg-white border border-slate-700 print-border-gold rounded-3xl overflow-hidden shadow-[0_30px_100px_rgba(0,0,0,0.8)] print-shadow-none text-slate-100 print-text-dark">
                              
                              {/* 🌟 หัวข้อสีทองหรูหรา (Luxurious Gold Header) 🌟 */}
-                             <div className="px-6 py-4 md:px-8 md:py-6 border-b border-slate-700 print-border-gold bg-slate-800/80 print-bg-white flex justify-between items-center shrink-0 z-20">
+                             <div className="px-6 py-4 md:px-8 md:py-6 border-b border-white/10 print-border-gold bg-slate-800/80 print-bg-white flex justify-between items-center shrink-0 z-20">
                                  <div>
-                                     <h2 className="text-2xl md:text-3xl font-black flex items-center gap-3 drop-shadow-lg">
+                                     <h2 className="text-xl md:text-3xl font-black flex items-center gap-3 drop-shadow-lg">
                                          <SafeIcon name="Globe" className="text-gold-400" size={32} />
                                          <span className="bg-gradient-to-r from-yellow-200 via-yellow-400 to-yellow-600 text-transparent bg-clip-text" style={{ textShadow: '0px 2px 4px rgba(0,0,0,0.5)' }}>
                                              AI Policy Intelligence Report
                                          </span>
                                      </h2>
-                                     <p className="text-slate-300 print-text-dark font-bold mt-2 tracking-widest text-sm flex items-center gap-2">
+                                     <p className="text-slate-300 print-text-dark font-bold mt-2 tracking-widest text-xs md:text-sm flex items-center gap-2">
                                          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_#10b981] no-print"></span> 
                                          LIVE DATA DASHBOARD
                                      </p>
@@ -1183,17 +1297,17 @@
                              <div className="flex-1 overflow-y-auto custom-scrollbar p-6 md:p-8 bg-black print-bg-white relative">
                                  
                                  {/* 🚀 New KPI Dashboard & Interactive Map Section 🚀 */}
-                                 <div className="flex flex-col lg:flex-row gap-6 md:gap-8 relative z-10">
+                                 <div className="flex flex-col lg:flex-row gap-6 md:gap-8 relative z-10 h-full">
                                      
                                      {/* Left: Overall KPI Stats & AI Insight */}
-                                     <div className="w-full lg:w-1/3 flex flex-col gap-4">
+                                     <div className="w-full lg:w-1/3 flex flex-col gap-4 h-full min-h-[500px]">
                                          
-                                         <div className="bg-slate-900/60 print-bg-white p-6 rounded-2xl border border-slate-700 print-border-gold shadow-inner backdrop-blur-sm">
+                                         <div className="bg-slate-900/60 print-bg-white p-6 rounded-2xl border border-slate-700 print-border-gold shadow-inner backdrop-blur-sm shrink-0">
                                              <div className="text-sm font-bold text-slate-400 print-text-dark uppercase tracking-widest mb-1">Target Users Nationwide</div>
                                              <div className="text-4xl md:text-5xl font-black text-transparent print-text-dark bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-300">{totalStats.users.toLocaleString()}</div>
                                          </div>
                                          
-                                         <div className="grid grid-cols-2 gap-4">
+                                         <div className="grid grid-cols-2 gap-4 shrink-0">
                                              <div className="bg-slate-900/60 print-bg-white p-4 rounded-2xl border border-slate-700/50 print-border-gold backdrop-blur-sm">
                                                 <div className="text-xs font-bold text-slate-400 print-text-dark mb-1">กำลังเรียน (Learning)</div>
                                                 <div className="text-2xl font-black text-amber-400 print-text-dark">{totalStats.learning.toLocaleString()}</div>
@@ -1204,39 +1318,79 @@
                                              </div>
                                          </div>
 
-                                         <div className="bg-emerald-900/40 print-bg-white p-4 rounded-2xl border border-emerald-500/50 print-border-gold backdrop-blur-sm flex items-center justify-between">
+                                         <div className="bg-emerald-900/40 print-bg-white p-4 rounded-2xl border border-emerald-500/50 print-border-gold backdrop-blur-sm flex items-center justify-between shrink-0">
                                              <div className="flex items-center gap-2 text-emerald-400 print-text-dark font-bold"><SafeIcon name="CheckCircle" size={18}/> สอบผ่านแล้ว</div>
                                              <div className="text-2xl font-black text-emerald-400 print-text-dark">{totalStats.passed.toLocaleString()}</div>
                                          </div>
 
-                                         {/* 🌟 PROACTIVE AI EXECUTIVE INSIGHT BOX 🌟 */}
-                                         <div className="mt-auto bg-gradient-to-br from-indigo-900/90 to-slate-900/90 print-bg-white p-5 rounded-2xl border border-indigo-500/50 print-border-gold shadow-[0_0_20px_rgba(99,102,241,0.3)] print-shadow-none relative overflow-hidden backdrop-blur-md">
-                                             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-indigo-400 to-transparent animate-pulse no-print"></div>
-                                             <div className="flex items-center gap-2 mb-3 border-b border-indigo-500/30 pb-3">
-                                                 <div className="w-6 h-6 rounded-full bg-indigo-500/30 print-bg-white flex items-center justify-center border border-indigo-400/50 print-border-gold"><SafeIcon name="Brain" size={14} className="text-indigo-300 print-text-dark animate-pulse" /></div>
-                                                 <span className="text-sm font-black text-indigo-300 print-text-dark tracking-widest uppercase">Fah AI Executive Intelligence</span>
-                                             </div>
-                                             
-                                             <div className="text-sm text-slate-200 print-text-dark leading-relaxed font-mono min-h-[140px] whitespace-pre-line overflow-y-auto custom-scrollbar pr-2 max-h-[200px]">
-                                                 {typedInsight ? (
-                                                     <span>{typedInsight}<span className="animate-pulse text-indigo-400 no-print">_</span></span>
+                                         {/* 🌟 PROACTIVE AI EXECUTIVE INSIGHT BOX (Interactive Chat) 🌟 */}
+                                         <div className="flex-1 bg-black/60 border border-blue-500/30 rounded-2xl p-5 shadow-[0_0_15px_rgba(59,130,246,0.15)] flex flex-col relative overflow-hidden min-h-[250px] backdrop-blur-md">
+                                             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-blue-500 to-transparent animate-pulse no-print"></div>
+                                             <div className="flex justify-between items-center mb-3 border-b border-slate-700/50 pb-2">
+                                                 <h3 className="text-blue-400 text-sm font-bold flex items-center gap-2">
+                                                     <SafeIcon name="Cpu" size={18} /> Fah AI Executive Intelligence
+                                                 </h3>
+                                                 {!isPlaying && execMessages.length <= 1 ? (
+                                                     <button onClick={() => actions.speakText(policySpeech)} className="bg-blue-600 hover:bg-blue-500 text-white text-[10px] px-3 py-1.5 rounded-full font-bold flex items-center gap-1 animate-pulse">
+                                                         <SafeIcon name="PlayCircle" size={12} /> ฟังรายงาน
+                                                     </button>
                                                  ) : (
-                                                     <span className="animate-pulse text-indigo-400/50 print-text-dark">Analyzing live policy datastream...</span>
+                                                     <span className="text-[9px] text-emerald-400 font-mono flex items-center gap-1 uppercase">
+                                                         <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span> Sync Active
+                                                     </span>
                                                  )}
                                              </div>
                                              
-                                             <div className="mt-4 flex justify-between items-center border-t border-indigo-500/30 print-border-gold pt-3">
-                                                <span className="text-[9px] text-indigo-400/60 print-text-dark uppercase tracking-widest font-mono">Live Policy Sync: Active</span>
-                                                <button onClick={() => actions.speakText(policySpeech)} className="no-print text-[10px] bg-indigo-500/20 hover:bg-indigo-500/40 text-indigo-200 px-3 py-1.5 rounded-full flex items-center gap-1 transition-colors border border-indigo-400/30 active:scale-95">
-                                                    <SafeIcon name="Volume2" size={12} /> ฟังรายงานสรุป
-                                                </button>
+                                             {/* พื้นที่แสดงประวัติการคุยกับ AI */}
+                                             <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 flex flex-col gap-3 pb-2">
+                                                 {execMessages.map((msg, idx) => (
+                                                     <div key={msg.id} className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
+                                                         <div className={`p-3 rounded-xl max-w-[95%] text-xs md:text-sm leading-relaxed ${msg.role === 'user' ? 'bg-blue-600 text-white rounded-br-none shadow-md' : 'bg-slate-800/80 border border-slate-600 text-slate-200 rounded-bl-none font-mono shadow-inner'}`}>
+                                                             {idx === 0 && (isPlaying || !typedInsight) ? (
+                                                                 <span className={isPlaying ? "typewriter-text" : "whitespace-pre-line"}>
+                                                                     {isPlaying ? typedInsight : msg.text}
+                                                                 </span>
+                                                             ) : (
+                                                                 <span className="whitespace-pre-line">{msg.text}</span>
+                                                             )}
+                                                         </div>
+                                                     </div>
+                                                 ))}
+                                                 {isExecTyping && (
+                                                     <div className="flex items-start">
+                                                         <div className="p-3 rounded-xl bg-slate-800/80 border border-slate-600 text-blue-400 font-mono text-xs animate-pulse rounded-bl-none">
+                                                             Analyzing policy database...
+                                                         </div>
+                                                     </div>
+                                                 )}
+                                                 <div ref={execEndRef} />
+                                             </div>
+
+                                             {/* ช่องพิมพ์ถาม-ตอบ */}
+                                             <div className="mt-2 pt-3 border-t border-slate-700/50 shrink-0">
+                                                 <form onSubmit={handleExecSubmit} className="flex items-center gap-2 bg-slate-900/80 border border-slate-600 rounded-full p-1 pl-3 transition-colors focus-within:border-blue-500 shadow-inner">
+                                                     <input 
+                                                         type="text" 
+                                                         value={execInput} 
+                                                         onChange={e => setExecInput(e.target.value)} 
+                                                         placeholder={isExecListening ? "กำลังฟังคำสั่ง..." : "สอบถามนโยบายเพิ่มเติม..."} 
+                                                         className="flex-1 bg-transparent text-white placeholder-slate-400 px-1 outline-none text-xs font-sans"
+                                                         disabled={isExecTyping}
+                                                     />
+                                                     <button type="button" onClick={toggleExecMic} disabled={isExecTyping} className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors shrink-0 ${isExecListening ? 'bg-rose-500/80 text-white shadow-[0_0_10px_rgba(244,63,94,0.5)]' : 'bg-slate-700 hover:bg-slate-600 text-slate-300'}`}>
+                                                         <SafeIcon name="Mic" size={14} />
+                                                     </button>
+                                                     <button type="submit" disabled={!execInput.trim() || isExecTyping} className="w-8 h-8 rounded-full bg-blue-600 hover:bg-blue-500 text-white flex items-center justify-center disabled:opacity-50 transition-colors shadow-md shrink-0">
+                                                         <SafeIcon name="Send" size={14} />
+                                                     </button>
+                                                 </form>
                                              </div>
                                          </div>
 
                                      </div>
 
                                      {/* Right: Holographic Network Map */}
-                                     <div className="w-full lg:w-2/3 relative bg-slate-900 print-bg-white border border-slate-700/50 print-border-gold rounded-3xl aspect-[4/3] sm:aspect-video lg:aspect-auto flex items-center justify-center overflow-hidden shadow-[inset_0_0_50px_rgba(0,0,0,0.8)] print-shadow-none group">
+                                     <div className="w-full lg:w-2/3 relative bg-slate-900 print-bg-white border border-slate-700/50 print-border-gold rounded-3xl aspect-[4/3] sm:aspect-video lg:aspect-auto flex items-center justify-center overflow-hidden shadow-[inset_0_0_50px_rgba(0,0,0,0.8)] print-shadow-none group h-[500px] lg:h-auto">
                                          
                                          {/* Global Connectivity Background (100% Opacity) */}
                                          <div className="absolute inset-0 z-0 bg-slate-950/40 mix-blend-multiply no-print"></div>
@@ -1286,7 +1440,7 @@
                                          </div>
                                          
                                          {/* Guide Text */}
-                                         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/40 backdrop-blur-md px-4 py-1.5 rounded-full border border-slate-600/50 text-[10px] md:text-xs text-slate-300 font-medium no-print pointer-events-none">Hover or tap on nodes to view regional metrics</div>
+                                         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/40 backdrop-blur-md px-4 py-1.5 rounded-full border border-slate-600/50 text-[10px] md:text-xs text-slate-300 font-medium no-print pointer-events-none whitespace-nowrap">Hover or tap on nodes to view regional metrics</div>
 
                                      </div>
                                  </div>
