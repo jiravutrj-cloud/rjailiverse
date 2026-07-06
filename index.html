@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>e-Learning with Fah AI</title>
     
-    <!-- เรียกใช้งานไฟล์ข้อมูลที่เราแยกไว้ -->
+    <!-- เรียกใช้ไฟล์ข้อมูลแยก (Static Data) -->
     <script src="./data.js"></script>
 
     <!-- Tailwind CSS -->
@@ -35,7 +35,7 @@
       }
     </script>
     
-    <!-- Custom Styles for Parallax Clouds & Glassmorphism -->
+    <!-- Custom Styles -->
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&display=swap');
         
@@ -62,7 +62,6 @@
         .custom-scrollbar::-webkit-scrollbar-thumb { background-color: rgba(255,255,255,0.4); border-radius: 10px; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background-color: rgba(255,255,255,0.6); }
         
-        /* Padding for safe areas (Notches/Home indicators) */
         .pt-safe { padding-top: env(safe-area-inset-top, 20px); }
         .pb-safe { padding-bottom: env(safe-area-inset-bottom, 20px); }
         .top-safe { top: env(safe-area-inset-top, 20px); }
@@ -109,12 +108,11 @@
         import { getFirestore, collection, doc, setDoc, onSnapshot, deleteDoc } from 'firebase/firestore';
 
         // ============================================================================
-        // 1. CONFIGURATIONS & DATA CONSTANTS (ดึงตัวแปรมาจากไฟล์ data.js)
+        // 1. DATA CONSTANTS (ดึงจาก data.js)
         // ============================================================================
         const FAH_IDLE_VIDEO = window.FAH_IDLE_VIDEO || "";
         const CHARACTER_VIDEOS = window.CHARACTER_VIDEOS || {};
         const FAH_PROFILE_PIC = window.FAH_PROFILE_PIC || "";
-        
         const HOSPITAL_MAPPING = window.HOSPITAL_MAPPING || {};
         const INITIAL_LESSONS = window.INITIAL_LESSONS || [];
         const SKILL_LAB_SCENARIOS = window.SKILL_LAB_SCENARIOS || [];
@@ -135,7 +133,7 @@
           Bot: LucideIcons.Bot, PlayCircle: LucideIcons.PlayCircle, Camera: LucideIcons.Camera, Eye: LucideIcons.Eye,
           Settings2: LucideIcons.Settings2, Search: LucideIcons.Search, CloudLightning: LucideIcons.CloudLightning,
           Globe: LucideIcons.Globe, Heart: LucideIcons.Heart, TrendingUp: LucideIcons.TrendingUp, MapPin: LucideIcons.MapPin,
-          Cpu: LucideIcons.Cpu
+          Cpu: LucideIcons.Cpu, Settings: LucideIcons.Settings
         };
 
         function SafeIcon({ name, size = 24, className = "", strokeWidth = 2, ...rest }) {
@@ -143,6 +141,9 @@
           return <IconComponent size={size} className={className} strokeWidth={strokeWidth} {...rest} />;
         }
 
+        // ============================================================================
+        // 2. FIREBASE & UTILS
+        // ============================================================================
         let app, auth, db, appId;
         try {
           const fbP1 = "AIzaSyBs275"; const fbP2 = "NY99gdv1uZdAnb"; const fbP3 = "mx3UlWO8K4o5a0";
@@ -154,7 +155,6 @@
           }
         } catch (error) { console.warn("Firebase init error", error); }
 
-        // --- 2. UTILS ---
         function recursiveShuffle(arr) { if (!arr || arr.length <= 1) return arr; const idx = Math.floor(Math.random() * arr.length); const rest = [...arr]; rest.splice(idx, 1); return [arr[idx], ...recursiveShuffle(rest)]; }
         function formatQuestions(qs) { return qs.map(q => { const correctAnswerText = q.options[q.answer]; const shuffledOpts = recursiveShuffle([...q.options]); return { ...q, options: shuffledOpts, answer: shuffledOpts.indexOf(correctAnswerText) }; }); }
         function parseRawExams(raw) { return raw.map((str, idx) => { const parts = str.split('|').map(s => s.trim()); return { id: idx + 1, question: parts[0].replace(/^[0-9]+\.\s*/, ''), options: parts.slice(1, parts.length - 1), answer: parseInt(parts[parts.length - 1].replace(/[^0-9]/g, ''), 10) }; }); }
@@ -165,95 +165,44 @@
         const calculateScore = (questions, answers) => questions.reduce((acc, q) => acc + +(answers[q.id] === q.answer), 0);
         const correctMedicalTerms = (text) => { if (!text) return text; let corrected = text; const dict = { "แอบเนีย": "Apnea", "แอปเนีย": "Apnea", "ดีคัปปิ้ง": "Decoupling", "ดีคับปลิ้ง": "Decoupling", "เบรนเดส": "Brain Death", "สมองตาย": "Brain Death" }; Object.keys(dict).forEach(key => corrected = corrected.replace(new RegExp(key, "g"), dict[key])); return corrected; };
         
-        const fetchWithRetry = async (url, options) => { 
-            const delays = [2000, 4000, 8000, 16000, 32000]; 
-            for (let i = 0; i <= delays.length; i++) { 
-                try { 
-                    const res = await fetch(url, options); 
-                    if (!res.ok) { 
-                        if (res.status === 429) {
-                            console.warn(`[429] ลิมิต API รอ ${delays[i]/1000} วินาที (ครั้งที่ ${i+1})`);
-                            if (i === delays.length) throw new Error("ระบบหนาแน่นเกินไป กรุณาลองใหม่ในอีกสักครู่ค่ะ");
-                            throw new Error("429_RETRY");
-                        }
-                        throw new Error(`HTTP ${res.status}`); 
-                    } 
-                    return await res.json(); 
-                } catch (error) { 
-                    if (error.message !== "429_RETRY" && i === delays.length) throw error; 
-                    await new Promise(res => setTimeout(res, delays[i] || 5000)); 
-                } 
-            } 
-        };
-
-        // 🔴 1. วาง API Key จริงลงไปตรงนี้เลยค่ะ (ทิ้งระบบ GitHub Secrets ไปได้เลย)
-        // คีย์จะปลอดภัยเพราะล็อคโดเมน (HTTP Referrers) ไว้ที่ฝั่ง Google Cloud แล้ว
-        const ACTUAL_API_KEY = "AIzaSyAC6PFyBpVdFh1EpUN1dchRHz_IswOdOvo"; 
-
+        // ============================================================================
+        // 3. APPS SCRIPT API PROXY (SECURITY UPGRADE)
+        // ============================================================================
         const callGeminiAPI = async (prompt, systemInstruction, base64Image = null) => {
             try {
-                const parts = [{ text: prompt }];
-                if (base64Image) {
-                    const mimeType = base64Image.match(/data:(.*?);base64/)[1];
-                    const data = base64Image.split(',')[1];
-                    parts.push({ inlineData: { mimeType, data } });
-                }
-                const safetySettings = [
-                    { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
-                    { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
-                    { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
-                    { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
-                ];
-                
-                // ถอดระบบ Proxy เก่าออก วิ่งตรงเข้า Google 100%
-                if (!ACTUAL_API_KEY || ACTUAL_API_KEY.includes('ใส่_API_KEY')) {
-                    throw new Error("ลืมใส่ API Key ในโค้ด (index.html)");
-                }
-
-                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${ACTUAL_API_KEY}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ contents: [{ parts }], systemInstruction: { parts: [{ text: systemInstruction }] }, safetySettings })
+                const res = await actions.fetchAppsScript({
+                    action: 'callGemini',
+                    prompt: prompt,
+                    systemInstruction: systemInstruction,
+                    base64Image: base64Image
                 });
                 
-                if (!res.ok) {
-                    const errData = await res.json().catch(()=>({}));
-                    throw new Error(`API Error ${res.status}: ${errData.error?.message || ''}`);
+                if (res.status === 'success' && res.text) {
+                    return res.text;
+                } else {
+                    throw new Error(res.message || "ไม่มีข้อมูลตอบกลับจาก AI โปรดตรวจสอบการตั้งค่า Apps Script");
                 }
-                const data = await res.json();
-                if (data.candidates && data.candidates.length > 0) return data.candidates[0].content.parts[0].text;
-                throw new Error("ไม่มีข้อมูลตอบกลับจาก AI");
             } catch (e) { 
-                console.error("Gemini API Error:", e);
+                console.error("Gemini Proxy Error:", e);
                 return `[ระบบขัดข้อง] ${e.message}`; 
             }
         };
 
         const callGeminiTTS = async (text, voiceName = "Aoede") => {
-            const safetySettings = [{ category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" }, { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" }, { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" }, { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }];
-            const payload = { contents: [{ parts: [{ text: text }] }], generationConfig: { responseModalities: ["AUDIO"], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: voiceName } } } }, safetySettings };
-            
-            if (!ACTUAL_API_KEY || ACTUAL_API_KEY.includes('ใส่_API_KEY')) {
-                throw new Error("ลืมใส่ API Key ในโค้ด (index.html)");
-            }
-
             const maxRetries = 3;
             for (let i = 0; i < maxRetries; i++) {
                 try {
-                    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${ACTUAL_API_KEY}`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
+                    const res = await actions.fetchAppsScript({
+                        action: 'callGeminiTTS',
+                        text: text,
+                        voiceName: voiceName
                     });
                     
-                    if (!res.ok) {
-                        const errData = await res.json().catch(() => ({}));
-                        throw new Error(`HTTP ${res.status}: ${errData.error?.message || 'API ถูกบล็อก'}`);
+                    if (res.status === 'success' && res.inlineData) {
+                        return res.inlineData;
+                    } else {
+                        throw new Error(res.message || 'ไม่มีข้อมูลเสียงส่งกลับมา โปรดตรวจสอบ Apps Script');
                     }
-                    const data = await res.json();
-                    const inlineData = data.candidates?.[0]?.content?.parts?.[0]?.inlineData;
-                    if (inlineData && inlineData.data) return inlineData;
-                    throw new Error("ไม่มีข้อมูลเสียงส่งกลับมา");
                 } catch (e) {
                     console.warn(`TTS Attempt ${i + 1} failed:`, e);
                     if (i < maxRetries - 1) {
@@ -277,7 +226,9 @@
           return URL.createObjectURL(new Blob([buffer], { type: 'audio/wav' }));
         };
 
-        // --- 3. STATE MANAGEMENT ---
+        // ============================================================================
+        // 4. STATE MANAGEMENT
+        // ============================================================================
         const createGlobalStore = (initialState) => {
           let savedState = null;
           try { savedState = JSON.parse(localStorage.getItem('elearning_app_state') ?? 'null'); } catch (e) {}
@@ -297,7 +248,7 @@
         };
 
         const globalStore = createGlobalStore({
-          currentScreen: 'landing', uiMessage: { type: '', text: '', visible: false }, tempLicense: '', authStep: 'check_license',
+          currentScreen: 'landing', uiMessage: { type: '', text: '', visible: false }, tempLicense: '', authStep: 'check_license', adminClickCount: 0,
           registrationData: { name: '', email: '', phone: '', position: '', licenseId: '', department: '', hospital: '', customHospital: '', province: '', userType: '', isPrefilled: false },
           otpData: { input: '', isSending: false, error: '' }, fallbackOtp: null, loggedInUser: null, currentSessionId: null, studySeconds: 0,
           quizData: { type: 'pretest', questions: FULL_EXAMS[0] || [], currentIndex: 0, answers: {}, score: 0, isFinished: false },
@@ -317,7 +268,7 @@
           showMsg: (t, type = 'success') => { globalStore.setState({ uiMessage: { type, text: String(t), visible: true } }); setTimeout(() => globalStore.setState(p => ({ uiMessage: { ...p.uiMessage, visible: false } })), 3500); },
           speakText: (text) => globalStore.setState({ speakTextTrigger: text }),
           fetchAppsScript: async (payload, specificUrl = null) => { 
-              try { const url = specificUrl || globalStore.getState().appsScriptUrl; if(!url) return { status: 'error' }; const res = await fetch(url, { method: 'POST', body: JSON.stringify(payload) }); return await res.json(); } catch(e) { return { status: 'error' }; } 
+              try { const url = specificUrl || globalStore.getState().appsScriptUrl; if(!url) return { status: 'error' }; const res = await fetch(url, { method: 'POST', body: JSON.stringify(payload) }); return await res.json(); } catch(e) { return { status: 'error', message: e.message }; } 
           },
           enqueueSync: (payload) => globalStore.setState(p => ({ syncQueue: [...p.syncQueue, { id: Date.now(), payload, retries: 0 }] })),
           saveUserToDB: async (u) => { if (db && globalStore.getState().fbUser) { try { await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_users', u.id), u, { merge: true }); } catch (e) { } } },
@@ -326,7 +277,7 @@
               const count = globalStore.getState().adminClickCount ?? 0; 
               if (count + 1 >= 3) { 
                   globalStore.setState({ adminClickCount: 0 }); 
-                  window.location.href = './admin.html';
+                  window.location.href = './admin.html'; // ลิงก์ไปหน้า Admin ที่แยกไฟล์ไว้
               } else { 
                   globalStore.setState({ adminClickCount: count + 1 }); 
               } 
@@ -338,7 +289,9 @@
         };
         window.showGlobalMsg = actions.showMsg;
 
-        // --- 4. SHARED UI ---
+        // ============================================================================
+        // 5. SHARED UI
+        // ============================================================================
         function GlassCard({ children, className = "", onClick, ...rest }) {
           let radiusClass = 'rounded-[2rem]'; const m = className.match(/rounded-(?:\[.*?\]|\w+)/); if (m) radiusClass = m[0];
           let bgClass = className.replace(/\bbg-(?:white|slate-[12]00)(?:\/\d+)?\b/g, '').replace(/\bborder-white(?:\/\d+)?\b/g, '').replace(/\bbackdrop-blur-(?:sm|md|lg|xl|2xl|3xl)\b/g, '').replace(/\b!border-none\b/g, '').replace(/\bborder-none\b/g, '');
@@ -396,7 +349,9 @@
           );
         }
 
-        // --- 5. CHATBOT COMPONENT ---
+        // ============================================================================
+        // 6. CHATBOT COMPONENT & VOICE SEPARATION
+        // ============================================================================
         function GlobalAIChatbot({ store }) {
           const [isOpen, setIsOpen] = useState(false); 
           const [chatInput, setChatInput] = useState(''); 
@@ -471,24 +426,29 @@
               else speakThai("สวัสดีครับ ผมเมฆนะครับ นี่คือเสียงของผมครับ", null, false, 'BROTHER'); 
           };
 
+          // -------------------------------------------------------------------------
+          // 🔴 ระบบแยกเสียงชาย-หญิง และอารมณ์แบบชัดเจน (Enhanced TTS Separation)
+          // -------------------------------------------------------------------------
           const speakThai = async (text, onEndCallback = null, forceStandard = false, speaker = 'FAH') => {
-            stopAudio(); currentSpeechIdRef.current += 1; const speechId = currentSpeechIdRef.current; let targetVoice = "Aoede"; 
+            stopAudio(); currentSpeechIdRef.current += 1; const speechId = currentSpeechIdRef.current; 
+            let targetVoice = "Aoede"; 
             let cleanSpeakText = text.replace(/\[.*?\]/g, '').replace(/\*.*?\*/g, '').replace(/#.*?#/g, '').replace(/^(ฟ้า|เมฆ|น้องชาย|ลูกสาว|Fah|Mek|Brother|Sister|AI)\s*:\s*/i, '').trim();
-            let emotionPrompt = `พูดด้วยน้ำเสียงธรรมชาติ: ${cleanSpeakText}`;
+            let emotionPrompt = "";
             
             if (isListening) { recognitionRef.current?.stop(); setIsListening(false); }
             
+            // ใช้ Prompt ควบคุมเพื่อให้ AI สังเคราะห์เสียงพูดตามเพศและอารมณ์ให้ชัดเจน
             if (isRoleplay && !forceStandard) { 
                 if (speaker === 'BROTHER') { 
-                    targetVoice = "Charon"; 
-                    emotionPrompt = `เสียงผู้ชายวัยรุ่น 18 ปี อารมณ์เศร้าขุ่นเคือง: ${cleanSpeakText}`; 
+                    targetVoice = "Charon"; // เสียงผู้ชาย (Charon เหมาะสมที่สุด)
+                    emotionPrompt = `[พูดด้วยเสียงผู้ชายวัยรุ่น 18 ปี กำลังอารมณ์เสียและเศร้าเสียใจ]: ${cleanSpeakText}`; 
                 } else { 
-                    targetVoice = "Aoede"; 
-                    emotionPrompt = `เสียงผู้หญิงวัยรุ่น เศร้าเสียใจ: ${cleanSpeakText}`; 
+                    targetVoice = "Aoede"; // เสียงผู้หญิง
+                    emotionPrompt = `[พูดด้วยเสียงผู้หญิงวัยรุ่น 22 ปี กำลังร้องไห้และสับสน]: ${cleanSpeakText}`; 
                 } 
             } else { 
-                targetVoice = "Aoede"; 
-                emotionPrompt = `เสียงผู้หญิงร่าเริง 22 ปี: ${cleanSpeakText}`; 
+                targetVoice = "Aoede"; // เสียง Tutor มาตรฐาน
+                emotionPrompt = `[พูดด้วยเสียงผู้หญิงร่าเริง สุภาพ และเป็นมิตร]: ${cleanSpeakText}`; 
             }
 
             try {
@@ -504,7 +464,6 @@
             } catch (error) { 
                 console.warn("TTS Failed:", error);
                 if (speechId === currentSpeechIdRef.current) {
-                    // ❌ โชว์ Error ของจริงออกมาเลย เพื่อให้เรารู้ว่า Google ฟ้องว่าอะไร
                     actions.showMsg(`เสียงขัดข้อง: ${error.message}`, 'error');
                     if (onEndCallback) onEndCallback();
                 }
@@ -533,7 +492,7 @@
               const sc = SKILL_LAB_SCENARIOS.find(s => s.id === store.selectedLabId); 
               const contextText = sc?.language === 'en' 
                   ? "Scenario ended. Patient is a 46yo male, brain dead from car accident. Relatives: Fah (22) and Mek (18). Let's start the roleplay." 
-                  : "ข้อมูลเบื้องต้น: คนไข้ชาย อายุ 46 ปี ประสบอุบัติเหตุรถยนต์ แพทย์ประเมินก้านสมองและทดสอบการหายใจแล้ว ยืนยันภาวะสมองตาย ซึ่งถือว่าเสียชีวิตตามกฎหมาย แต่อวัยวะยังสามารถใช้งานได้ ญาติที่รออยู่คือ ลูกสาว (ฟ้า อายุ 22) และลูกชาย (เมฆ อายุ 18) เริ่มการเจรจาได้เลยค่ะ";
+                  : "ข้อมูลเบื้องต้น: คนไข้ชาย อายุ 46 ปี ประสบอุบัติเหตุรถยนต์ แพทย์ประเมินก้านสมองและทดสอบการหายใจแล้ว ยืนยันภาวะสมองตาย แต่อวัยวะยังสามารถใช้งานได้ ญาติที่รออยู่คือ ลูกสาว (ฟ้า อายุ 22) และลูกชาย (เมฆ อายุ 18) เริ่มการเจรจาได้เลยค่ะ";
               
               globalStore.setState({ roleplayPhase: 'giving_context', currentEmotion: 'SAD', currentSpeaker: 'FAH' });
               const contextMsgId = Date.now(); 
@@ -685,6 +644,9 @@
               setIsTyping(false);
           };
 
+          // -------------------------------------------------------------------------
+          // 🔴 ระบบแยกข้อความแชทเพื่อตัดสินว่าใครคือคนพูด (Fah หรือ Mek)
+          // -------------------------------------------------------------------------
           const handleSendChat = async (e, quickActionText = null) => {
               if (e) e.preventDefault(); 
               const userMsg = quickActionText ?? chatInput.trim(); 
@@ -711,8 +673,12 @@
                   let cleanText = rawResponse; 
                   const checkStr = cleanText.substring(0, 150).toLowerCase();
                   
-                  if (checkStr.match(/\[\s*(เมฆ|น้องชาย|mek|brother)\s*\]|(^|\s)(เมฆ|น้องชาย|mek|brother)\s*:/)) spk = 'BROTHER'; 
-                  else if (checkStr.match(/\[\s*(ฟ้า|ลูกสาว|fah|sister)\s*\]|(^|\s)(ฟ้า|ลูกสาว|fah|sister)\s*:/)) spk = 'FAH';
+                  // ตรวจจับชื่อคนพูดจากบริบท (Detect Speaker)
+                  if (checkStr.match(/\[\s*(เมฆ|น้องชาย|mek|brother)\s*\]|(^|\s)(เมฆ|น้องชาย|mek|brother)\s*:/)) {
+                      spk = 'BROTHER'; 
+                  } else if (checkStr.match(/\[\s*(ฟ้า|ลูกสาว|fah|sister)\s*\]|(^|\s)(ฟ้า|ลูกสาว|fah|sister)\s*:/)) {
+                      spk = 'FAH';
+                  }
                   
                   let foundEmotion = "SAD"; 
                   const emotionsList = ["SAD", "HESITANT", "CONFUSED", "ANGRY", "ADVISING", "NEUTRAL"]; 
@@ -778,11 +744,10 @@
             };
           }, [isDragging]);
 
-          if (['auth_wizard', 'intro', 'landing'].includes(store.currentScreen)) return null;
+          if (['auth_wizard', 'intro', 'landing', 'admin'].includes(store.currentScreen)) return null;
 
           const scenario = SKILL_LAB_SCENARIOS.find(s => s.id === store.selectedLabId);
           
-          // 💻 Desktop UI View (Glassmorphism Dashboard)
           const leftVideoContent = (
               <div className="w-full h-full flex flex-col md:flex-row overflow-hidden shadow-[inset_-10px_0_20px_rgba(0,0,0,0.2)] md:rounded-l-[2.5rem]">
                  <div className={`w-full md:w-[42%] h-[80px] md:h-full flex flex-row md:flex-col py-2 md:py-6 px-4 bg-slate-900/40 backdrop-blur-xl border-b md:border-b-0 md:border-r border-white/20 shrink-0 relative z-20 shadow-xl transition-colors duration-500 ${isChaos ? 'border-l-4 border-l-rose-500 bg-rose-950/40 animate-pulse' : ''}`}>
@@ -1051,32 +1016,18 @@
           );
         }
 
-        // --- 6. SCREENS ---
+        // ============================================================================
+        // 7. SCREENS (หน้าจอต่างๆ)
+        // ============================================================================
         function LandingScreen({ store, actions }) {
           return (
             <div className="flex min-h-screen w-full relative overflow-hidden items-center justify-center bg-transparent z-50">
                <div className="relative z-10 w-full max-w-[400px] flex flex-col items-center justify-center p-6 gap-6 animate-in fade-in slide-in-from-bottom-8 duration-1000">
                    <div className="w-full rounded-[2.5rem] overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.3)] hover:scale-105 transition-transform duration-700 bg-white/30 backdrop-blur-xl border border-white/50 p-2">
-                       <img 
-                           src="https://res.cloudinary.com/djwclucoz/image/upload/v1782792861/AZ8WufoVnd5y8BdefqZZDQ-AZ8WufoV2pQOEFuonIDLYA_rhkffa.jpg" 
-                           alt="RJ Ailiverse Cover" 
-                           className="w-full h-auto object-contain rounded-[2rem] bg-white/80"
-                       />
+                       <img src="https://res.cloudinary.com/djwclucoz/image/upload/v1782792861/AZ8WufoVnd5y8BdefqZZDQ-AZ8WufoV2pQOEFuonIDLYA_rhkffa.jpg" alt="RJ Ailiverse Cover" className="w-full h-auto object-contain rounded-[2rem] bg-white/80" />
                    </div>
-                   
                    <div className="w-full">
-                       <GradientButton onClick={() => {
-                           try {
-                               const silentAudio = new Audio("data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA");
-                               silentAudio.play().catch(e=>{});
-                               if ('speechSynthesis' in window) {
-                                   const dummyUtterance = new SpeechSynthesisUtterance('');
-                                   dummyUtterance.volume = 0;
-                                   window.speechSynthesis.speak(dummyUtterance);
-                               }
-                           } catch(e){}
-                           actions.nav('intro');
-                       }} className="w-full py-4 text-lg md:text-xl shadow-[0_10px_30px_rgba(0,185,0,0.4)] hover:shadow-[0_15px_40px_rgba(0,185,0,0.6)] border border-white/40 backdrop-blur-md">
+                       <GradientButton onClick={() => actions.nav('intro')} className="w-full py-4 text-lg md:text-xl shadow-[0_10px_30px_rgba(0,185,0,0.4)] hover:shadow-[0_15px_40px_rgba(0,185,0,0.6)] border border-white/40 backdrop-blur-md">
                            เข้าสู่ระบบ e-Learning <SafeIcon name="ArrowRight" size={24} />
                        </GradientButton>
                    </div>
@@ -1089,7 +1040,6 @@
           const [showReport, setShowReport] = useState(false);
           const [activeRegion, setActiveRegion] = useState(null);
           
-          // --- 🚀 State สำหรับแชทสอบถามเลขา AI ---
           const [execInput, setExecInput] = useState('');
           const [isExecTyping, setIsExecTyping] = useState(false);
           const [isExecListening, setIsExecListening] = useState(false);
@@ -1097,24 +1047,8 @@
           const execRecRef = useRef(null);
           const execEndRef = useRef(null);
           
-          // 🇹🇭 โครงสร้างพิกัด 12 เขตสุขภาพ + กทม. (พิกัดคงที่สำหรับแสดงผลบนแผนที่)
-          const baseRegions = [
-            { id: 'R1', name: 'เขตสุขภาพที่ 1', desc: 'เชียงใหม่และภาคเหนือตอนบน', x: 28, y: 15 },
-            { id: 'R2', name: 'เขตสุขภาพที่ 2', desc: 'พิษณุโลกและภาคเหนือตอนล่าง', x: 34, y: 32 },
-            { id: 'R3', name: 'เขตสุขภาพที่ 3', desc: 'นครสวรรค์และภาคกลางตอนบน', x: 38, y: 44 },
-            { id: 'R4', name: 'เขตสุขภาพที่ 4', desc: 'สระบุรีและภาคกลางตอนบน', x: 44, y: 50 },
-            { id: 'R5', name: 'เขตสุขภาพที่ 5', desc: 'ราชบุรีและภาคตะวันตก', x: 32, y: 58 },
-            { id: 'R6', name: 'เขตสุขภาพที่ 6', desc: 'ชลบุรีและภาคตะวันออก', x: 58, y: 60 },
-            { id: 'R7', name: 'เขตสุขภาพที่ 7', desc: 'ขอนแก่นและอีสานตอนกลาง', x: 62, y: 38 },
-            { id: 'R8', name: 'เขตสุขภาพที่ 8', desc: 'อุดรธานีและอีสานตอนบน', x: 74, y: 26 },
-            { id: 'R9', name: 'เขตสุขภาพที่ 9', desc: 'นครราชสีมาและอีสานตอนล่าง', x: 62, y: 48 },
-            { id: 'R10', name: 'เขตสุขภาพที่ 10', desc: 'อุบลราชธานีและอีสานตอนล่าง', x: 82, y: 48 },
-            { id: 'R11', name: 'เขตสุขภาพที่ 11', desc: 'สุราษฎร์ธานีและภาคใต้ตอนบน', x: 28, y: 78 },
-            { id: 'R12', name: 'เขตสุขภาพที่ 12', desc: 'สงขลาและภาคใต้ตอนล่าง', x: 38, y: 92 },
-            { id: 'BKK', name: 'กรุงเทพมหานคร', desc: 'ศูนย์กลางการแพทย์และสาธารณสุข', x: 48, y: 56 },
-          ];
+          const baseRegions = window.BASE_REGIONS || [];
 
-          // 🔥 ดึงข้อมูลผู้ใช้งานจริงจากฐานข้อมูลมาคำนวณแบบ Real-time 🔥
           const regionStats = {};
           baseRegions.forEach(r => { regionStats[r.id] = { ...r, users: 0, learning: 0, lab: 0, passed: 0 }; });
 
@@ -1140,35 +1074,19 @@
               users: acc.users + curr.users, learning: acc.learning + curr.learning, lab: acc.lab + curr.lab, passed: acc.passed + curr.passed
           }), { users: 0, learning: 0, lab: 0, passed: 0 });
 
-          // 🤖 ข้อมูลสำหรับสมองกลวิเคราะห์นโยบาย 🤖
           const activeRegions = Object.entries(regionStats).filter(([id, data]) => id !== 'BKK' && data.users > 0).map(([id, data]) => data).sort((a,b) => b.users - a.users);
           const maxReg = activeRegions.length > 0 ? activeRegions[0] : { name: 'รอข้อมูลบุคลากร', users: 0 };
           const minReg = activeRegions.length > 1 ? activeRegions[activeRegions.length-1] : (activeRegions.length > 0 ? activeRegions[0] : { name: 'รอข้อมูลบุคลากร', users: 0 });
 
-          const aiInsightText = `📊 AI Policy Intelligence Report (Live Synthesis):
+          const rawInsight = window.AI_INSIGHT_TEXT || '';
+          const aiInsightText = rawInsight.replace('{{USERS}}', totalStats.users.toLocaleString()).replace('{{PASSED}}', totalStats.passed.toLocaleString()).replace('{{MAX_REG_NAME}}', maxReg.name).replace('{{MAX_REG_USERS}}', maxReg.users).replace('{{MIN_REG_NAME}}', minReg.name).replace('{{MIN_REG_USERS}}', minReg.users);
 
-[1] มิติบุคลากร (Status Quo):
-• เข้าร่วมโครงการ ${totalStats.users.toLocaleString()} ราย | ผ่านเกณฑ์ ${totalStats.passed.toLocaleString()} ราย
-• กำลังรักษาระดับการฝึกเจรจา (Skill Lab) เพื่อปิดช่องว่างการขาดแคลนทีมภูมิภาค
-
-[2] มิติความเหลื่อมล้ำเชิงพื้นที่ (Geo-Equity):
-• ภูมิภาคนำร่องสูงสุด: ${maxReg.name} (${maxReg.users} ราย)
-• พื้นที่เฝ้าระวัง: ${minReg.name} (${minReg.users} ราย) - ต้องเร่งสร้างทีมจัดเก็บอวัยวะ
-
-[3] มิติวิกฤตระดับชาติ (National Crisis Benchmark):
-• ปัจจุบันไทยมีผู้รออวัยวะสะสมกว่า 8,019 ราย แต่มีผู้บริจาคสมองตายจริงเพียงหลักร้อย
-• คอขวดหลัก: "ขาดทักษะการเจรจาในห้อง ICU" ระบบ RJ Ailiverse จึงเป็นเครื่องมือเร่งด่วนในการแก้ปัญหานี้
-
-[4] 🎯 ข้อเสนอแนะเชิงนโยบาย (Actionable Recommendations):
-1. นโยบาย 'จัดเก็บในเขต ปลูกถ่ายในเขต': เร่งใช้โมเดลความสำเร็จของ ${maxReg.name} ไปฝึกอบรมบุคลากรใน ${minReg.name}
-2. ปลดล็อคข้อจำกัด (KPI Integration): ผูกชั่วโมงฝึก AI กับหน่วยกิตการศึกษาต่อเนื่อง (CNEU) เพื่อจูงใจพยาบาลผู้ประสานงาน`;
-
-          const policySpeech = `สวัสดีค่ะท่านผู้บริหาร ฟ้าทำการสังเคราะห์ข้อมูลล่าสุดพบว่า ขณะนี้เรามีบุคลากรในระบบ ${totalStats.users} ท่าน สอบผ่านแล้ว ${totalStats.passed} ท่านค่ะ จากมิติเชิงพื้นที่พบว่า ${maxReg.name} มีความตื่นตัวสูงสุดค่ะ ปัจจุบันผู้ป่วยชาวไทยที่รออวัยวะพุ่งสูงกว่าแปดพันราย คอขวดสำคัญคือการขาดทีมเจรจาในภูมิภาค ฟ้าขอเสนอให้เร่งนโยบายจัดเก็บในเขตปลูกถ่ายในเขต และใช้ระบบของเราเป็นเกณฑ์มาตรฐานแห่งชาติในการประเมินทักษะค่ะ ท่านสามารถดูรายละเอียด หรือพิมพ์สอบถามนโยบายเพิ่มเติมที่ช่องแชทด้านล่างได้เลยนะคะ`;
+          const rawSpeech = window.POLICY_SPEECH || '';
+          const policySpeech = rawSpeech.replace('{{USERS}}', totalStats.users).replace('{{PASSED}}', totalStats.passed).replace('{{MAX_REG_NAME}}', maxReg.name);
 
           const [typedInsight, setTypedInsight] = useState("");
           const [isPlaying, setIsPlaying] = useState(false);
 
-          // Setup ระบบฟังเสียง (Mic) สำหรับหน้าผู้บริหาร
           useEffect(() => {
               const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
               if (SR) {
@@ -1178,9 +1096,7 @@
                   execRecRef.current.lang = 'th-TH';
                   execRecRef.current.onresult = (e) => {
                       let transcript = '';
-                      for (let i = e.resultIndex; i < e.results.length; ++i) {
-                          transcript += e.results[i][0].transcript;
-                      }
+                      for (let i = e.resultIndex; i < e.results.length; ++i) { transcript += e.results[i][0].transcript; }
                       setExecInput(transcript);
                   };
                   execRecRef.current.onend = () => setIsExecListening(false);
@@ -1189,26 +1105,16 @@
           }, []);
 
           const toggleExecMic = () => {
-              if (isExecListening) {
-                  execRecRef.current?.stop();
-                  setIsExecListening(false);
-              } else {
-                  setExecInput('');
-                  execRecRef.current?.start();
-                  setIsExecListening(true);
-              }
+              if (isExecListening) { execRecRef.current?.stop(); setIsExecListening(false); } 
+              else { setExecInput(''); execRecRef.current?.start(); setIsExecListening(true); }
           };
 
-          // 🚀 ฟังก์ชันส่งข้อความถาม AI (Executive Mode)
           const handleExecSubmit = async (e) => {
               e?.preventDefault();
               if (!execInput.trim() || isExecTyping) return;
               
               const userQ = execInput.trim();
-              setExecInput('');
-              setIsExecListening(false);
-              execRecRef.current?.stop();
-              setIsPlaying(false); // ปิดเอฟเฟกต์พิมพ์ดีดข้อความแรก
+              setExecInput(''); setIsExecListening(false); execRecRef.current?.stop(); setIsPlaying(false); 
               
               setExecMessages(prev => [...prev, { id: Date.now(), role: 'user', text: userQ }]);
               setIsExecTyping(true);
@@ -1235,25 +1141,16 @@
                       setIsPlaying(true);
                   }
                   
-                  let i = 0;
-                  setTypedInsight("");
+                  let i = 0; setTypedInsight("");
                   const interval = setInterval(() => {
-                      setTypedInsight(aiInsightText.substring(0, i));
-                      i++;
-                      if (i > aiInsightText.length) {
-                          clearInterval(interval);
-                          setIsPlaying(false);
-                      }
+                      setTypedInsight(aiInsightText.substring(0, i)); i++;
+                      if (i > aiInsightText.length) { clearInterval(interval); setIsPlaying(false); }
                   }, 15);
 
-                  setTimeout(() => {
-                      actions.speakText({ text: policySpeech, hidden: true });
-                  }, 800);
-
+                  setTimeout(() => actions.speakText({ text: policySpeech, hidden: true }), 800);
                   return () => clearInterval(interval);
               } else {
-                  setTypedInsight("");
-                  setIsPlaying(false);
+                  setTypedInsight(""); setIsPlaying(false);
               }
           }, [showReport]);
 
@@ -1293,13 +1190,11 @@
                                </div>
                             </GlassCard>
                             
-                            {/* Action Buttons for Normal Users */}
                             <div className="pt-4 w-full relative z-10 flex flex-col sm:flex-row gap-3 md:gap-4 animate-in slide-in-from-bottom-4 fade-in no-print">
                               <button onClick={() => { globalStore.setState({ interactionMode: 'chat' }); actions.nav('auth_wizard'); }} className="flex-1 py-3.5 md:py-4 px-4 bg-white/40 backdrop-blur-xl border border-white/50 hover:bg-white/60 text-slate-800 rounded-2xl font-bold text-sm md:text-base transition-all shadow-[0_8px_20px_rgba(0,0,0,0.1)] flex items-center justify-center gap-2 active:scale-95 group"><SafeIcon name="MessageSquare" size={20} className="group-hover:scale-110 transition-transform" /> 💬 พิมพ์แชทสนทนา</button>
                               <GradientButton onClick={async () => { try { await navigator.mediaDevices.getUserMedia({ audio: true }).then(s=>s.getTracks().forEach(t=>t.stop())); globalStore.setState({ interactionMode: 'voice' }); actions.nav('auth_wizard'); } catch (err) { globalStore.setState({ interactionMode: 'chat' }); actions.nav('auth_wizard'); } }} className="flex-1 py-3.5 md:py-4 px-4 text-sm md:text-base rounded-2xl !shadow-[0_10px_25px_rgba(0,185,0,0.3)] border border-line-400"><SafeIcon name="Mic" size={20} className="animate-pulse" /> 🎙️ เปิดไมค์คุย (VAD)</GradientButton>
                             </div>
                             
-                            {/* The Executive Hook Button */}
                             <div className="w-full relative z-10 mt-2 animate-in fade-in slide-in-from-bottom-6 duration-1000 delay-300 no-print">
                                 <button onClick={() => setShowReport(true)} className="w-full py-3.5 px-4 bg-slate-900/60 hover:bg-slate-900/80 backdrop-blur-xl border border-slate-700/50 text-white/90 rounded-2xl text-[13px] md:text-sm font-bold transition-all shadow-[0_10px_30px_rgba(0,0,0,0.3)] flex items-center justify-center gap-2 group">
                                     <SafeIcon name="ShieldCheck" size={18} className="text-gold-400 group-hover:scale-110 transition-transform" />
@@ -1312,6 +1207,11 @@
                     </div>
                  </div>
 
+                 {/* 🌟 ปุ่มลับเข้าหน้า Admin (อยู่ที่มุมซ้ายล่าง กด 3 ครั้ง) 🌟 */}
+                 <button onClick={actions.handleAdminClick} className="fixed bottom-4 left-4 z-50 text-white/20 hover:text-white/60 p-2 rounded-full transition-colors no-print cursor-pointer">
+                     <SafeIcon name="Settings" size={24} />
+                 </button>
+
                  {/* The Impact Dashboard Reveal (Executive Modal) */}
                  {showReport && (
                      <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6 md:p-8 animate-in fade-in zoom-in-95 duration-500 print-bg-white">
@@ -1319,7 +1219,6 @@
                          
                          <div className="relative w-full max-w-7xl max-h-[95vh] flex flex-col bg-slate-900 print-bg-white border border-slate-700 print-border-gold rounded-3xl overflow-hidden shadow-[0_30px_100px_rgba(0,0,0,0.8)] print-shadow-none text-slate-100 print-text-dark">
                              
-                             {/* 🌟 หัวข้อสีทองหรูหรา (Luxurious Gold Header) 🌟 */}
                              <div className="px-6 py-4 md:px-8 md:py-6 border-b border-white/10 print-border-gold bg-slate-800/80 print-bg-white flex justify-between items-center shrink-0 z-20">
                                  <div>
                                      <h2 className="text-xl md:text-3xl font-black flex items-center gap-3 drop-shadow-lg">
@@ -1336,13 +1235,8 @@
                                  <button onClick={() => setShowReport(false)} className="no-print w-10 h-10 rounded-full bg-slate-700/50 hover:bg-rose-500/80 text-slate-300 hover:text-white flex items-center justify-center transition-colors border border-slate-600"><SafeIcon name="X" size={20} /></button>
                              </div>
 
-                             {/* Content Scrollable Area */}
                              <div className="flex-1 overflow-y-auto custom-scrollbar p-6 md:p-8 bg-black print-bg-white relative">
-                                 
-                                 {/* 🚀 New KPI Dashboard & Interactive Map Section 🚀 */}
                                  <div className="flex flex-col lg:flex-row gap-6 md:gap-8 relative z-10 h-full">
-                                     
-                                     {/* Left: Overall KPI Stats & AI Insight */}
                                      <div className="w-full lg:w-1/3 flex flex-col gap-4 h-full min-h-[500px]">
                                          
                                          <div className="bg-slate-900/60 print-bg-white p-6 rounded-2xl border border-slate-700 print-border-gold shadow-inner backdrop-blur-sm shrink-0">
@@ -1366,7 +1260,6 @@
                                              <div className="text-2xl font-black text-emerald-400 print-text-dark">{totalStats.passed.toLocaleString()}</div>
                                          </div>
 
-                                         {/* 🌟 PROACTIVE AI EXECUTIVE INSIGHT BOX (Interactive Chat) 🌟 */}
                                          <div className="flex-1 bg-black/60 border border-blue-500/30 rounded-2xl p-5 shadow-[0_0_15px_rgba(59,130,246,0.15)] flex flex-col relative overflow-hidden min-h-[250px] backdrop-blur-md">
                                              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-blue-500 to-transparent animate-pulse no-print"></div>
                                              <div className="flex justify-between items-center mb-3 border-b border-slate-700/50 pb-2">
@@ -1384,7 +1277,6 @@
                                                  )}
                                              </div>
                                              
-                                             {/* พื้นที่แสดงประวัติการคุยกับ AI */}
                                              <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 flex flex-col gap-3 pb-2">
                                                  {execMessages.map((msg, idx) => (
                                                      <div key={msg.id} className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
@@ -1409,7 +1301,6 @@
                                                  <div ref={execEndRef} />
                                              </div>
 
-                                             {/* ช่องพิมพ์ถาม-ตอบ */}
                                              <div className="mt-2 pt-3 border-t border-slate-700/50 shrink-0">
                                                  <form onSubmit={handleExecSubmit} className="flex items-center gap-2 bg-slate-900/80 border border-slate-600 rounded-full p-1 pl-3 transition-colors focus-within:border-blue-500 shadow-inner">
                                                      <input 
@@ -1423,7 +1314,7 @@
                                                      <button type="button" onClick={toggleExecMic} disabled={isExecTyping} className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors shrink-0 ${isExecListening ? 'bg-rose-500/80 text-white shadow-[0_0_10px_rgba(244,63,94,0.5)]' : 'bg-slate-700 hover:bg-slate-600 text-slate-300'}`}>
                                                          <SafeIcon name="Mic" size={14} />
                                                      </button>
-                                                     <button type="submit" disabled={!execInput.trim() || isExecTyping} className="w-8 h-8 rounded-full bg-blue-600 hover:bg-blue-500 text-white flex items-center justify-center disabled:opacity-50 transition-colors shadow-md shrink-0">
+                                                     <button type="submit" disabled={!execInput.trim() || isExecTyping} className="w-8 h-8 rounded-full bg-blue-600 hover:bg-blue-50 text-white flex items-center justify-center disabled:opacity-50 transition-colors shadow-md shrink-0">
                                                          <SafeIcon name="Send" size={14} />
                                                      </button>
                                                  </form>
@@ -1432,41 +1323,29 @@
 
                                      </div>
 
-                                     {/* Right: Holographic Network Map */}
                                      <div className="w-full lg:w-2/3 relative bg-slate-900 print-bg-white border border-slate-700/50 print-border-gold rounded-3xl aspect-[4/3] sm:aspect-video lg:aspect-auto flex items-center justify-center overflow-hidden shadow-[inset_0_0_50px_rgba(0,0,0,0.8)] print-shadow-none group h-[500px] lg:h-auto">
-                                         
-                                         {/* Global Connectivity Background (100% Opacity) */}
                                          <div className="absolute inset-0 z-0 bg-slate-950/40 mix-blend-multiply no-print"></div>
                                          <div className="absolute inset-0 z-0 no-print" style={{ backgroundImage: 'url("https://res.cloudinary.com/djwclucoz/image/upload/v1783149499/Pngtree_global_connectivity_and_technical_networks_15770649_1_h9ggdv.jpg")', backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat', opacity: 1, mixBlendMode: 'screen' }}></div>
 
-                                         {/* THAILAND Watermark Logo (Bottom Right, Small) */}
                                          <div className="absolute bottom-4 right-6 pointer-events-none z-10 opacity-60 no-print">
                                              <span className="text-4xl font-black text-white/50 uppercase tracking-[0.3em] select-none drop-shadow-sm">THAILAND</span>
                                          </div>
 
-                                         {/* Connecting Lines to BKK (Neural Network Effect) */}
                                          <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-50 z-10 no-print" viewBox="0 0 100 100">
                                              {REGION_DATA.map(r => r.id !== 'BKK' && (
                                                 <line key={`line-${r.id}`} x1="48" y1="56" x2={r.x} y2={r.y} stroke="#64748b" strokeWidth="0.3" className="transition-all duration-300" strokeDasharray="1 1" />
                                              ))}
                                          </svg>
 
-                                         {/* Map Nodes (Regions) - Enhanced Glow */}
                                          {REGION_DATA.map(r => (
                                              <div key={r.id} onMouseEnter={() => setActiveRegion(r)} onMouseLeave={() => setActiveRegion(null)} onTouchStart={() => setActiveRegion(r)} className="absolute w-10 h-10 -ml-5 -mt-5 cursor-pointer z-20 flex items-center justify-center transition-transform hover:scale-125" style={{ left: `${r.x}%`, top: `${r.y}%` }}>
-                                                 {/* วงแหวนชั้นนอกสุด */}
                                                  <div className={`absolute w-full h-full rounded-full opacity-30 animate-pulse-slow no-print ${r.id === 'BKK' ? 'bg-emerald-500' : 'bg-blue-500'}`}></div>
-                                                 {/* วงแหวนชั้นกลาง (กระพริบ) */}
                                                  <div className={`absolute w-6 h-6 rounded-full animate-glow opacity-60 no-print ${r.id === 'BKK' ? 'bg-emerald-400' : 'bg-blue-400'}`}></div>
-                                                 {/* จุดศูนย์กลาง (ขอบขาว) */}
                                                  <div className={`w-3 h-3 rounded-full shadow-[0_0_10px_rgba(255,255,255,0.8)] border-[1.5px] border-white relative z-10 ${r.id === 'BKK' ? 'bg-emerald-500 w-4 h-4' : 'bg-blue-500'}`}></div>
-                                                 
-                                                 {/* Fallback for Print - Just simple colored dots */}
                                                  <div className={`hidden print-only w-3 h-3 rounded-full border border-black ${r.id === 'BKK' ? 'bg-green-600' : 'bg-blue-600'}`}></div>
                                              </div>
                                          ))}
 
-                                         {/* Floating Tooltip for Active Region */}
                                          <div className={`absolute pointer-events-none z-30 transition-all duration-300 ease-out no-print ${activeRegion ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`} style={{ left: activeRegion ? `max(10px, min(calc(${activeRegion.x}% + 20px), calc(100% - 220px)))` : '50%', top: activeRegion ? `max(10px, min(calc(${activeRegion.y}% - 60px), calc(100% - 150px)))` : '50%' }}>
                                             {activeRegion && (
                                                 <div className="bg-slate-900/95 backdrop-blur-xl border border-slate-600 rounded-xl p-4 shadow-[0_10px_30px_rgba(0,0,0,0.8)] w-[200px]">
@@ -1481,10 +1360,7 @@
                                                 </div>
                                             )}
                                          </div>
-                                         
-                                         {/* Guide Text */}
                                          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/40 backdrop-blur-md px-4 py-1.5 rounded-full border border-slate-600/50 text-[10px] md:text-xs text-slate-300 font-medium no-print pointer-events-none whitespace-nowrap">Hover or tap on nodes to view regional metrics</div>
-
                                      </div>
                                  </div>
 
@@ -1496,6 +1372,9 @@
           );
         }
 
+        // ============================================================================
+        // 8. OTHER SCREENS
+        // ============================================================================
         function AuthWizard({ store, actions }) {
           const { authStep, tempLicense, registrationData: d, otpData } = store; 
           const [isChecking, setIsChecking] = useState(false); 
@@ -1628,7 +1507,7 @@
                      const res = await actions.fetchAppsScript({ action: 'verifyOTP', email: d.email, otp: otpData.input });
                      if (res?.status !== 'success') return globalStore.setState(p => ({ otpData: { ...p.otpData, error: 'รหัส OTP ไม่ถูกต้อง', isSending: false } }));
                      const license = d.licenseId; 
-                     const existingUser = store.dbUsers.find(u => String(u.license).trim() === String(license).trim()); 
+                     const existingUser = store.dbUsers.find(u => String(u.license || '').trim() === String(license).trim() || String(u.id || '').trim() === String(license).trim()); 
                      const initialSeconds = existingUser?.studySeconds ?? 0; 
                      const finalHosp = d.hospital === 'อื่นๆ' ? d.customHospital : (d.hospital === 'ศูนย์บริการสาธารณสุข' ? `ศูนย์บริการสาธารณสุข ${d.customHospital}` : d.hospital);
                      const fullUser = Object.assign({ id: license || `user_${Date.now()}`, studySeconds: initialSeconds, progress: calcProgress(initialSeconds, store.liveConfig.hours * 3600), status: 'กำลังเรียน', pretest: '-', posttest: '-', skillLabPassed: false, lastVideoId: 1, videoTimes: {}, quizSetIndex: 0 }, existingUser ?? {}, d, { hospital: finalHosp, sessionId: generateSessionId() });
@@ -1712,17 +1591,10 @@
             
             const actionConfig = hasPosttest ? { t: "ยินดีด้วย คุณเรียนจบแล้ว 🎉", d: "ผ่านการทดสอบและได้รับประกาศนียบัตร", b: "ดูโปรไฟล์", i: "Award", c: "from-emerald-400 to-emerald-600", a: () => globalStore.setState({ activeTab: 'profile' }) } : isUnlocked ? { t: "พร้อมสอบ Posttest แล้ว!", d: "คุณทำเวลาเรียนและผ่านการประเมินปฏิบัติครบถ้วนแล้ว", b: "เริ่มทำ Posttest", i: "FileText", c: "from-rose-400 to-pink-600", a: () => { globalStore.setState({ quizData: { type: 'posttest', questions: store.questionSets[user.quizSetIndex || 0] || store.questionSets[0] || [], currentIndex: 0, answers: {}, score: 0, isFinished: false }}); actions.nav('quiz'); } } : isTimeMet ? { t: "ภารกิจถัดไป: ฝึกภาคปฏิบัติ", d: "เวลาเรียนครบเกณฑ์แล้ว ขั้นตอนต่อไปคือห้องเจรจา", b: "เข้าห้องเจรจา", i: "Globe", c: "from-orange-400 to-amber-500", a: () => globalStore.setState({ activeTab: 'skill_lab', selectedLabId: null }) } : { t: `เรียนต่อ: บทที่ ${user?.lastVideoId || 1}`, d: activeLesson?.title || "กลับเข้าสู่บทเรียนล่าสุด", b: "เล่นวิดีโอต่อ", i: "PlayCircle", c: "from-line-500 to-line-600", a: () => globalStore.setState({ activeTab: 'video', currentVideoId: user?.lastVideoId || 1 }) };
 
-            // 🔥 ดึงข้อมูลผู้ใช้งานจริงมาโชว์ใน Leaderboard 🔥
             const leaderboardData = (dbUsers || []).map(u => {
                 const history = u.skillLabHistory || [];
                 const avgScore = history.length > 0 ? Math.round(history.reduce((sum, record) => sum + (record.score || 0), 0) / history.length) : 0;
-                return {
-                    id: u.id,
-                    name: u.name || 'ผู้ใช้งาน',
-                    hosp: u.hospital || '-',
-                    score: avgScore,
-                    isMe: u.id === user?.id
-                };
+                return { id: u.id, name: u.name || 'ผู้ใช้งาน', hosp: u.hospital || '-', score: avgScore, isMe: u.id === user?.id };
             }).filter(u => u.score > 0).sort((a,b) => b.score - a.score).slice(0, 50);
 
             return (
@@ -1985,11 +1857,15 @@
           return inline ? <div className="w-full bg-transparent border-none shadow-none">{content}</div> : <ScreenWrapper>{content}</ScreenWrapper>;
         }
 
-        // --- 7. APP BOOTSTRAP ---
+        // ============================================================================
+        // 9. APP BOOTSTRAP (Main App Component)
+        // ============================================================================
         function App() {
           const [store, setStore] = useGlobalState();
+          
           useEffect(() => {
-              let unsubContent, unsubSettings, authUnsub;
+              let unsubContent, unsubSettings, unsubUsers, authUnsub;
+              
               const setupFirebase = async () => {
                   if (auth && db) {
                       try { if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) await signInWithCustomToken(auth, __initial_auth_token); else await signInAnonymously(auth); } catch (e) { console.error("Auth init error:", e); }
@@ -1998,14 +1874,21 @@
                           if (user) {
                               unsubContent = onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_config', 'content'), (docSnap) => { if (docSnap.exists()) { const data = docSnap.data(); if (data.lessons) globalStore.setState({ lessons: data.lessons }); if (data.questionSets) globalStore.setState({ questionSets: data.questionSets }); } }, (err) => console.error(err));
                               unsubSettings = onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_config', 'settings'), (docSnap) => { if (docSnap.exists()) { const data = docSnap.data(); if (data.liveConfig) globalStore.setState({ liveConfig: data.liveConfig }); if (data.appsScriptUrl) globalStore.setState({ appsScriptUrl: data.appsScriptUrl }); if (data.certScriptUrl) globalStore.setState({ certScriptUrl: data.certScriptUrl }); if (data.lookerStudioUrl) globalStore.setState({ lookerStudioUrl: data.lookerStudioUrl }); } }, (err) => console.error(err));
+                              unsubUsers = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'elearning_users'), (snapshot) => {
+                                  const users = [];
+                                  snapshot.forEach(doc => users.push(doc.data()));
+                                  globalStore.setState({ dbUsers: users });
+                              }, (err) => console.error(err));
                           }
                       });
                   } else { globalStore.setState({ isAuthReady: true }); }
               };
               setupFirebase();
+              
               const handleHashChange = () => { const hash = window.location.hash.replace('#', '') || 'landing'; if (store.currentScreen !== hash) globalStore.setState({ currentScreen: hash }); };
               window.addEventListener('hashchange', handleHashChange);
-              return () => { window.removeEventListener('hashchange', handleHashChange); if (unsubContent) unsubContent(); if (unsubSettings) unsubSettings(); if (authUnsub) authUnsub(); };
+              
+              return () => { window.removeEventListener('hashchange', handleHashChange); if (unsubContent) unsubContent(); if (unsubSettings) unsubSettings(); if (unsubUsers) unsubUsers(); if (authUnsub) authUnsub(); };
           }, []);
 
           useEffect(() => {
