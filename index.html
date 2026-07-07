@@ -593,21 +593,22 @@
                       const isPass = aiResponse.includes('[PASS]'); 
                       const empathyMatch = aiResponse.match(/\[EMPATHY:\s*(\d+)\]/i);
                       const empathyScore = empathyMatch ? parseInt(empathyMatch[1]) : (isPass ? 80 : 40);
-                      
-                      let cleanResponse = aiResponse.replace(/\[PASS\]/g, '').replace(/\[FAIL\]/g, '').replace(/\[EMPATHY:\s*\d+\]/gi, '').trim();
-                      
-                      setMessages(prev => [...prev, { id: Date.now()+1, sender: 'ai', text: cleanResponse, isVoiceOnly: false }]); 
-                      
-                      const u = store.loggedInUser; 
-                      if (u) { 
-                          const evalRecord = { timestamp: new Date().toISOString(), scenarioId: store.selectedLabId, passed: isPass, score: empathyScore, evaluation: cleanResponse, chatLog: history }; 
-                          const upUser = { ...u, skillLabPassed: u.skillLabPassed || isPass, skillLabHistory: [...(u.skillLabHistory || []), evalRecord] }; 
-                          globalStore.setState(p => ({ loggedInUser: upUser, dbUsers: p.dbUsers.map(x => x.id === upUser.id ? upUser : x) })); 
-                          actions.saveUserToDB(upUser); 
-                      }
-                      actions.showMsg(`บันทึกผลเรียบร้อย (Empathy Score: ${empathyScore})`, 'success'); 
-                      speakThai(cleanResponse.replace(/[*#]/g, ''), null, true);
-                  } catch (e) { 
+                  
+                  let cleanResponse = aiResponse.replace(/\[PASS\]/g, '').replace(/\[FAIL\]/g, '').replace(/\[EMPATHY:\s*\d+\]/gi, '').trim();
+                  
+                  setMessages(prev => [...prev, { id: Date.now()+1, sender: 'ai', text: cleanResponse, isVoiceOnly: false }]); 
+                  
+                  const u = store.loggedInUser; 
+                  if (u) { 
+                      const evalRecord = { timestamp: new Date().toISOString(), scenarioId: store.selectedLabId, passed: isPass, score: empathyScore, evaluation: cleanResponse, chatLog: history }; 
+                      // ปลดล็อก Posttest ทันทีที่มีการประเมิน (ไม่จำเป็นต้องเจรจาสำเร็จ)
+                      const upUser = { ...u, skillLabPassed: true, skillLabHistory: [...(u.skillLabHistory || []), evalRecord] }; 
+                      globalStore.setState(p => ({ loggedInUser: upUser, dbUsers: p.dbUsers.map(x => x.id === upUser.id ? upUser : x) })); 
+                      actions.saveUserToDB(upUser); 
+                  }
+                  actions.showMsg(`บันทึกผลเรียบร้อย (Empathy Score: ${empathyScore}) ปลดล็อก Posttest แล้ว!`, 'success'); 
+                  speakThai(cleanResponse.replace(/[*#]/g, ''), null, true);
+              } catch (e) { 
                       setMessages(prev => [...prev, { id: Date.now(), sender: 'ai', text: `ข้อผิดพลาด: ${e.message}`, isVoiceOnly: false }]); 
                   }
               } else if (actionType === 'return_to_dashboard') {
