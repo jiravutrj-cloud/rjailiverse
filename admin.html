@@ -3,17 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Control Panel - RJ Ailiverse</title>
+    <title>Admin - e-Learning RJ Ailiverse</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = { theme: { extend: { colors: { line: { 50: '#e5f8e5', 100: '#cbf1cb', 200: '#9ce49c', 300: '#6dd66d', 400: '#3ec93e', 500: '#00B900', 600: '#009400', 700: '#006f00', 800: '#004a00', 900: '#002500' } } } } }
+    </script>
     
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&display=swap');
+        body { font-family: 'Sarabun', sans-serif; background-color: #f1f5f9; color: #1e293b; margin: 0; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background-color: #94a3b8; }
+    </style>
+
     <script type="importmap">
     {
       "imports": {
         "react": "https://esm.sh/react@18.2.0",
-        "react-dom": "https://esm.sh/react-dom@18.2.0",
         "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
-        "lucide-react": "https://esm.sh/lucide-react@0.294.0",
+        "react-dom": "https://esm.sh/react-dom@18.2.0",
+        "lucide-react": "https://esm.sh/lucide-react@0.294.0?external=react",
         "firebase/app": "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js",
         "firebase/auth": "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js",
         "firebase/firestore": "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js"
@@ -21,113 +33,166 @@
     }
     </script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&display=swap');
-        body { font-family: 'Sarabun', sans-serif; background-color: #0f172a; color: #f8fafc; margin: 0; }
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background-color: rgba(255,255,255,0.2); border-radius: 10px; }
-    </style>
 </head>
 <body>
-    <div id="root"></div>
+    <div id="admin-root"></div>
 
     <script type="text/babel" data-type="module">
+        // 🛡️ ป้องกันจอขาว (Global Error Handler)
         window.onerror = function(message, source, lineno, colno, error) {
             document.body.innerHTML = `
-                <div style="background-color:#0f172a; min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; color:#f8fafc; font-family:sans-serif; padding:20px; text-align:center;">
-                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#f43f5e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:20px;"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
-                    <h2 style="font-size:24px; font-weight:bold; margin-bottom:10px; color:#f43f5e;">ระบบเกิดข้อผิดพลาด (Global Error)</h2>
-                    <p style="color:#94a3b8; max-width:500px; line-height:1.5;">${message}</p>
-                    <a href="./index.html" style="margin-top:30px; padding:12px 24px; background-color:#3b82f6; color:white; text-decoration:none; border-radius:8px; font-weight:bold;">กลับหน้าหลัก</a>
+                <div style="min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; color:#1e293b; font-family:sans-serif; padding:20px; text-align:center;">
+                    <h2 style="font-size:24px; font-weight:bold; margin-bottom:10px; color:#ef4444;">พบข้อผิดพลาดในโค้ด (Syntax Error)</h2>
+                    <p style="color:#64748b; max-width:600px; line-height:1.5; background:#f8fafc; padding:15px; border-radius:8px; border:1px solid #e2e8f0;">${message}</p>
                 </div>
             `;
             return true;
         };
 
-        import React, { useState, useEffect } from 'react';
+        import React, { useState, useEffect, useRef } from 'react';
         import { createRoot } from 'react-dom/client';
         import * as LucideIcons from 'lucide-react';
         import { initializeApp, getApps, getApp } from 'firebase/app';
-        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from 'firebase/auth';
-        import { getFirestore, collection, doc, onSnapshot, deleteDoc, setDoc } from 'firebase/firestore';
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from 'firebase/auth';
+        import { getFirestore, collection, doc, setDoc, onSnapshot, deleteDoc } from 'firebase/firestore';
 
-        // ------------------------------------------------------------------------
-        // 1. เชื่อมต่อ Firebase อย่างปลอดภัย
-        // ------------------------------------------------------------------------
+        // ============================================================================
+        // ข้อมูลตั้งต้นที่ฝังไว้ในหน้า Admin แทนการเรียก data.js
+        // ============================================================================
+        window.INITIAL_LESSONS = [
+          { id: 1, title: "ยุทธศาสตร์และเป้าหมายการพัฒนาระบบบริการสุขภาพ (Service plan)", videoId: "1-sX4LnWRMSjoEQmWee-9GuiQ2XMvkSro", documentUrl: "https://drive.google.com/file/d/1FrJt9TCbOy5oewg_eMrRG8pW4dNzJHS9/view?usp=sharing" },
+          { id: 2, title: "แนวทางการประเมินผู้เสียชีวิตเพื่อบริจาคดวงตาและการประสานงานฯ", videoId: "15QOjyhd0hoxpSSO0tZ7Fj4qFaZByiAzT", documentUrl: "https://drive.google.com/file/d/1iJbKaj0VwcsH0AzdyUqrt2jsTjEyhfSg/view?usp=sharing" },
+          { id: 3, title: "จริยธรรม กฎหมายที่เกี่ยวข้องกับการรับบริจาคอวัยวะ และบทบาทของศูนย์ฯ", videoId: "1L5pFZh85OPDz7lWwJCBKlFDXxkTZSxt_", documentUrl: "https://drive.google.com/file/d/1PtfxrqDZrNpX_NDQBGyCqqfZsPnMRg6e/view?usp=sharing" },
+          { id: 4, title: "ความสำคัญของการบริจาคและปลูกถ่ายอวัยวะ และบทบาทของบุคลากรฯ", videoId: "14hnZ80UE0KvCmW2oHE2zBTx8uBCg4rIB", documentUrl: "https://drive.google.com/file/d/1HXXlSqONQ3eq7E1Os0C8OtbZcSGbG6a5/view?usp=sharing" },
+          { id: 5, title: "การประสานงานเมื่อมีผู้บริจาคอวัยวะสมองตาย และหลักเกณฑ์การจัดสรรอวัยวะ", videoId: "1wkE2CCaRgxlzHmho1ijK49SE028vNqcV", documentUrl: "https://drive.google.com/file/d/1w4xefABcn2GRTQevhpvYuybD2kLozlA6/view?usp=sharing" },
+          { id: 6, title: "การเตรียมผู้ป่วยเพื่อเข้ารับการปลูกถ่ายไต และการดูแลหลังปลูกถ่ายไต", videoId: "1pu1O3swHMtTzBXjF3rG_NzfIgjYfgnLm", documentUrl: "https://drive.google.com/file/d/1u_xSPv95dvxXw85QsSx7FYYsKonJbJjj/view?usp=sharing" },
+          { id: 7, title: "การจัดกิจกรรมส่งเสริมและประชาสัมพันธ์ชีวิตใหม่หลังการปลูกถ่ายอวัยวะ", videoId: "1Sc-2Z_MOD85kvWBduEEWbPiGxw1zeTec", documentUrl: "https://drive.google.com/file/d/1RSPtCHRe38si6P75CCA_85djfwJhUrdE/view?usp=sharing" },
+          { id: 8, title: "กลุ่มงานการพยาบาลรับบริจาค ปลูกถ่ายอวัยวะและเนื้อเยื่อ สธ.", videoId: "1vc4b07Ooas4cozJK5cnweIl2KeeKvHbk", documentUrl: "https://drive.google.com/file/d/1WUO677apoQJeJKboj0iOZmrTIybd4_hM/view?usp=sharing" },
+          { id: 9, title: "Identification of Potential Organ Donors and Assessment", videoId: "1TRLOGabpI66ZUEPybGyrpHTN5dNlYP-f", documentUrl: "https://drive.google.com/file/d/14-GXQS4-KHEUraOt8Ey2cGVkhxN12Ump/view?usp=sharing" },
+          { id: 10, title: "Organ Packaging and Transportation สำหรับ รพ Donor", videoId: "1POFnLm_G2BuXWgOojDRpotM5YhBxcCnk", documentUrl: "https://drive.google.com/file/d/1VQk-wMxYRbphaBDkCnOkapwgVdTGShbV/view?usp=sharing" },
+          { id: 11, title: "Family Approach", videoId: "1GpfjRpbDnilV22iL52ZyOyUcRs9MUVbu", documentUrl: "https://drive.google.com/file/d/1aRjlUNctesyliehy5KXLW7VwmGPW2R4h/view?usp=sharing" },
+          { id: 12, title: "Brain Death Diagnosis", videoId: "136Gl3ocDivGYU764t7t9Qvpn_iTJTfs4", documentUrl: "https://drive.google.com/file/d/1TMceKfI3azgRVRo-GtSDluTzq1lhe8-U/view?usp=sharing" },
+          { id: 13, title: "Donor Management", videoId: "1YPyTis-9VzJLPhUvwMp1IC_xs7TLIao0", documentUrl: "https://drive.google.com/file/d/1OeZIm6x3lg_-dFTUPgd9LiombnRrPrQh/view?usp=sharing" },
+          { id: 14, title: "Organ Procurement", videoId: "12lOd6KsekmV0PDbdLVr2wYsz-gNnovHK", documentUrl: "https://drive.google.com/file/d/1e-PwnXUCVScRLg5bmXRjOMSC0dIeDv5r/view?usp=sharing" },
+          { id: 15, title: "การปฏิบัติตัวหลังผ่าตัด", videoId: "1k2bsL3ZT7dG85c63fC7SPCAQlrkWVzHC", documentUrl: "" },
+          { id: 16, title: "ภาพรวมการปลูกถ่ายไต", videoId: "1U5W7QGZm4CQaKIwiwR3mE3FgSeKA3JxS", documentUrl: "" },
+          { id: 17, title: "การปฏิบัติตัวหลังปลูกถ่าย (ยา)", videoId: "1v1QN-Qq1zHRtEYyKt1iJ6XrSfSfy7zuM", documentUrl: "" },
+          { id: 18, title: "โภชนาการอาหาร", videoId: "1Ekf354d86SJ43JRkqAAEH9D-XB9725Dr", documentUrl: "" },
+          { id: 19, title: "ขั้นตอนการเข้ารับบริการคลินิกปลูกถ่ายไต", videoId: "1Om2A00CDS8seta7eiz47-gbXExzzU4RU", documentUrl: "" },
+          { id: 20, title: "ขั้นตอนการดูแลผู้ป่วยปลูกถ่ายไตในระยะต่างๆ", videoId: "15qb9D-gNqw-cEJoLozRY2DW1Dc6huB0e", documentUrl: "" }
+        ];
+
+        window.QUIZ_QUESTIONS_RAW = [
+          "เป้าหมายหลักของ Service Plan สาขาการรับบริจาคและปลูกถ่ายอวัยวะคือข้อใด?|ลดค่าใช้จ่ายในการดูแลผู้ป่วยวิกฤต|เพิ่มจำนวนผู้บริจาคอวัยวะสมองตายและผู้ได้รับการปลูกถ่ายอวัยวะให้เพียงพอ|ลดภาระงานของบุคลากรทางการแพทย์ในห้องICU|สร้างศูนย์ปลูกถ่ายอวัยวะในทุกชุมชน|1",
+          "การจัดเก็บดวงตา (Eye procurement) ควรดำเนินการให้แล้วเสร็จอย่างช้าที่สุดภายในกี่ชั่วโมงหลังผู้ป่วยเสียชีวิต?|ภายใน 2 ชั่วโมง|ภายใน 24-48 ชั่วโมง|ภายใน 3 วัน|ภายใน 6-8 ชั่วโมง (หากมีการประคบเย็นอาจยืดได้)|3",
+          "ประโยชน์สูงสุดของการปลูกถ่ายไตเมื่อเทียบกับการฟอกเลือด (Dialysis) คืออะไร?|ผู้ป่วยไม่ต้องทานยากดภูมิคุ้มกันอีกเลย|แพทย์ทำงานง่ายขึ้นโดยไม่ต้องตรวจติดตามผล|สามารถรับประทานอาหารได้ทุกชนิดโดยไม่มีข้อจำกัด|ผู้ป่วยมีคุณภาพชีวิตที่ดีขึ้น อัตราการรอดชีวิตสูง และลดภาระค่าใช้จ่ายระยะยาว|3",
+          "การบรรจุไตเพื่อขนส่ง (Kidney Packaging) ต้องรักษาอุณหภูมิให้อยู่ในช่วงใด?|แช่แข็งในน้ำแข็งแห้ง (-20 องศาเซลเซียส)|อุณหภูมิห้อง (25 องศาเซลเซียส)|2-4 องศาเซลเซียส (แช่ในน้ำแข็งเกล็ดที่กำลังละลาย)|แช่ในน้ำอุ่น (37 องศาเซลเซียส)|2",
+          "การทำ Decoupling หมายถึงการแยกเรื่องใดออกจากเรื่องใด?|แยกการทำงานของหัวใจออกจากปอด|แยกหมอออกจากพยาบาล|แยกการแจ้งข่าวสมองตาย ออกจากการเจรจาขอรับบริจาคอวัยวะ|แยกญาติผู้ชายออกจากญาติผู้หญิง|2",
+          "การทำ Apnea Test เป็นขั้นตอนสำคัญเพื่อพิสูจน์สิ่งใด?|เพื่อดูว่าหัวใจยังเต้นอยู่หรือไม่|เพื่อพิสูจน์ว่าศูนย์ควบคุมการหายใจที่ก้านสมองสูญเสียการทำงานอย่างถาวร|เพื่อกระตุ้นให้ผู้ป่วยฟื้นคืนสติ|เพื่อดูการทำงานของปอดก่อนบริจาค|1",
+          "ข้อใดคือเกณฑ์อายุขั้นต่ำในการแสดงความจำนงบริจาคอวัยวะได้ด้วยตนเองตามกฎหมายไทย?|15 ปีบริบูรณ์|18 ปีบริบูรณ์|20 ปีบริบูรณ์|ไม่มีข้อจำกัดหากได้รับความยินยอมจากผู้ปกครอง|1",
+          "อวัยวะใดต่อไปนี้ไม่สามารถปลูกถ่ายได้?|สมอง|หัวใจ|ปอด|ตับอ่อน|0",
+          "ข้อใดคือสาเหตุการเสียชีวิตที่พบได้บ่อยที่สุดในกลุ่มผู้บริจาคอวัยวะสมองตาย?|โรคมะเร็งระยะสุดท้าย|อุบัติเหตุทางศีรษะ (Traumatic Brain Injury)|โรคติดเชื้อในกระแสเลือด|โรคหัวใจล้มเหลวเฉียบพลัน|1",
+          "ในการเจรจาขอรับบริจาคอวัยวะ หากญาติมีความเชื่อว่า 'บริจาคแล้วชาติหน้าอวัยวะจะไม่ครบ' บุคลากรทางการแพทย์ควรตอบสนองอย่างไร?|อธิบายว่าตามหลักพุทธศาสนา การเสียสละร่างกายเป็นทานบารมีขั้นสูง|เพิกเฉยและเปลี่ยนไปคุยเรื่องอื่น|บอกว่าเป็นความเชื่อที่ผิดและไม่มีเหตุผล|ยุติการเจรจาทันที|0",
+          "ระยะเวลาทอง (Golden Period) ในการนำหัวใจที่ได้จากการจัดเก็บไปปลูกถ่ายให้ผู้รับคือเท่าใด?|ไม่เกิน 4 ชั่วโมง|ไม่เกิน 12 ชั่วโมง|ไม่เกิน 24 ชั่วโมง|ไม่เกิน 48 ชั่วโมง|0",
+          "ข้อใดไม่ใช่ข้อห้ามเด็ดขาด (Absolute Contraindication) ในการบริจาคอวัยวะ?|ติดเชื้อ HIV|มะเร็งแพร่กระจาย|ความดันโลหิตสูง|ไม่ทราบสาเหตุการเสียชีวิตที่แน่ชัด|2",
+          "การประเมินผู้ป่วยสมองตาย ต้องทำการทดสอบทางคลินิก (Clinical Test) อย่างน้อยกี่ครั้ง?|1 ครั้ง|2 ครั้ง ห่างกันอย่างน้อย 6 ชั่วโมง (สำหรับผู้ใหญ่)|3 ครั้ง|ไม่จำเป็นต้องทดสอบซ้ำหากทำ Apnea Test ผ่าน|1",
+          "ใครเป็นผู้มีอำนาจลงนามรับรองการตายด้วยภาวะสมองตายตามกฎหมาย?|พยาบาลวิชาชีพที่ดูแลผู้ป่วย|แพทย์ผู้ทำการรักษาและแพทย์ผู้เชี่ยวชาญรวม 3 ท่าน|ญาติสายตรงลำดับแรก|ผู้อำนวยการโรงพยาบาล|1",
+          "ศูนย์รับบริจาคอวัยวะสภากาชาดไทย (ODC) มีบทบาทหน้าที่ใด?|ผ่าตัดปลูกถ่ายอวัยวะให้ผู้ป่วยทุกคน|เป็นศูนย์กลางจัดสรรอวัยวะให้โรงพยาบาลเครือข่ายอย่างยุติธรรม|บังคับให้ผู้เสียชีวิตทุกคนต้องบริจาคอวัยวะ|เก็บรักษาอวัยวะไว้ใช้ในยามขาดแคลน|1",
+          "เนื้อเยื่อ (Tissue) ชนิดใดที่สามารถเก็บรักษาไว้ได้นานที่สุดหลังการจัดเก็บ?|ดวงตา|ลิ้นหัวใจ (หากผ่านกระบวนการแช่แข็ง)|ตับ|ปอด|1",
+          "ข้อใดอธิบายหลักการของ 'The Rule of Rescue' ในบริบทของการปลูกถ่ายอวัยวะได้ดีที่สุด?|การให้ความสำคัญกับการช่วยชีวิตผู้ป่วยที่วิกฤตที่สุดก่อน|การให้ความสำคัญกับผู้ป่วยที่รอคิวนานที่สุด|การให้ความสำคัญกับผู้ที่สามารถจ่ายค่ารักษาได้|การให้ความสำคัญกับผู้ที่มีโอกาสรอดชีวิตระยะยาวสูงสุด|0",
+          "ผู้ประสานงานการรับบริจาคอวัยวะ (Transplant Coordinator) ไม่มีหน้าที่ใด?|ดูแลผู้บริจาคอวัยวะสมองตาย|เจรจาขอรับบริจาคกับญาติผู้เสียชีวิต|ทำการผ่าตัดจัดเก็บอวัยวะ|ประสานงานระหว่างโรงพยาบาลผู้บริจาคและผู้รับ|2",
+          "การตรวจความเข้ากันได้ของเนื้อเยื่อ (HLA Typing) มีความสำคัญสูงสุดในการปลูกถ่ายอวัยวะใด?|หัวใจ|ตับ|ไต|ปอด|2",
+          "เมื่อพบผู้ป่วยเข้าข่ายภาวะสมองตาย (Potential Donor) ขั้นตอนแรกที่ต้องทำคืออะไร?|แจ้งศูนย์รับบริจาคอวัยวะสภากาชาดไทยทันที|รีบแจ้งญาติให้บริจาคอวัยวะ|ประเมินและรักษาสัญญาณชีพ (Donor Management) ให้คงที่|หยุดการให้ยาและสารน้ำทั้งหมดเพื่อรอสมองตายสมบูรณ์|2",
+          "ยาตัวใดมักถูกใช้เพื่อควบคุมภาวะเบาจืด (Diabetes Insipidus) ในผู้ป่วยสมองตาย?|Epinephrine|Desmopressin (DDAVP)|Insulin|Dopamine|1",
+          "ภาวะใดที่มักเกิดขึ้นและเป็นปัญหาสำคัญในการดูแลผู้ป่วยสมองตาย?|อุณหภูมิร่างกายสูงขึ้น (Hyperthermia)|ความดันโลหิตต่ำ (Hypotension)|ระดับน้ำตาลในเลือดต่ำ (Hypoglycemia)|อัตราการเต้นของหัวใจช้าลง (Bradycardia)|1",
+          "การเจรจาขอรับบริจาคอวัยวะด้วยหลัก B.A.L.I. ตัวอักษร 'L' หมายถึงอะไร?|Listen (รับฟังความรู้สึกญาติ)|Legal (การตรวจสอบเอกสารและข้อกฎหมาย)|Love (การแสดงความเห็นอกเห็นใจ)|Leave (การให้เวลาญาติในการตัดสินใจ)|1",
+          "ในกรณีที่ผู้เสียชีวิตมีบัตรแสดงความจำนงบริจาคอวัยวะ แต่ญาติคัดค้านอย่างรุนแรง ควรดำเนินการอย่างไร?|ดำเนินการผ่าตัดทันทีเพราะมีเอกสารยืนยัน|ยุติการจัดเก็บอวัยวะเพื่อหลีกเลี่ยงความขัดแย้งและผลกระทบทางจิตใจของญาติ|ฟ้องร้องญาติที่ขัดขวางกระบวนการทางกฎหมาย|แอบทำการผ่าตัดโดยไม่ให้ญาติทราบ|1",
+          "ข้อใดคือสัญญาณตอบสนองที่อาจพบได้ในผู้ป่วยสมองตาย ซึ่งเป็นเพียงรีเฟล็กซ์จากไขสันหลัง (Spinal Reflex) และมักทำให้ญาติเข้าใจผิด?|การลืมตาเมื่อเรียกชื่อ|การหายใจเฮือก (Gasping)|การเคลื่อนไหวของแขนขาเมื่อถูกกระตุ้น (Lazarus Sign)|การมีน้ำตาไหล|2",
+          "องค์กรใดทำหน้าที่รับบริจาคดวงตาในประเทศไทย?|ศูนย์รับบริจาคอวัยวะสภากาชาดไทย|ศูนย์ดวงตาสภากาชาดไทย|กระทรวงสาธารณสุข|ราชวิทยาลัยจักษุแพทย์แห่งประเทศไทย|1",
+          "การบริจาคอวัยวะแบบ Donation after Circulatory Death (DCD) คืออะไร?|การบริจาคอวัยวะขณะที่หัวใจยังเต้นอยู่|การบริจาคอวัยวะหลังจากหัวใจหยุดเต้นอย่างถาวรแล้ว|การบริจาคอวัยวะจากผู้บริจาคที่มีชีวิต|การบริจาคอวัยวะที่เน้นเฉพาะการบริจาคเนื้อเยื่อ|1",
+          "การประเมิน Glasgow Coma Scale (GCS) ในผู้ป่วยที่สงสัยภาวะสมองตาย จะต้องมีคะแนนเท่าใด?|GCS = 15|GCS < 8|GCS = 3|GCS = 0|2",
+          "ขั้นตอนสุดท้ายของกระบวนการบริจาคอวัยวะคือข้อใด?|การผ่าตัดจัดเก็บอวัยวะ|การส่งมอบอวัยวะให้ผู้รับ|การดูแลตกแต่งศพผู้บริจาคให้เรียบร้อยสมบูรณ์ที่สุด|การส่งจดหมายขอบคุณครอบครัวผู้บริจาค|2",
+          "สิ่งสำคัญที่สุดในการดูแลสภาพจิตใจของญาติผู้เสียชีวิต (Bereavement Care) คืออะไร?|การให้เงินช่วยเหลือเยียวยา|การให้ข้อมูลที่ตรงไปตรงมา ชัดเจน และแสดงความเห็นอกเห็นใจ|การโน้มน้าวให้บริจาคอวัยวะให้สำเร็จ|การปล่อยให้ญาติอยู่ตามลำพังโดยไม่รบกวน|1",
+          "ยาปฏิชีวนะ (Antibiotics) จะถูกให้ในผู้ป่วยสมองตายเพื่อวัตถุประสงค์ใด?|เพื่อกระตุ้นให้สมองฟื้นตัว|เพื่อป้องกันหรือรักษาการติดเชื้อที่อาจทำลายอวัยวะที่จะบริจาค|เพื่อรักษาสภาพผิวหนังของผู้ป่วย|เพื่อระงับความเจ็บปวด|1",
+          "ข้อใดไม่ใช่อวัยวะที่สามารถนำไปบริจาคได้จากผู้ป่วยสมองตาย?|ตับ|ลำไส้เล็ก|กระเพาะอาหาร|ไขกระดูก|3",
+          "ผู้ป่วยอายุ 70 ปี มีภาวะสมองตาย สามารถเป็นผู้บริจาคอวัยวะได้หรือไม่?|ไม่ได้ เพราะอายุเกินเกณฑ์|ได้ หากการทำงานของอวัยวะที่จะบริจาคยังอยู่ในเกณฑ์ดีและไม่มีข้อห้าม|ได้เฉพาะดวงตาเท่านั้น|ได้เฉพาะบริจาคเพื่อการศึกษา (เป็นอาจารย์ใหญ่)|1",
+          "การแจ้งข่าวร้าย (Breaking Bad News) ตามหลัก SPIKES Protocol ตัวอักษร 'S' ตัวแรกหมายถึงอะไร?|Setting (การเตรียมสถานที่และความพร้อม)|Strategy (การวางแผนการพูดคุย)|Sorrow (การแสดงความเสียใจ)|Support (การให้ความช่วยเหลือ)|0",
+          "การตรวจคลื่นไฟฟ้าสมอง (EEG) เพื่อยืนยันภาวะสมองตาย ในประเทศไทยมีความจำเป็นหรือไม่?|จำเป็นต้องทำในทุกราย|เป็นทางเลือกเสริม ไม่จำเป็นต้องทำหากผลตรวจทางคลินิกและ Apnea Test ชัดเจน|ทำเฉพาะในผู้ป่วยเด็กเท่านั้น|ทำเฉพาะในผู้ป่วยที่ได้รับยากดประสาท|1",
+          "หลังจากอวัยวะถูกนำออกจากร่างกายผู้บริจาค กระบวนการที่ต้องทำทันทีคืออะไร?|การนำไปปลูกถ่ายให้ผู้รับทันทีโดยไม่ต้องล้าง|การทำความสะอาดด้วยน้ำเปล่า|การล้างและแช่ด้วยน้ำยาถนอมอวัยวะ (Preservation Solution) ที่อุณหภูมิต่ำ|การนำไปแช่แข็งในช่องฟรีซ|2",
+          "ใครมีสิทธิ์ในการตัดสินใจสูงสุดเกี่ยวกับการจัดสรรอวัยวะให้ผู้ป่วยที่รอคอย?|แพทย์ผู้ทำการผ่าตัดจัดเก็บ|ผู้อำนวยการศูนย์รับบริจาคอวัยวะ|ระบบคอมพิวเตอร์ที่ใช้เกณฑ์จัดสรรอย่างเป็นธรรมของ ODC|ญาติผู้บริจาคอวัยวะ|2",
+          "หากญาติสอบถามว่า 'จะทราบได้อย่างไรว่าอวัยวะถูกนำไปให้ใคร' คำตอบที่เหมาะสมที่สุดคือข้อใด?|จะแจ้งชื่อและที่อยู่ของผู้รับให้ทราบอย่างละเอียด|ข้อมูลผู้บริจาคและผู้รับเป็นความลับตามจริยธรรมทางการแพทย์ แต่จะแจ้งภาพรวมให้ทราบว่านำไปช่วยใครได้บ้าง|ให้ญาติไปสืบหาข้อมูลเอาเอง|จะจัดให้ผู้บริจาคและผู้รับได้พบกันในอนาคต|1",
+          "การใช้เครื่องพยุงการทำงานของหัวใจและปอด (ECMO) ในผู้ป่วยสมองตาย มีประโยชน์อย่างไร?|เพื่อรักษาผู้ป่วยให้หายจากภาวะสมองตาย|เพื่อช่วยรักษาสภาพอวัยวะ (เช่น หัวใจ ปอด ตับ ไต) ให้มีเลือดไปเลี้ยงเพียงพอรอการจัดเก็บ|เพื่อให้ญาติรู้สึกว่าแพทย์ยังทำการรักษาอยู่|เพื่อใช้แทนการทำ Apnea test|1",
+          "จริยธรรมที่สำคัญที่สุดในกระบวนการบริจาคอวัยวะคืออะไร?|Autonomy (การเคารพสิทธิ์การตัดสินใจของผู้ป่วย/ญาติ)|Beneficence (การทำประโยชน์สูงสุด)|Non-maleficence (การไม่ทำอันตราย)|Justice (ความยุติธรรมในการจัดสรรอวัยวะ)|0"
+        ];
+
+        const ICONS = {
+          Users: LucideIcons.Users, Radio: LucideIcons.Radio, BookOpen: LucideIcons.BookOpen, 
+          Database: LucideIcons.Database, Activity: LucideIcons.Activity, LogOut: LucideIcons.LogOut,
+          Search: LucideIcons.Search, Edit: LucideIcons.Edit, CheckCircle: LucideIcons.CheckCircle,
+          XCircle: LucideIcons.XCircle, Save: LucideIcons.Save, UploadCloud: LucideIcons.UploadCloud,
+          Trash2: LucideIcons.Trash2, Plus: LucideIcons.Plus, Download: LucideIcons.Download,
+          RefreshCw: LucideIcons.RefreshCw, ShieldCheck: LucideIcons.ShieldCheck, Info: LucideIcons.Info, CheckSquare: LucideIcons.CheckSquare,
+          ArrowLeft: LucideIcons.ArrowLeft, MonitorPlay: LucideIcons.MonitorPlay, Lock: LucideIcons.Lock
+        };
+
+        function parseRawExams(raw) {
+            if (!raw || !Array.isArray(raw)) return [];
+            return raw.map((str, idx) => {
+                const parts = str.split('|').map(s => s.trim());
+                return {
+                    id: idx + 1,
+                    question: parts[0] ? parts[0].replace(/^[0-9]+\.\s*/, '') : '',
+                    options: parts.slice(1, parts.length - 1),
+                    answer: parseInt((parts[parts.length - 1] || '0').replace(/[^0-9]/g, ''), 10) || 0
+                };
+            });
+        }
+
+        function SafeIcon({ name, size = 20, className = "" }) {
+          const IconComponent = ICONS[name] || ICONS['Activity'];
+          return <IconComponent size={size} className={className} />;
+        }
+
+        // ============================================================================
+        // การเชื่อมต่อ Firebase (แก้ไขให้เสถียร ไม่เกิดจอขาว)
+        // ============================================================================
         let app, auth, db, appId = 'fah-elearning-prod';
-        let firebaseInitError = null;
         try {
-            const fbP1 = "AIzaSyBs275"; const fbP2 = "NY99gdv1uZdAnb"; const fbP3 = "mx3UlWO8K4o5a0";
-            const hardcodedConfig = { 
-                apiKey: fbP1 + fbP2 + fbP3, 
-                authDomain: "e-learning-with-fah-ai.firebaseapp.com", 
-                projectId: "e-learning-with-fah-ai", 
-                storageBucket: "e-learning-with-fah-ai.firebasestorage.app", 
-                messagingSenderId: "418946105960", 
-                appId: "1:418946105960:web:728e28070790975df231dd" 
-            };
-            
-            let fbConfig = hardcodedConfig;
-            
-            if (typeof __firebase_config !== 'undefined' && __firebase_config) {
-                try {
-                    const parsed = JSON.parse(__firebase_config);
-                    if (Object.keys(parsed).length > 0) {
-                        fbConfig = parsed;
-                    }
-                } catch(e) {
-                    console.warn("Parse config error:", e);
-                }
-            }
-
-            app = getApps().length === 0 ? initializeApp(fbConfig) : getApp();
-            auth = getAuth(app);
-            db = getFirestore(app);
-            appId = typeof __app_id !== 'undefined' && __app_id ? String(__app_id).replace(/\//g, '-') : 'fah-elearning-prod';
-            
-        } catch (error) { 
-            console.error("Firebase init error:", error); 
-            firebaseInitError = error.message;
-        }
-
-        class ErrorBoundary extends React.Component {
-            constructor(props) {
-                super(props);
-                this.state = { hasError: false, error: null };
-            }
-            static getDerivedStateFromError(error) { return { hasError: true, error }; }
-            render() {
-                if (this.state.hasError) {
-                    return (
-                        <div className="min-h-screen flex flex-col items-center justify-center bg-slate-900 text-rose-500 font-bold p-6 text-center">
-                            <LucideIcons.AlertTriangle size={64} className="mb-4" />
-                            <h2 className="text-2xl mb-2">หน้าต่างควบคุมขัดข้อง (React Error)</h2>
-                            <p className="text-slate-400">{this.state.error?.message}</p>
-                            <a href="./index.html" className="mt-8 px-6 py-3 bg-blue-600 text-white rounded-xl">กลับหน้าหลัก</a>
-                        </div>
-                    );
-                }
-                return this.props.children;
-            }
-        }
+          const fbP1 = "AIzaSyBs275"; const fbP2 = "NY99gdv1uZdAnb"; const fbP3 = "mx3UlWO8K4o5a0";
+          let fbConfig = (typeof __firebase_config !== 'undefined' && __firebase_config) 
+            ? JSON.parse(__firebase_config) : { apiKey: fbP1 + fbP2 + fbP3, authDomain: "e-learning-with-fah-ai.firebaseapp.com", projectId: "e-learning-with-fah-ai", storageBucket: "e-learning-with-fah-ai.firebasestorage.app", messagingSenderId: "418946105960", appId: "1:418946105960:web:728e28070790975df231dd" };
+          
+          app = getApps().length === 0 ? initializeApp(fbConfig) : getApp();
+          auth = getAuth(app);
+          db = getFirestore(app);
+          appId = typeof __app_id !== 'undefined' && __app_id ? String(__app_id).replace(/\//g, '-') : 'fah-elearning-prod';
+        } catch (error) { console.error("Firebase init error", error); }
 
         function AdminApp() {
-            const [users, setUsers] = useState([]);
-            const [settings, setSettings] = useState(null);
-            const [loading, setLoading] = useState(true);
-            const [error, setError] = useState("");
+            const [user, setUser] = useState(null);
+            const [isAuth, setIsAuth] = useState(false);
+            const [password, setPassword] = useState('');
             const [activeTab, setActiveTab] = useState('users');
-            const [searchQuery, setSearchQuery] = useState("");
-            const [currentUser, setCurrentUser] = useState(null);
+            const [usersList, setUsersList] = useState([]);
+            const [contentConfig, setContentConfig] = useState({ 
+                lessons: window.INITIAL_LESSONS || [],
+                questionSets: window.QUIZ_QUESTIONS_RAW ? [parseRawExams(window.QUIZ_QUESTIONS_RAW)] : [[]]
+            });
+            const [liveConfig, setLiveConfig] = useState({ status: 'offline', topic: '', url: '', documentUrl: '' });
+            const [systemConfig, setSystemConfig] = useState({ appsScriptUrl: '', certScriptUrl: '', lookerStudioUrl: '', masterCsvUrl: '', autoSyncFromSheet: false });
+            const [alertMsg, setAlertMsg] = useState({ show: false, text: '', type: 'success' });
+            
+            const [searchTerm, setSearchTerm] = useState('');
+            const [showManualForm, setShowManualForm] = useState(false);
+            const [manualForm, setManualForm] = useState({ name: '', license: '', userType: 'เรียนใหม่', hospital: 'รพ.ราชวิถี' });
+
+            const showAlert = (text, type = 'success') => {
+                setAlertMsg({ show: true, text, type });
+                setTimeout(() => setAlertMsg({ show: false, text: '', type }), 4000);
+            };
 
             useEffect(() => {
-                if (!auth || !db) {
-                    setError(`ไม่สามารถเชื่อมต่อฐานข้อมูล Firebase ได้: ${firebaseInitError || 'การตั้งค่าคอนฟิกไม่ถูกต้อง'}`);
-                    setLoading(false);
-                    return;
-                }
-
+                if (!auth || !db) return;
                 const initAuth = async () => {
                     try {
                         if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
@@ -136,237 +201,490 @@
                             await signInAnonymously(auth);
                         }
                     } catch (err) {
-                        console.error("Auth error", err);
-                        setError("ยืนยันตัวตนไม่สำเร็จ: " + err.message);
+                        console.error("Auth init error:", err);
                     }
                 };
-                
                 initAuth();
-                const unsubscribe = onAuthStateChanged(auth, setCurrentUser);
+                const unsubscribe = onAuthStateChanged(auth, setUser);
                 return () => unsubscribe();
             }, []);
 
             useEffect(() => {
-                if (!currentUser || !db) return;
-
+                if (!user || !db) return;
+                
                 const unsubUsers = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'elearning_users'), (snapshot) => {
-                    const data = [];
-                    snapshot.forEach(d => data.push({ ...d.data(), id: d.id }));
-                    data.sort((a,b) => (b.progress || 0) - (a.progress || 0));
-                    setUsers(data);
-                    setLoading(false);
-                }, err => setError(err.message));
+                    const arr = []; snapshot.forEach(doc => arr.push({ id: doc.id, ...doc.data() })); setUsersList(arr);
+                }, (err) => console.error("Users sync error:", err));
 
                 const unsubSettings = onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_config', 'settings'), (docSnap) => {
                     if (docSnap.exists()) {
-                        setSettings(docSnap.data());
-                    } else {
-                        setSettings({
-                            appsScriptUrl: "", certScriptUrl: "",
-                            liveConfig: { status: 'offline', topic: '', url: '', allowPosttest: false }
-                        });
+                        const data = docSnap.data();
+                        if (data.liveConfig) setLiveConfig(data.liveConfig);
+                        setSystemConfig(prev => ({ ...prev, ...data }));
                     }
-                }, err => setError(err.message));
+                }, (err) => console.error("Settings sync error:", err));
 
-                return () => { unsubUsers(); unsubSettings(); };
-            }, [currentUser]);
-
-            const handleDeleteUser = async (id, name) => {
-                if (window.confirm(`ยืนยันการลบข้อมูลผู้ใช้งาน: ${name} ใช่หรือไม่?`)) {
-                    try {
-                        await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_users', id));
-                        alert('ลบข้อมูลสำเร็จ');
-                    } catch (err) {
-                        alert('ลบข้อมูลไม่สำเร็จ: ' + err.message);
+                const unsubContent = onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_config', 'content'), (docSnap) => {
+                    if (docSnap.exists() && docSnap.data()) {
+                        const data = docSnap.data();
+                        setContentConfig(prev => ({
+                            lessons: data.lessons || prev.lessons,
+                            questionSets: data.questionSets || prev.questionSets
+                        }));
                     }
+                }, (err) => console.error("Content sync error:", err));
+                
+                return () => {
+                    unsubUsers();
+                    unsubSettings();
+                    unsubContent();
+                };
+            }, [user]);
+
+            const syncFromGoogleSheet = async (isManual = false) => {
+                if (!systemConfig.masterCsvUrl) {
+                    if (isManual) showAlert('กรุณาระบุลิงก์ Google Sheets แบบ CSV ก่อน', 'error');
+                    return;
                 }
-            };
-
-            const handleSaveSettings = async () => {
+                if (isManual) showAlert('กำลังดึงข้อมูลสิทธิ์ผู้เรียนจากตาราง...', 'info');
                 try {
-                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_config', 'settings'), settings, { merge: true });
-                    alert('บันทึกการตั้งค่าระบบเรียบร้อยแล้ว');
-                } catch (err) {
-                    alert('บันทึกไม่สำเร็จ: ' + err.message);
+                    const res = await fetch(systemConfig.masterCsvUrl);
+                    if (!res.ok) throw new Error('Cannot fetch CSV');
+                    const text = await res.text();
+                    const rows = text.split('\n').filter(r => r.trim());
+                    if (rows.length <= 1) {
+                        if (isManual) showAlert('ไม่พบข้อมูลผู้เรียนในตาราง', 'error');
+                        return;
+                    }
+
+                    let newCount = 0; let updateCount = 0;
+                    for (let i = 1; i < rows.length; i++) {
+                        const cols = rows[i].split(',').map(c => c.trim().replace(/^"|"$/g, ''));
+                        if (cols.length >= 4 && cols[1]) {
+                            const name = cols[0]; const license = cols[1]; const hospital = cols[2]; const userType = cols[3];
+                            const existingUser = usersList.find(u => String(u.id) === String(license));
+                            
+                            // 🌟 ตรวจจับสิทธิ์ Onsite เพื่อให้ข้ามการเรียนและทำข้อสอบได้เลย
+                            const isOnsite = userType === 'Onsite';
+                            let targetStudySecs = isOnsite ? 36000 : 0;
+                            let targetProgress = isOnsite ? 100 : 0;
+                            let targetSkillLab = isOnsite ? true : false;
+
+                            if (!existingUser) {
+                                const newUser = { id: license, name, license, hospital, userType: userType || 'เรียนใหม่', progress: targetProgress, studySeconds: targetStudySecs, status: 'กำลังเรียน', pretest: '-', posttest: '-', skillLabPassed: targetSkillLab, lastVideoId: 1, videoTimes: {} };
+                                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_users', license), newUser, { merge: true });
+                                newCount++;
+                            } else if (existingUser.userType !== userType || existingUser.name !== name || existingUser.hospital !== hospital) {
+                                let updateData = { name, userType, hospital };
+                                // อัปเดตแพ็กเกจเวลา หากมีการปรับสิทธิ์เป็น Onsite ภายหลัง
+                                if (isOnsite && existingUser.userType !== 'Onsite') {
+                                    updateData.progress = 100;
+                                    updateData.studySeconds = 36000;
+                                    updateData.skillLabPassed = true;
+                                }
+                                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_users', license), updateData, { merge: true });
+                                updateCount++;
+                            }
+                        }
+                    }
+                    if (isManual) showAlert(`ซิงค์ข้อมูลสำเร็จ! (เพิ่มใหม่ ${newCount} คน, อัปเดต ${updateCount} คน)`);
+                } catch (e) {
+                    if (isManual) showAlert('ดึงข้อมูลล้มเหลว กรุณาตรวจสอบลิงก์ CSV', 'error');
+                    console.error("Sync Sheet Error:", e);
                 }
             };
 
-            const filteredUsers = users.filter(u => 
-                (u.name || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
-                (u.hospital || '').toLowerCase().includes(searchQuery.toLowerCase())
-            );
+            useEffect(() => {
+                if (isAuth && systemConfig.autoSyncFromSheet && systemConfig.masterCsvUrl) {
+                    const interval = setInterval(() => syncFromGoogleSheet(false), 30000);
+                    return () => clearInterval(interval);
+                }
+            }, [isAuth, systemConfig.autoSyncFromSheet, systemConfig.masterCsvUrl, usersList]);
 
-            if (error) {
+            const handleLogin = (e) => { e.preventDefault(); if (password === 'admin2026') setIsAuth(true); else showAlert('รหัสผ่านไม่ถูกต้อง', 'error'); };
+
+            const saveSettings = async (settingsToUpdate) => {
+                try {
+                    const newSettings = { ...systemConfig, ...settingsToUpdate };
+                    setSystemConfig(newSettings);
+                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_config', 'settings'), newSettings, { merge: true });
+                    showAlert('บันทึกการตั้งค่าเรียบร้อย');
+                } catch (e) { showAlert('เกิดข้อผิดพลาด', 'error'); }
+            };
+
+            const saveLiveConfig = async () => {
+                try {
+                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_config', 'settings'), { liveConfig }, { merge: true });
+                    showAlert('อัปเดตและเผยแพร่สถานะ Live สำเร็จ');
+                } catch (e) { 
+                    showAlert('เกิดข้อผิดพลาดในการบันทึก Live', 'error'); 
+                    console.error("Save Live Error:", e);
+                }
+            };
+
+            const updateUserStatus = async (userId, newStatus, newType) => {
+                try {
+                    let updatePayload = { status: newStatus, userType: newType };
+                    // 🌟 Auto-refill: หากตั้งเป็นสิทธิ์ Onsite จะได้รับเวลาเรียน 10 ชม. + ผ่านห้องปฏิบัติการอัตโนมัติ
+                    if (newType === 'Onsite') {
+                        updatePayload.studySeconds = 36000;
+                        updatePayload.progress = 100;
+                        updatePayload.skillLabPassed = true;
+                    }
+                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_users', userId), updatePayload, { merge: true });
+                    showAlert('อัปเดตสิทธิ์สำเร็จ');
+                } catch (e) { showAlert('เกิดข้อผิดพลาด', 'error'); }
+            };
+
+            const deleteUser = async (userId) => {
+                if (window.confirm('ยืนยันการลบสิทธิ์ผู้ใช้งานนี้ออกจากระบบ? (ข้อมูลการเรียนจะถูกลบถาวร)')) {
+                    try {
+                        await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_users', userId));
+                        showAlert('ลบผู้เรียนออกจากระบบเรียบร้อย');
+                    } catch (e) { showAlert('ลบข้อมูลไม่สำเร็จ', 'error'); }
+                }
+            };
+
+            const handleAddManualUser = async (e) => {
+                e.preventDefault();
+                const uid = manualForm.license || Date.now().toString();
+                const isOnsite = manualForm.userType === 'Onsite';
+                const newUser = { 
+                    id: uid, 
+                    ...manualForm, 
+                    progress: isOnsite ? 100 : 0, 
+                    studySeconds: isOnsite ? 36000 : 0, 
+                    status: 'กำลังเรียน', 
+                    pretest: '-', 
+                    posttest: '-', 
+                    skillLabPassed: isOnsite, 
+                    lastVideoId: 1, 
+                    videoTimes: {} 
+                };
+                try {
+                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_users', uid), newUser, { merge: true });
+                    setShowManualForm(false);
+                    showAlert('เพิ่มผู้เรียนใหม่สำเร็จ');
+                } catch (e) { showAlert('เพิ่มข้อมูลไม่สำเร็จ', 'error'); }
+            };
+
+            const saveContentConfig = async () => {
+                try {
+                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_config', 'content'), contentConfig, { merge: true });
+                    showAlert('อัปเดตและเผยแพร่เนื้อหาเรียบร้อยแล้ว');
+                } catch (e) {
+                    showAlert('เกิดข้อผิดพลาดในการบันทึกเนื้อหา', 'error');
+                }
+            };
+
+            const filteredUsers = usersList.filter(u => u.name?.toLowerCase().includes(searchTerm.toLowerCase()) || u.license?.includes(searchTerm));
+
+            if (!isAuth) {
                 return (
-                    <div className="min-h-screen flex flex-col items-center justify-center bg-slate-900 text-rose-500 font-bold p-6 text-center">
-                        <LucideIcons.AlertTriangle size={64} className="mb-4" />
-                        <h2 className="text-2xl mb-2">ระบบฐานข้อมูลขัดข้อง</h2>
-                        <p className="text-slate-400">{error}</p>
-                        <button onClick={() => window.location.reload()} className="mt-6 bg-slate-800 text-white px-6 py-2 rounded-full border border-slate-600 hover:bg-slate-700">ลองใหม่อีกครั้ง</button>
+                    <div className="min-h-screen flex items-center justify-center bg-slate-900">
+                        <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md text-center">
+                            <div className="w-16 h-16 bg-line-100 text-line-600 rounded-full flex items-center justify-center mx-auto mb-6"><SafeIcon name="Lock" size={32} /></div>
+                            <h2 className="text-2xl font-black text-slate-800 mb-2">RJ Ailiverse Backend</h2>
+                            <p className="text-slate-500 mb-8 text-sm">ระบบจัดการข้อมูลส่วนกลาง (Admin Only)</p>
+                            <form onSubmit={handleLogin} className="flex flex-col gap-4">
+                                <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="ระบุรหัสผ่านแอดมิน" className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-line-500 outline-none text-center tracking-widest text-lg" />
+                                <button type="submit" className="w-full bg-line-500 text-white font-bold py-3 rounded-xl hover:bg-line-600 transition-colors">เข้าสู่ระบบหลังบ้าน</button>
+                                <button type="button" onClick={() => window.location.href = './index.html'} className="text-sm text-slate-500 hover:text-slate-800 mt-2">กลับสู่หน้าจอผู้เรียน</button>
+                            </form>
+                        </div>
+                        {alertMsg.show && <div className={`fixed top-4 px-6 py-3 rounded-full font-bold shadow-lg animate-in fade-in slide-in-from-top-4 ${alertMsg.type === 'error' ? 'bg-rose-100 border border-rose-400 text-rose-700' : 'bg-emerald-100 border border-emerald-400 text-emerald-800'}`}>{alertMsg.text}</div>}
                     </div>
                 );
             }
 
-            if (loading) {
-                return (
-                    <div className="min-h-screen flex items-center justify-center bg-slate-900 text-white font-bold text-xl tracking-widest">
-                        <LucideIcons.Loader className="animate-spin mr-3 text-blue-500" size={32} /> LOADING DASHBOARD...
-                    </div>
-                );
-            }
+            const handleExportCSV = () => {
+                const headers = ["ชื่อ-สกุล", "อีเมล", "เบอร์โทร", "ใบประกอบวิชาชีพ", "ตำแหน่ง", "หน่วยงาน", "สถานะ", "Pretest", "Posttest", "ความคืบหน้า (%)", "คะแนนเจรจาเฉลี่ย"];
+                const csvData = usersList.map(u => {
+                    const avgScore = u.skillLabHistory?.length > 0 ? Math.round(u.skillLabHistory.reduce((sum, r) => sum + (r.score || 0), 0) / u.skillLabHistory.length) : 0;
+                    return [u.name, u.email, u.phone, u.licenseId, u.position, u.hospital, u.status, u.pretest, u.posttest, u.progress, avgScore];
+                });
+                const csvContent = [headers, ...csvData].map(e => e.join(",")).join("\n");
+                const blob = new Blob(["\ufeff" + csvContent], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement("a");
+                const url = URL.createObjectURL(blob);
+                link.setAttribute("href", url);
+                link.setAttribute("download", `rjailiverse_users_${new Date().toISOString().split('T')[0]}.csv`);
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            };
 
             return (
-                <div className="min-h-screen bg-slate-900 text-slate-200">
-                    <div className="bg-slate-800 border-b border-slate-700 p-4 sticky top-0 z-50 shadow-md">
-                        <div className="max-w-7xl mx-auto flex justify-between items-center">
-                            <h1 className="text-lg md:text-2xl font-black flex items-center gap-2 text-white">
-                                <LucideIcons.ShieldCheck className="text-emerald-500" />
-                                RJ Ailiverse <span className="hidden md:inline text-slate-400">| Executive Admin</span>
-                            </h1>
-                            <a href="./index.html" className="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-xl text-sm font-bold transition-colors flex items-center gap-2 shadow-sm border border-slate-600">
-                                <LucideIcons.ArrowLeft size={16} /> <span className="hidden md:inline">กลับหน้าห้องเรียน</span>
-                            </a>
+                <div className="flex h-screen bg-slate-100 overflow-hidden">
+                    {/* Sidebar */}
+                    <div className="w-64 bg-white border-r border-slate-200 flex flex-col shadow-sm z-20 shrink-0 hidden md:flex">
+                        <div className="p-6 border-b border-slate-100 text-center">
+                            <h1 className="text-xl font-black text-line-600">Admin Panel</h1>
+                            <p className="text-xs font-bold text-slate-400 mt-1 uppercase tracking-widest">RJ Ailiverse</p>
+                        </div>
+                        <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
+                            {[{id: 'users', label: 'จัดการสิทธิ์ผู้เรียน', icon: 'Users'}, {id: 'data', label: 'Auto-Sync & ระบบคิว', icon: 'Database'}, {id: 'live', label: 'ระบบถ่ายทอดสด', icon: 'Radio'}, {id: 'content', label: 'แก้ไขบทเรียน', icon: 'BookOpen'}, {id: 'quiz', label: 'จัดการข้อสอบ', icon: 'CheckSquare'}, {id: 'analytics', label: 'Dashboard', icon: 'Activity'}].map(t => (
+                                <button key={t.id} onClick={() => setActiveTab(t.id)} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-colors ${activeTab === t.id ? 'bg-line-50 text-line-700' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'}`}><SafeIcon name={t.icon} /> {t.label}</button>
+                            ))}
+                        </nav>
+                        <div className="p-4 border-t border-slate-100">
+                            <button onClick={() => window.location.href = './index.html'} className="w-full flex items-center justify-center gap-2 py-3 text-sm font-bold text-slate-500 hover:bg-slate-50 rounded-xl transition-colors"><SafeIcon name="LogOut" size={16}/> สลับไปหน้าผู้เรียน</button>
                         </div>
                     </div>
 
-                    <div className="max-w-7xl mx-auto p-4 md:p-6 grid grid-cols-1 md:grid-cols-4 gap-6">
-                        <div className="md:col-span-1 flex flex-row md:flex-col gap-2 overflow-x-auto custom-scrollbar pb-2 md:pb-0">
-                            <button onClick={() => setActiveTab('users')} className={`shrink-0 md:w-full text-left px-5 py-4 rounded-2xl font-bold flex items-center gap-3 transition-all ${activeTab === 'users' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30' : 'bg-slate-800 hover:bg-slate-700 text-slate-400 border border-slate-700'}`}>
-                                <LucideIcons.Users size={20} /> จัดการผู้เรียน
-                            </button>
-                            <button onClick={() => setActiveTab('settings')} className={`shrink-0 md:w-full text-left px-5 py-4 rounded-2xl font-bold flex items-center gap-3 transition-all ${activeTab === 'settings' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/30' : 'bg-slate-800 hover:bg-slate-700 text-slate-400 border border-slate-700'}`}>
-                                <LucideIcons.Settings size={20} /> ตั้งค่าระบบไลฟ์
-                            </button>
+                    {/* Main Content Area */}
+                    <div className="flex-1 overflow-y-auto custom-scrollbar p-4 md:p-8 relative">
+                        {alertMsg.show && <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-50 px-6 py-3 rounded-full font-bold shadow-lg animate-in fade-in slide-in-from-top-4 flex items-center gap-2 ${alertMsg.type === 'error' ? 'bg-rose-100 border border-rose-400 text-rose-800' : 'bg-emerald-100 border border-emerald-400 text-emerald-800'}`}><SafeIcon name={alertMsg.type === 'error' ? 'XCircle' : 'CheckCircle'} /> {alertMsg.text}</div>}
+                        
+                        {/* Mobile Tabs */}
+                        <div className="md:hidden flex gap-2 overflow-x-auto mb-6 custom-scrollbar pb-2">
+                             {[{id: 'users', label: 'ผู้ใช้'}, {id: 'live', label: 'Live สด'}, {id: 'content', label: 'บทเรียน'}, {id: 'quiz', label: 'ข้อสอบ'}].map(t => (
+                                <button key={t.id} onClick={() => setActiveTab(t.id)} className={`px-4 py-2 rounded-xl font-bold text-sm whitespace-nowrap ${activeTab === t.id ? 'bg-line-500 text-white' : 'bg-white text-slate-600'}`}>{t.label}</button>
+                            ))}
                         </div>
 
-                        <div className="md:col-span-3 bg-slate-800 rounded-[2rem] border border-slate-700 p-6 min-h-[600px] flex flex-col shadow-xl">
-                            {activeTab === 'users' && (
-                                <div className="flex flex-col h-full animate-in fade-in">
-                                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-                                        <h2 className="text-xl font-black flex items-center gap-2 text-white"><LucideIcons.Users className="text-blue-400"/> ฐานข้อมูลผู้เรียน ({users.length} คน)</h2>
-                                        <div className="flex items-center bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 w-full md:w-64 focus-within:border-blue-500 transition-colors">
-                                            <LucideIcons.Search size={16} className="text-slate-500 mr-2" />
-                                            <input type="text" placeholder="ค้นหาชื่อ หรือ รพ..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="bg-transparent border-none outline-none text-sm w-full text-white placeholder-slate-500" />
-                                        </div>
+                        {/* 1. จัดการสิทธิ์ผู้เรียน (User Management) */}
+                        {activeTab === 'users' && (
+                            <div className="animate-in fade-in flex flex-col h-full">
+                                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                                    <div>
+                                        <h2 className="text-2xl font-black text-slate-800 flex items-center gap-2"><SafeIcon name="Users" className="text-line-600" /> จัดการสิทธิ์ผู้เรียน</h2>
+                                        <p className="text-slate-500 text-sm mt-1">ผู้เรียนทั้งหมดในระบบ: {usersList.length} ราย</p>
                                     </div>
+                                    <div className="flex gap-2 w-full md:w-auto">
+                                        <div className="bg-white px-4 py-2 rounded-lg border flex items-center gap-2 flex-1 md:w-64"><SafeIcon name="Search" className="text-slate-400 shrink-0" /><input type="text" placeholder="ค้นหาชื่อ หรือ ใบอนุญาต..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="outline-none text-sm w-full bg-transparent" /></div>
+                                        <button onClick={() => setShowManualForm(!showManualForm)} className="bg-line-500 text-white px-4 py-2 rounded-lg font-bold text-sm shadow-sm hover:bg-line-600 shrink-0 flex items-center gap-1"><SafeIcon name="Plus" size={16}/> เพิ่มมือ</button>
+                                        <button onClick={handleExportCSV} className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg font-bold text-sm shadow-sm flex items-center gap-1"><SafeIcon name="Download" size={16}/> CSV</button>
+                                    </div>
+                                </div>
 
-                                    <div className="flex-1 overflow-x-auto custom-scrollbar rounded-xl border border-slate-700 bg-slate-900/50">
-                                        <table className="w-full text-sm text-left">
-                                            <thead className="bg-slate-900 text-slate-400 sticky top-0 z-10 shadow-sm">
-                                                <tr>
-                                                    <th className="px-5 py-4 font-bold">ชื่อ-สกุล / สิทธิ์</th>
-                                                    <th className="px-5 py-4 font-bold">หน่วยงาน</th>
-                                                    <th className="px-5 py-4 font-bold text-center">เวลาเรียน</th>
-                                                    <th className="px-5 py-4 font-bold text-center">Empathy Score</th>
-                                                    <th className="px-5 py-4 font-bold text-center">จัดการ</th>
-                                                </tr>
+                                {showManualForm && (
+                                    <form onSubmit={handleAddManualUser} className="mb-6 p-6 bg-white rounded-2xl shadow-sm border border-slate-200 grid grid-cols-1 md:grid-cols-5 gap-4 items-end animate-in fade-in slide-in-from-top-4">
+                                        <div><label className="block text-xs font-bold text-slate-500 mb-1">ชื่อ-สกุล</label><input required value={manualForm.name} onChange={e => setManualForm({...manualForm, name: e.target.value})} className="w-full px-3 py-2 border rounded-lg outline-none focus:border-line-500 text-sm" /></div>
+                                        <div><label className="block text-xs font-bold text-slate-500 mb-1">ใบอนุญาต (ID)</label><input required value={manualForm.license} onChange={e => setManualForm({...manualForm, license: e.target.value})} className="w-full px-3 py-2 border rounded-lg outline-none focus:border-line-500 text-sm" /></div>
+                                        <div><label className="block text-xs font-bold text-slate-500 mb-1">โรงพยาบาล</label><input required value={manualForm.hospital} onChange={e => setManualForm({...manualForm, hospital: e.target.value})} className="w-full px-3 py-2 border rounded-lg outline-none focus:border-line-500 text-sm" /></div>
+                                        <div><label className="block text-xs font-bold text-slate-500 mb-1">สิทธิ์ (Type)</label><select value={manualForm.userType} onChange={e => setManualForm({...manualForm, userType: e.target.value})} className="w-full px-3 py-2 border rounded-lg outline-none focus:border-line-500 text-sm bg-white"><option>เรียนใหม่</option><option>Onsite</option><option>Online</option></select></div>
+                                        <button type="submit" className="w-full bg-slate-800 text-white font-bold py-2 rounded-lg shadow-sm hover:bg-slate-700">บันทึก</button>
+                                    </form>
+                                )}
+
+                                <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex-1 relative">
+                                    <div className="absolute inset-0 overflow-auto custom-scrollbar">
+                                        <table className="w-full text-left text-sm whitespace-nowrap min-w-[800px]">
+                                            <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider sticky top-0 z-10 shadow-sm">
+                                                <tr><th className="p-4">ชื่อผู้เรียน</th><th className="p-4">ใบอนุญาต</th><th className="p-4">ประเภทสิทธิ์</th><th className="p-4">ความคืบหน้า</th><th className="p-4">สถานะการเรียน</th><th className="p-4 text-center">เพิกถอนสิทธิ์</th></tr>
                                             </thead>
-                                            <tbody className="divide-y divide-slate-800">
-                                                {filteredUsers.length === 0 ? (
-                                                    <tr><td colSpan="5" className="px-5 py-12 text-center text-slate-500 font-medium"><LucideIcons.SearchX size={32} className="mx-auto mb-2 opacity-50"/> ไม่พบข้อมูลที่ค้นหา</td></tr>
-                                                ) : filteredUsers.map(u => {
-                                                    const empathyScore = u.skillLabHistory && u.skillLabHistory.length > 0 ? u.skillLabHistory[u.skillLabHistory.length-1].score : '-';
-                                                    return (
-                                                    <tr key={u.id} className="hover:bg-slate-700/40 transition-colors">
-                                                        <td className="px-5 py-4">
-                                                            <div className="font-bold text-white text-base">{u.name}</div>
-                                                            <div className="flex items-center gap-2 mt-1">
-                                                                <span className="text-[10px] bg-slate-700 text-slate-300 px-2 py-0.5 rounded font-mono">{u.id}</span>
-                                                                <span className="text-[10px] bg-blue-900/50 text-blue-300 border border-blue-700/50 px-2 py-0.5 rounded">{u.userType || 'N/A'}</span>
-                                                            </div>
+                                            <tbody className="divide-y divide-slate-100">
+                                                {filteredUsers.length > 0 ? filteredUsers.map(u => (
+                                                    <tr key={u.id} className="hover:bg-slate-50 transition-colors">
+                                                        <td className="p-4 font-bold text-slate-800">{u.name}</td>
+                                                        <td className="p-4 text-slate-600 font-mono text-xs">{u.license || u.id}</td>
+                                                        <td className="p-4">
+                                                            <select value={u.userType || 'เรียนใหม่'} onChange={(e) => updateUserStatus(u.id, u.status, e.target.value)} className="bg-white border border-slate-300 rounded px-2 py-1 text-xs font-bold outline-none shadow-sm focus:border-line-500">
+                                                                <option value="เรียนใหม่">เรียนใหม่</option><option value="Online">Online</option><option value="Onsite">Onsite</option>
+                                                            </select>
                                                         </td>
-                                                        <td className="px-5 py-4 text-slate-300 font-medium">{u.hospital || '-'}</td>
-                                                        <td className="px-5 py-4 text-center">
-                                                            <div className="flex flex-col items-center">
-                                                                <span className="font-black text-white">{u.progress || 0}%</span>
-                                                                <div className="w-16 h-1.5 bg-slate-700 rounded-full mt-1.5 overflow-hidden"><div className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-full" style={{width: `${u.progress || 0}%`}}></div></div>
-                                                            </div>
+                                                        <td className="p-4"><div className="flex items-center gap-2"><div className="w-16 h-1.5 bg-slate-200 rounded-full overflow-hidden"><div className="bg-line-500 h-full" style={{width: `${u.progress}%`}}></div></div><span className="text-xs text-slate-500 font-bold">{u.progress}%</span></div></td>
+                                                        <td className="p-4">
+                                                            <select value={u.status || 'กำลังเรียน'} onChange={(e) => updateUserStatus(u.id, e.target.value, u.userType)} className={`border rounded px-2 py-1 text-xs font-bold outline-none shadow-sm ${u.status === 'ผ่าน' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
+                                                                <option value="กำลังเรียน">กำลังเรียน</option><option value="ผ่าน">สอบผ่าน (บังคับ)</option><option value="ไม่ผ่าน">ไม่ผ่าน</option>
+                                                            </select>
                                                         </td>
-                                                        <td className="px-5 py-4 text-center">
-                                                            {empathyScore !== '-' ? <span className="inline-flex items-center justify-center bg-rose-500/20 text-rose-400 font-black border border-rose-500/30 px-3 py-1 rounded-lg text-lg">{empathyScore}</span> : <span className="text-slate-600">-</span>}
-                                                        </td>
-                                                        <td className="px-5 py-4 text-center">
-                                                            <button onClick={() => handleDeleteUser(u.id, u.name)} className="p-2 text-slate-500 hover:text-rose-500 hover:bg-rose-500/20 rounded-xl transition-all border border-transparent hover:border-rose-500/30" title="ลบข้อมูล">
-                                                                <LucideIcons.Trash2 size={18} />
-                                                            </button>
-                                                        </td>
+                                                        <td className="p-4 text-center"><button onClick={() => deleteUser(u.id)} className="text-slate-400 hover:text-rose-600 hover:bg-rose-50 p-2 rounded-lg transition-colors" title="ลบผู้ใช้งาน"><SafeIcon name="Trash2" size={18} /></button></td>
                                                     </tr>
-                                                )})}
+                                                )) : (
+                                                    <tr><td colSpan="6" className="p-12 text-center text-slate-400 font-medium">ไม่พบข้อมูลผู้เรียน</td></tr>
+                                                )}
                                             </tbody>
                                         </table>
                                     </div>
                                 </div>
-                            )}
+                            </div>
+                        )}
 
-                            {activeTab === 'settings' && settings && (
-                                <div className="animate-in fade-in flex flex-col h-full">
-                                    <div className="flex justify-between items-center mb-6 border-b border-slate-700 pb-4">
-                                        <h2 className="text-xl font-black flex items-center gap-2 text-white"><LucideIcons.Settings className="text-emerald-400"/> ตั้งค่าระบบส่วนกลาง</h2>
-                                        <button onClick={handleSaveSettings} className="bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-[0_0_15px_rgba(16,185,129,0.3)] transition-all active:scale-95">
-                                            <LucideIcons.Save size={18} /> บันทึกการตั้งค่า
-                                        </button>
+                        {/* 2. ระบบดึงข้อมูลอัตโนมัติ (Data Auto-Sync) */}
+                        {activeTab === 'data' && (
+                            <div className="animate-in fade-in max-w-4xl">
+                                <h2 className="text-2xl font-black text-slate-800 mb-2 flex items-center gap-2"><SafeIcon name="Database" className="text-line-600" /> ระบบเชื่อมโยงข้อมูล & Auto-Sync</h2>
+                                <p className="text-slate-500 text-sm mb-6">ตั้งค่าให้ระบบดึงรายชื่อและสิทธิ์นักเรียนจาก Google Sheets เข้ามาให้อัตโนมัติ</p>
+                                
+                                <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-200 space-y-6">
+                                    <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl flex gap-3 text-blue-800 text-sm">
+                                        <SafeIcon name="Info" className="shrink-0 mt-0.5" />
+                                        <div><b>วิธีใช้งาน:</b> ให้ไปที่ Google Sheets ของคุณ เลือก ไฟล์ (File) &gt; แชร์ (Share) &gt; เผยแพร่ทางเว็บ (Publish to web) &gt; เปลี่ยนจาก 'หน้าเว็บ' เป็น 'ค่าที่คั่นด้วยจุลภาค (CSV)' แล้วนำลิงก์ที่ได้มาวางในช่องด้านล่าง (คอลัมน์ในตารางต้องเรียงตามนี้: ชื่อ, ใบอนุญาต, โรงพยาบาล, สิทธิ์)</div>
                                     </div>
                                     
-                                    <div className="space-y-6 flex-1 overflow-y-auto custom-scrollbar pr-2">
-                                        <div className="bg-slate-900 p-6 rounded-2xl border border-slate-700 shadow-inner">
-                                            <h3 className="font-bold text-rose-400 mb-5 flex items-center gap-2 text-lg"><LucideIcons.Radio size={20} className="animate-pulse"/> ควบคุมการถ่ายทอดสด (Live Stream)</h3>
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                                                <div>
-                                                    <label className="block text-sm font-bold text-slate-400 mb-2">สถานะ Live ในห้องเรียน</label>
-                                                    <select value={settings.liveConfig?.status || 'offline'} onChange={e => setSettings({...settings, liveConfig: {...settings.liveConfig, status: e.target.value}})} className="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-3 text-base text-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none font-bold">
-                                                        <option value="offline">⚫ ออฟไลน์ (ปิดการถ่ายทอดสด)</option>
-                                                        <option value="live">🔴 ถ่ายทอดสด (Live Now!)</option>
-                                                        <option value="paused">⏸️ พักเบรก (Paused)</option>
-                                                    </select>
-                                                </div>
-                                                <div>
-                                                    <label className="block text-sm font-bold text-slate-400 mb-2">หัวข้อการบรรยาย (Topic)</label>
-                                                    <input type="text" value={settings.liveConfig?.topic || ''} onChange={e => setSettings({...settings, liveConfig: {...settings.liveConfig, topic: e.target.value}})} className="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-3 text-sm text-white focus:border-emerald-500 outline-none" placeholder="เช่น การเจรจาแจ้งข่าวร้าย..." />
-                                                </div>
-                                                <div className="md:col-span-2">
-                                                    <label className="block text-sm font-bold text-slate-400 mb-2">URL ลิงก์สตรีม (Youtube, Vimeo, StreamYard Embed)</label>
-                                                    <input type="text" value={settings.liveConfig?.url || ''} onChange={e => setSettings({...settings, liveConfig: {...settings.liveConfig, url: e.target.value}})} className="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-3 text-sm text-amber-300 focus:border-emerald-500 outline-none font-mono" placeholder="https://..." />
-                                                </div>
-                                                
-                                                <div className="md:col-span-2 flex items-center p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl mt-2">
-                                                    <input type="checkbox" id="allowPosttest" checked={settings.liveConfig?.allowPosttest || false} onChange={e => setSettings({...settings, liveConfig: {...settings.liveConfig, allowPosttest: e.target.checked}})} className="w-5 h-5 rounded bg-slate-800 border-slate-600 cursor-pointer accent-amber-500" />
-                                                    <label htmlFor="allowPosttest" className="ml-3 text-sm font-bold text-amber-400 cursor-pointer">เปิดระบบฉุกเฉิน: ปลดล็อคให้ทุกคนทำ Posttest ได้ทันที (ข้ามเงื่อนไขเวลาและ Skill Lab)</label>
-                                                </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">ลิงก์ Google Sheets (รูปแบบ CSV)</label>
+                                        <input type="url" value={systemConfig.masterCsvUrl || ''} onChange={e => setSystemConfig({...systemConfig, masterCsvUrl: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-slate-300 outline-none focus:border-line-500 font-mono text-sm" placeholder="https://docs.google.com/spreadsheets/d/.../pub?output=csv" />
+                                    </div>
+                                    
+                                    <div className="flex flex-col sm:flex-row items-center gap-4 pt-2">
+                                        <div className="flex-1 w-full bg-slate-50 p-4 rounded-xl border border-slate-200 flex items-center justify-between">
+                                            <div>
+                                                <div className="font-bold text-slate-800 text-sm">อัปเดตสิทธิ์อัตโนมัติ (Auto-Sync)</div>
+                                                <div className="text-xs text-slate-500 mt-0.5">ระบบจะดึงข้อมูลใหม่ทุกๆ 30 วินาที เมื่อเปิดหน้านี้ไว้</div>
                                             </div>
+                                            <label className="relative inline-flex items-center cursor-pointer">
+                                                <input type="checkbox" className="sr-only peer" checked={systemConfig.autoSyncFromSheet} onChange={e => saveSettings({ autoSyncFromSheet: e.target.checked })} />
+                                                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-line-500"></div>
+                                            </label>
                                         </div>
-
-                                        <div className="bg-slate-900 p-6 rounded-2xl border border-slate-700 shadow-inner">
-                                            <h3 className="font-bold text-blue-400 mb-5 flex items-center gap-2 text-lg"><LucideIcons.CloudLightning size={20}/> การเชื่อมต่อ API & Automation</h3>
-                                            <div className="space-y-5">
-                                                <div>
-                                                    <label className="block text-sm font-bold text-slate-400 mb-2">1. Main Apps Script URL (ระบบ AI และส่ง OTP)</label>
-                                                    <input type="text" value={settings.appsScriptUrl || ''} onChange={e => setSettings({...settings, appsScriptUrl: e.target.value})} className="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-3 text-sm text-slate-300 focus:border-blue-500 outline-none font-mono" placeholder="https://script.google.com/macros/..." />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-sm font-bold text-slate-400 mb-2">2. Certificate Apps Script URL (ระบบออกเกียรติบัตร PDF)</label>
-                                                    <input type="text" value={settings.certScriptUrl || ''} onChange={e => setSettings({...settings, certScriptUrl: e.target.value})} className="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-3 text-sm text-slate-300 focus:border-blue-500 outline-none font-mono" placeholder="https://script.google.com/macros/..." />
-                                                </div>
-                                            </div>
-                                        </div>
+                                        <button onClick={() => syncFromGoogleSheet(true)} className="w-full sm:w-auto bg-line-50 text-line-600 hover:bg-line-100 border border-line-200 font-bold py-4 px-6 rounded-xl transition-colors flex items-center justify-center gap-2 whitespace-nowrap"><SafeIcon name="RefreshCw" size={18} /> ดึงข้อมูลเดี๋ยวนี้</button>
+                                    </div>
+                                    
+                                    <div className="border-t border-slate-100 pt-6 mt-6">
+                                        <button onClick={() => saveSettings(systemConfig)} className="w-full bg-slate-800 text-white hover:bg-slate-700 font-bold py-3.5 rounded-xl transition-colors shadow-sm">บันทึกลิงก์และตั้งค่าส่วนกลาง</button>
                                     </div>
                                 </div>
-                            )}
-                        </div>
+                            </div>
+                        )}
+
+                        {/* 3. ระบบ Live และเอกสาร (Live Stream & Docs) */}
+                        {activeTab === 'live' && (
+                            <div className="animate-in fade-in max-w-3xl">
+                                <h2 className="text-2xl font-black text-slate-800 mb-6 flex items-center gap-2"><SafeIcon name="Radio" className="text-rose-500" /> ระบบควบคุม Live สด และเอกสาร</h2>
+                                <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-200 space-y-6">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">สถานะการถ่ายทอด</label>
+                                            <div className="flex gap-2">
+                                                <button onClick={() => setLiveConfig({...liveConfig, status: 'live'})} className={`flex-1 py-2.5 rounded-lg font-bold border transition-colors ${liveConfig.status === 'live' ? 'bg-rose-100 text-rose-700 border-rose-300' : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100'}`}>🔴 LIVE</button>
+                                                <button onClick={() => setLiveConfig({...liveConfig, status: 'offline'})} className={`flex-1 py-2.5 rounded-lg font-bold border transition-colors ${liveConfig.status === 'offline' ? 'bg-slate-800 text-white border-slate-800' : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100'}`}>ปิด (Offline)</button>
+                                            </div>
+                                        </div>
+                                        <div><label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">หัวข้อการบรรยาย</label><input type="text" value={liveConfig.topic} onChange={e => setLiveConfig({...liveConfig, topic: e.target.value})} className="w-full px-4 py-2.5 rounded-lg border border-slate-300 outline-none focus:border-line-500" placeholder="เช่น บรรยายพิเศษนโยบายชาติ..." /></div>
+                                    </div>
+                                    <div><label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Embed URL (ลิงก์วิดีโอจาก Canva/Vimeo/Youtube)</label><input type="text" value={liveConfig.url} onChange={e => setLiveConfig({...liveConfig, url: e.target.value})} className="w-full px-4 py-2.5 rounded-lg border border-slate-300 outline-none focus:border-line-500 font-mono text-sm" placeholder="https://www.canva.com/..." /></div>
+                                    <div className="pt-4 border-t border-slate-100"><label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 flex items-center gap-2"><SafeIcon name="UploadCloud" size={16} className="text-line-500"/> ลิงก์เอกสารประกอบ Live (Google Drive / PDF)</label><input type="text" value={liveConfig.documentUrl || ''} onChange={e => setLiveConfig({...liveConfig, documentUrl: e.target.value})} className="w-full px-4 py-2.5 rounded-lg border border-slate-300 outline-none focus:border-line-500 font-mono text-sm" placeholder="วางลิงก์เอกสารให้ผู้เรียนดาวน์โหลด..." /></div>
+                                    <button onClick={saveLiveConfig} className="w-full bg-line-500 hover:bg-line-600 text-white font-bold py-3.5 rounded-xl transition-colors shadow-md flex items-center justify-center gap-2"><SafeIcon name="Save" size={20} /> เผยแพร่สถานะ Live ให้นักเรียนเห็น</button>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* 4. จัดการเนื้อหา (Content Editor) */}
+                        {activeTab === 'content' && (
+                            <div className="animate-in fade-in max-w-5xl">
+                                <div className="flex justify-between items-center mb-6">
+                                    <h2 className="text-2xl font-black text-slate-800 flex items-center gap-2"><SafeIcon name="BookOpen" className="text-line-600" /> แก้ไขรายวิชา</h2>
+                                    <button onClick={saveContentConfig} className="bg-line-500 text-white px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-sm hover:bg-line-600 transition-colors"><SafeIcon name="UploadCloud" size={18}/> เผยแพร่ขึ้น Cloud</button>
+                                </div>
+                                <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                                    <div className="space-y-4 max-h-[65vh] overflow-y-auto pr-2 custom-scrollbar">
+                                        {contentConfig.lessons.map(l => (
+                                            <div key={l.id} className="p-4 bg-slate-50 border border-slate-200 rounded-xl flex flex-col md:flex-row gap-4 items-start md:items-center">
+                                                <div className="w-10 h-10 bg-slate-200 rounded-full flex items-center justify-center font-black text-slate-500 shrink-0">{l.id}</div>
+                                                <div className="flex-1 w-full space-y-2">
+                                                    <input type="text" value={l.title} onChange={e => setContentConfig(p => ({ ...p, lessons: p.lessons.map(x => x.id === l.id ? { ...x, title: e.target.value } : x) }))} className="w-full text-sm font-bold p-2 border rounded-lg outline-none focus:border-line-500" placeholder="ชื่อบทเรียน" />
+                                                    <input type="text" value={l.videoId} onChange={e => setContentConfig(p => ({ ...p, lessons: p.lessons.map(x => x.id === l.id ? { ...x, videoId: e.target.value } : x) }))} className="w-full text-xs font-mono p-2 border rounded-lg outline-none focus:border-line-500 text-slate-500" placeholder="Google Drive Video ID" />
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* 5. จัดการข้อสอบ */}
+                        {activeTab === 'quiz' && (
+                            <div className="animate-in fade-in max-w-5xl">
+                                <div className="flex justify-between items-center mb-6">
+                                    <h2 className="text-2xl font-black text-slate-800 flex items-center gap-2"><SafeIcon name="CheckSquare" className="text-line-600" /> จัดการข้อสอบ (Pretest / Posttest)</h2>
+                                    <button onClick={saveContentConfig} className="bg-line-500 text-white px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-sm hover:bg-line-600 transition-colors"><SafeIcon name="UploadCloud" size={18}/> เผยแพร่ข้อสอบขึ้น Cloud</button>
+                                </div>
+                                
+                                <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col h-[70vh]">
+                                    <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-6">
+                                        {(contentConfig.questionSets[0] || []).map((q, qIndex) => (
+                                            <div key={q.id || qIndex} className="p-5 bg-slate-50 border border-slate-200 rounded-xl relative">
+                                                <button onClick={() => {
+                                                    const newQuiz = [...contentConfig.questionSets[0]];
+                                                    newQuiz.splice(qIndex, 1);
+                                                    setContentConfig(p => ({ ...p, questionSets: [newQuiz] }));
+                                                }} className="absolute top-4 right-4 text-rose-400 hover:text-rose-600 hover:bg-rose-50 p-2 rounded-lg transition-colors" title="ลบข้อนี้"><SafeIcon name="Trash2" size={18}/></button>
+                                                
+                                                <div className="mb-4 pr-12">
+                                                    <label className="block text-xs font-bold text-slate-500 mb-1">ข้อที่ {qIndex + 1} (คำถาม)</label>
+                                                    <textarea value={q.question} onChange={e => {
+                                                        const newQuiz = [...contentConfig.questionSets[0]];
+                                                        newQuiz[qIndex] = { ...newQuiz[qIndex], question: e.target.value };
+                                                        setContentConfig(p => ({ ...p, questionSets: [newQuiz] }));
+                                                    }} className="w-full text-sm font-bold p-3 border rounded-lg outline-none focus:border-line-500 min-h-[80px]" placeholder="ระบุคำถาม..." />
+                                                </div>
+                                                
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                    {q.options.map((opt, optIndex) => (
+                                                        <div key={optIndex} className="flex items-center gap-2">
+                                                            <input type="radio" name={`correct-${qIndex}`} checked={q.answer === optIndex} onChange={() => {
+                                                                const newQuiz = [...contentConfig.questionSets[0]];
+                                                                newQuiz[qIndex] = { ...newQuiz[qIndex], answer: optIndex };
+                                                                setContentConfig(p => ({ ...p, questionSets: [newQuiz] }));
+                                                            }} className="w-4 h-4 text-line-600 cursor-pointer" title="เลือกเป็นคำตอบที่ถูกต้อง" />
+                                                            <input type="text" value={opt} onChange={e => {
+                                                                const newQuiz = [...contentConfig.questionSets[0]];
+                                                                const newOptions = [...newQuiz[qIndex].options];
+                                                                newOptions[optIndex] = e.target.value;
+                                                                newQuiz[qIndex] = { ...newQuiz[qIndex], options: newOptions };
+                                                                setContentConfig(p => ({ ...p, questionSets: [newQuiz] }));
+                                                            }} className={`w-full text-sm p-2 border rounded-lg outline-none focus:border-line-500 ${q.answer === optIndex ? 'border-line-500 bg-line-50 font-bold text-line-800' : 'text-slate-700'}`} placeholder={`ตัวเลือกที่ ${optIndex + 1}`} />
+                                                            <button onClick={() => {
+                                                                const newQuiz = [...contentConfig.questionSets[0]];
+                                                                const newOptions = [...newQuiz[qIndex].options];
+                                                                newOptions.splice(optIndex, 1);
+                                                                if (newQuiz[qIndex].answer === optIndex) newQuiz[qIndex].answer = 0;
+                                                                else if (newQuiz[qIndex].answer > optIndex) newQuiz[qIndex].answer -= 1;
+                                                                newQuiz[qIndex] = { ...newQuiz[qIndex], options: newOptions };
+                                                                setContentConfig(p => ({ ...p, questionSets: [newQuiz] }));
+                                                            }} className="text-slate-400 hover:text-rose-500 p-1"><SafeIcon name="XCircle" size={16}/></button>
+                                                        </div>
+                                                    ))}
+                                                    <button onClick={() => {
+                                                        const newQuiz = [...contentConfig.questionSets[0]];
+                                                        newQuiz[qIndex] = { ...newQuiz[qIndex], options: [...newQuiz[qIndex].options, "ตัวเลือกใหม่"] };
+                                                        setContentConfig(p => ({ ...p, questionSets: [newQuiz] }));
+                                                    }} className="text-xs font-bold text-line-600 hover:bg-line-50 py-2 rounded-lg border border-dashed border-line-300 flex items-center justify-center gap-1"><SafeIcon name="Plus" size={14}/> เพิ่มตัวเลือก</button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <div className="pt-4 mt-4 border-t border-slate-100 flex justify-center shrink-0">
+                                        <button onClick={() => {
+                                            const newQuiz = [...(contentConfig.questionSets[0] || [])];
+                                            newQuiz.push({ id: Date.now(), question: "คำถามใหม่...", options: ["ก.", "ข.", "ค.", "ง."], answer: 0 });
+                                            setContentConfig(p => ({ ...p, questionSets: [newQuiz] }));
+                                            setTimeout(() => {
+                                                const container = document.querySelector('.custom-scrollbar');
+                                                if(container) container.scrollTop = container.scrollHeight;
+                                            }, 100);
+                                        }} className="bg-slate-800 text-white px-6 py-2.5 rounded-xl font-bold text-sm shadow-sm hover:bg-slate-700 flex items-center gap-2"><SafeIcon name="Plus" size={16}/> เพิ่มข้อสอบใหม่</button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* 6. Analytics Dashboard */}
+                        {activeTab === 'analytics' && (
+                             <div className="animate-in fade-in flex flex-col h-[85vh]">
+                                 <div className="flex justify-between items-center mb-6">
+                                     <h2 className="text-2xl font-black text-slate-800 flex items-center gap-2"><SafeIcon name="Activity" className="text-line-600" /> แดชบอร์ดสรุปผลภาพรวม</h2>
+                                     <input type="url" value={systemConfig.lookerStudioUrl || ''} onChange={e => setSystemConfig({...systemConfig, lookerStudioUrl: e.target.value})} onBlur={() => saveSettings({ lookerStudioUrl: systemConfig.lookerStudioUrl })} placeholder="ตั้งค่าลิงก์ Looker Studio Embed..." className="px-4 py-2 border rounded-lg outline-none text-sm w-72 focus:border-line-500 shadow-sm hidden md:block" />
+                                 </div>
+                                 <div className="w-full flex-1 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden relative flex items-center justify-center">
+                                     {systemConfig.lookerStudioUrl ? (
+                                         <iframe src={systemConfig.lookerStudioUrl} className="absolute inset-0 w-full h-full border-none"></iframe>
+                                     ) : (
+                                         <div className="text-center text-slate-400"><SafeIcon name="Activity" size={48} className="mx-auto mb-2 opacity-50" /><p className="font-bold">ยังไม่ได้ตั้งค่าลิงก์ Looker Studio</p></div>
+                                     )}
+                                 </div>
+                             </div>
+                        )}
                     </div>
                 </div>
             );
         }
 
-        try {
-            const root = createRoot(document.getElementById('root'));
-            root.render(
-                <ErrorBoundary>
-                    <AdminApp />
-                </ErrorBoundary>
-            );
-        } catch (err) {
-            console.error("React render error:", err);
-        }
+        const root = createRoot(document.getElementById('admin-root'));
+        root.render(<AdminApp />);
     </script>
 </body>
 </html>
