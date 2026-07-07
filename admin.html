@@ -13,9 +13,9 @@
         "react": "https://esm.sh/react@18.2.0",
         "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
         "lucide-react": "https://esm.sh/lucide-react@0.294.0",
-        "firebase/app": "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js",
-        "firebase/auth": "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js",
-        "firebase/firestore": "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js"
+        "firebase/app": "https://esm.sh/firebase@10.8.0/app",
+        "firebase/auth": "https://esm.sh/firebase@10.8.0/auth",
+        "firebase/firestore": "https://esm.sh/firebase@10.8.0/firestore"
       }
     }
     </script>
@@ -32,23 +32,76 @@
     <div id="root"></div>
 
     <script type="text/babel" data-type="module">
+        // ------------------------------------------------------------------------
+        // 🛡️ ป้องกันจอขาว (Global Error Handler)
+        // ------------------------------------------------------------------------
+        window.onerror = function(message, source, lineno, colno, error) {
+            document.body.innerHTML = `
+                <div style="background-color:#0f172a; min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; color:#f8fafc; font-family:sans-serif; padding:20px; text-align:center;">
+                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#f43f5e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:20px;"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+                    <h2 style="font-size:24px; font-weight:bold; margin-bottom:10px; color:#f43f5e;">ระบบเกิดข้อผิดพลาด (Global Error)</h2>
+                    <p style="color:#94a3b8; max-width:500px; line-height:1.5;">${message}</p>
+                    <a href="./index.html" style="margin-top:30px; padding:12px 24px; background-color:#3b82f6; color:white; text-decoration:none; border-radius:8px; font-weight:bold;">กลับหน้าหลัก</a>
+                </div>
+            `;
+            return true;
+        };
+
         import React, { useState, useEffect } from 'react';
         import { createRoot } from 'react-dom/client';
         import * as LucideIcons from 'lucide-react';
         import { initializeApp } from 'firebase/app';
         import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from 'firebase/auth';
-        import { getFirestore, collection, doc, onSnapshot, deleteDoc, updateDoc, setDoc } from 'firebase/firestore';
+        import { getFirestore, collection, doc, onSnapshot, deleteDoc, setDoc } from 'firebase/firestore';
 
-        // 1. เชื่อมต่อ Firebase (รหัสเดียวกับหน้าเว็บหลัก)
-        const fbP1 = "AIzaSyBs275"; const fbP2 = "NY99gdv1uZdAnb"; const fbP3 = "mx3UlWO8K4o5a0";
-        let fbConfig = (typeof __firebase_config !== 'undefined' && __firebase_config) 
-            ? JSON.parse(__firebase_config) : { apiKey: fbP1 + fbP2 + fbP3, authDomain: "e-learning-with-fah-ai.firebaseapp.com", projectId: "e-learning-with-fah-ai", storageBucket: "e-learning-with-fah-ai.firebasestorage.app", messagingSenderId: "418946105960", appId: "1:418946105960:web:728e28070790975df231dd" };
-        
-        const app = initializeApp(fbConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-        const appId = typeof __app_id !== 'undefined' ? String(__app_id).replace(/\//g, '-') : 'fah-elearning-prod';
+        // ------------------------------------------------------------------------
+        // 1. เชื่อมต่อ Firebase อย่างปลอดภัย
+        // ------------------------------------------------------------------------
+        let app, auth, db, appId = 'fah-elearning-prod';
+        try {
+            const fbP1 = "AIzaSyBs275"; const fbP2 = "NY99gdv1uZdAnb"; const fbP3 = "mx3UlWO8K4o5a0";
+            let fbConfig = (typeof __firebase_config !== 'undefined' && __firebase_config) 
+                ? JSON.parse(__firebase_config) : { apiKey: fbP1 + fbP2 + fbP3, authDomain: "e-learning-with-fah-ai.firebaseapp.com", projectId: "e-learning-with-fah-ai", storageBucket: "e-learning-with-fah-ai.firebasestorage.app", messagingSenderId: "418946105960", appId: "1:418946105960:web:728e28070790975df231dd" };
+            
+            if (fbConfig && Object.keys(fbConfig).length > 0) {
+                app = initializeApp(fbConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+                appId = typeof __app_id !== 'undefined' ? String(__app_id).replace(/\//g, '-') : 'fah-elearning-prod';
+            }
+        } catch (error) { 
+            console.error("Firebase init error", error); 
+        }
 
+        // ------------------------------------------------------------------------
+        // 🛡️ Error Boundary สำหรับ React Component
+        // ------------------------------------------------------------------------
+        class ErrorBoundary extends React.Component {
+            constructor(props) {
+                super(props);
+                this.state = { hasError: false, error: null };
+            }
+            static getDerivedStateFromError(error) {
+                return { hasError: true, error };
+            }
+            render() {
+                if (this.state.hasError) {
+                    return (
+                        <div className="min-h-screen flex flex-col items-center justify-center bg-slate-900 text-rose-500 font-bold p-6 text-center">
+                            <LucideIcons.AlertTriangle size={64} className="mb-4" />
+                            <h2 className="text-2xl mb-2">หน้าต่างควบคุมขัดข้อง (React Error)</h2>
+                            <p className="text-slate-400">{this.state.error?.message}</p>
+                            <a href="./index.html" className="mt-8 px-6 py-3 bg-blue-600 text-white rounded-xl">กลับหน้าหลัก</a>
+                        </div>
+                    );
+                }
+                return this.props.children;
+            }
+        }
+
+        // ------------------------------------------------------------------------
+        // 2. ส่วนแสดงผล Admin Dashboard
+        // ------------------------------------------------------------------------
         function AdminApp() {
             const [users, setUsers] = useState([]);
             const [settings, setSettings] = useState(null);
@@ -56,10 +109,16 @@
             const [error, setError] = useState("");
             const [activeTab, setActiveTab] = useState('users');
             const [searchQuery, setSearchQuery] = useState("");
-            const [user, setUser] = useState(null);
+            const [currentUser, setCurrentUser] = useState(null);
 
-            // Effect ที่ 1: จัดการการยืนยันตัวตน (Authentication) ให้เสร็จก่อน
+            // จัดการ Auth ก่อนดึงข้อมูล
             useEffect(() => {
+                if (!auth || !db) {
+                    setError("ไม่สามารถเชื่อมต่อฐานข้อมูล Firebase ได้ กรุณารีเฟรชหน้าเว็บ");
+                    setLoading(false);
+                    return;
+                }
+
                 const initAuth = async () => {
                     try {
                         if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
@@ -69,29 +128,27 @@
                         }
                     } catch (err) {
                         console.error("Auth error", err);
-                        setError("เกิดข้อผิดพลาดในการเชื่อมต่อระบบยืนยันตัวตน โปรดรีเฟรชหน้าเว็บ");
+                        setError("ยืนยันตัวตนไม่สำเร็จ: " + err.message);
                     }
                 };
+                
                 initAuth();
-                const unsubscribe = onAuthStateChanged(auth, setUser);
+                const unsubscribe = onAuthStateChanged(auth, setCurrentUser);
                 return () => unsubscribe();
             }, []);
 
-            // Effect ที่ 2: ดึงข้อมูลหลังจากยืนยันตัวตนสำเร็จแล้ว
+            // ดึงข้อมูล Data เมื่อ Auth ผ่านแล้ว
             useEffect(() => {
-                if (!user) return; // Guard ป้องกันการดึงข้อมูลก่อน Auth เสร็จ
+                if (!currentUser || !db) return;
 
-                // ดึงข้อมูลผู้ใช้งานแบบ Real-time
                 const unsubUsers = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'elearning_users'), (snapshot) => {
                     const data = [];
                     snapshot.forEach(d => data.push({ ...d.data(), id: d.id }));
-                    // เรียงคะแนนจากมากไปน้อย
                     data.sort((a,b) => (b.progress || 0) - (a.progress || 0));
                     setUsers(data);
                     setLoading(false);
                 }, err => setError(err.message));
 
-                // ดึงข้อมูลการตั้งค่าแบบ Real-time
                 const unsubSettings = onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_config', 'settings'), (docSnap) => {
                     if (docSnap.exists()) {
                         setSettings(docSnap.data());
@@ -104,7 +161,7 @@
                 }, err => setError(err.message));
 
                 return () => { unsubUsers(); unsubSettings(); };
-            }, [user]);
+            }, [currentUser]);
 
             const handleDeleteUser = async (id, name) => {
                 if (window.confirm(`ยืนยันการลบข้อมูลผู้ใช้งาน: ${name} ใช่หรือไม่?`)) {
@@ -126,13 +183,11 @@
                 }
             };
 
-            // ระบบค้นหาผู้ใช้
             const filteredUsers = users.filter(u => 
                 (u.name || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
                 (u.hospital || '').toLowerCase().includes(searchQuery.toLowerCase())
             );
 
-            // หากมี Error จาก Firebase
             if (error) {
                 return (
                     <div className="min-h-screen flex flex-col items-center justify-center bg-slate-900 text-rose-500 font-bold p-6 text-center">
@@ -143,7 +198,6 @@
                 );
             }
 
-            // หน้าจอโหลด
             if (loading) {
                 return (
                     <div className="min-h-screen flex items-center justify-center bg-slate-900 text-white font-bold text-xl tracking-widest">
@@ -154,7 +208,6 @@
 
             return (
                 <div className="min-h-screen bg-slate-900 text-slate-200">
-                    {/* Header */}
                     <div className="bg-slate-800 border-b border-slate-700 p-4 sticky top-0 z-50 shadow-md">
                         <div className="max-w-7xl mx-auto flex justify-between items-center">
                             <h1 className="text-lg md:text-2xl font-black flex items-center gap-2 text-white">
@@ -168,8 +221,6 @@
                     </div>
 
                     <div className="max-w-7xl mx-auto p-4 md:p-6 grid grid-cols-1 md:grid-cols-4 gap-6">
-                        
-                        {/* Sidebar Menu */}
                         <div className="md:col-span-1 flex flex-row md:flex-col gap-2 overflow-x-auto custom-scrollbar pb-2 md:pb-0">
                             <button onClick={() => setActiveTab('users')} className={`shrink-0 md:w-full text-left px-5 py-4 rounded-2xl font-bold flex items-center gap-3 transition-all ${activeTab === 'users' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30' : 'bg-slate-800 hover:bg-slate-700 text-slate-400 border border-slate-700'}`}>
                                 <LucideIcons.Users size={20} /> จัดการผู้เรียน
@@ -179,10 +230,7 @@
                             </button>
                         </div>
 
-                        {/* Main Content */}
                         <div className="md:col-span-3 bg-slate-800 rounded-[2rem] border border-slate-700 p-6 min-h-[600px] flex flex-col shadow-xl">
-                            
-                            {/* TAB 1: USERS */}
                             {activeTab === 'users' && (
                                 <div className="flex flex-col h-full animate-in fade-in">
                                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
@@ -241,7 +289,6 @@
                                 </div>
                             )}
 
-                            {/* TAB 2: SETTINGS */}
                             {activeTab === 'settings' && settings && (
                                 <div className="animate-in fade-in flex flex-col h-full">
                                     <div className="flex justify-between items-center mb-6 border-b border-slate-700 pb-4">
@@ -252,7 +299,6 @@
                                     </div>
                                     
                                     <div className="space-y-6 flex-1 overflow-y-auto custom-scrollbar pr-2">
-                                        {/* Live Settings */}
                                         <div className="bg-slate-900 p-6 rounded-2xl border border-slate-700 shadow-inner">
                                             <h3 className="font-bold text-rose-400 mb-5 flex items-center gap-2 text-lg"><LucideIcons.Radio size={20} className="animate-pulse"/> ควบคุมการถ่ายทอดสด (Live Stream)</h3>
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -280,7 +326,6 @@
                                             </div>
                                         </div>
 
-                                        {/* Apps Script Settings */}
                                         <div className="bg-slate-900 p-6 rounded-2xl border border-slate-700 shadow-inner">
                                             <h3 className="font-bold text-blue-400 mb-5 flex items-center gap-2 text-lg"><LucideIcons.CloudLightning size={20}/> การเชื่อมต่อ API & Automation</h3>
                                             <div className="space-y-5">
@@ -303,20 +348,12 @@
             );
         }
 
-        // ระบบจับ Error อัตโนมัติ (Fail-safe) ไม่ให้ขึ้นจอขาว
-        try {
-            const root = createRoot(document.getElementById('root'));
-            root.render(<AdminApp />);
-        } catch (err) {
-            document.body.innerHTML = `
-                <div style="background-color:#0f172a; min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; color:#f8fafc; font-family:sans-serif; padding:20px; text-align:center;">
-                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#f43f5e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:20px;"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
-                    <h2 style="font-size:24px; font-weight:bold; margin-bottom:10px;">เกิดข้อผิดพลาดในการโหลดหน้า Admin</h2>
-                    <p style="color:#94a3b8; max-width:500px; line-height:1.5;">${err.message}</p>
-                    <a href="./index.html" style="margin-top:30px; padding:12px 24px; background-color:#3b82f6; color:white; text-decoration:none; border-radius:8px; font-weight:bold;">กลับหน้าหลัก</a>
-                </div>
-            `;
-        }
+        const root = createRoot(document.getElementById('root'));
+        root.render(
+            <ErrorBoundary>
+                <AdminApp />
+            </ErrorBoundary>
+        );
     </script>
 </body>
 </html>
