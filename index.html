@@ -105,7 +105,7 @@
         import * as LucideIcons from 'lucide-react';
         import { initializeApp } from 'firebase/app';
         import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from 'firebase/auth';
-        import { getFirestore, collection, doc, setDoc, onSnapshot, deleteDoc } from 'firebase/firestore';
+        import { getFirestore, collection, doc, setDoc, onSnapshot, deleteDoc, getDoc } from 'firebase/firestore';
 
         // ============================================================================
         // 1. DATA CONSTANTS (ดึงจาก data.js)
@@ -1388,7 +1388,24 @@
             if (authStep === 'check_license') {
               const handleVerify = async (e) => {
                 e.preventDefault(); if (!tempLicense) return; setIsChecking(true);
-                const license = tempLicense.trim(); const existUser = store.dbUsers.find(u => String(u.license || '').trim() === license || String(u.id || '').trim() === license);
+                const license = tempLicense.trim(); 
+                
+                // ค้นหาใน Cache เบื้องต้น
+                let existUser = store.dbUsers.find(u => String(u.license || '').trim() === license || String(u.id || '').trim() === license);
+                
+                // หากไม่เจอใน Cache หรือติดสิทธิ์อ่าน Collection ให้ดึงตรงจาก Firestore ทันทีเพื่อความปลอดภัยสูงสุดตามหลัก PDPA
+                if (!existUser && db) {
+                  try {
+                    const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'elearning_users', license);
+                    const docSnap = await getDoc(docRef);
+                    if (docSnap.exists()) {
+                      existUser = docSnap.data();
+                    }
+                  } catch (err) {
+                    console.warn("Direct Firestore fetch bypassed:", err);
+                  }
+                }
+
                 let processedData = {};
                 if (existUser) { 
                     processedData = { ...existUser }; 
@@ -1415,6 +1432,7 @@
                       let finalUserType = store.registrationData.userType || 'เรียนใหม่'; 
                       if (selectedUserType === 'เข้าเรียนต่อ' && finalUserType === 'เรียนใหม่') finalUserType = 'Online'; 
                       else if (selectedUserType === 'เรียนใหม่') finalUserType = 'เรียนใหม่'; 
+                      else if (selectedUserType === 'Onsite / Online') finalUserType = 'Online'; // หากเลือก Onsite/Online ให้ตั้งต้นที่ Online ก่อน
                       globalStore.setState(p => ({ registrationData: { ...p.registrationData, userType: finalUserType }, authStep: 'register' })); 
                   } 
               };
@@ -1478,7 +1496,11 @@
                   <form onSubmit={handleRequestOTP} className="flex-1 flex flex-col">
                     <div className="max-h-[40vh] overflow-y-auto custom-scrollbar pr-2 pb-4 space-y-4">
                        <FormInput label="ชื่อ - สกุล" value={d.name || ''} onChange={e => globalStore.setState(p => ({ registrationData: {...p.registrationData, name: e.target.value} }))} placeholder="ระบุชื่อและนามสกุล" />
-                       <FormInput label="สิทธิ์การเรียน" value={d.userType || 'เรียนใหม่'} disabled={true} />
+                       {d.isPrefilled ? (
+                           <FormInput label="สิทธิ์การเรียน" value={d.userType || 'เรียนใหม่'} disabled={true} />
+                       ) : (
+                           <FormSelect label="สิทธิ์การเรียน" value={d.userType || 'เรียนใหม่'} onChange={e => globalStore.setState(p => ({ registrationData: {...p.registrationData, userType: e.target.value} }))} options={['เรียนใหม่', 'Online', 'Onsite']} placeholder="-- เลือกสิทธิ์การเรียน --" />
+                       )}
                        <FormInput label="เบอร์โทรศัพท์" type="tel" value={d.phone || ''} onChange={e => globalStore.setState(p => ({ registrationData: {...p.registrationData, phone: e.target.value} }))} placeholder="08xxxxxxxx" />
                        <FormInput label="อีเมล (สำหรับรับ OTP)" type="email" value={d.email || ''} onChange={e => globalStore.setState(p => ({ registrationData: {...p.registrationData, email: e.target.value} }))} placeholder="email@example.com" />
                        <FormInput label="ตำแหน่ง" value={d.position || ''} onChange={e => globalStore.setState(p => ({ registrationData: {...p.registrationData, position: e.target.value} }))} placeholder="ระบุตำแหน่ง" />
