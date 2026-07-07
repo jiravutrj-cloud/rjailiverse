@@ -19,15 +19,19 @@ jobs:
         with:
           node-version: '20'
           
-      # 🚨 จุดที่แก้: เปลี่ยนจาก npm ci เป็น npm install 🚨
-      - name: Install dependencies
-        run: npm install
+      # 🚨 God Mode: บังคับสร้างและติดตั้งระบบใหม่ทั้งหมดบน Cloud เพื่อตัดปัญหาไฟล์พัง
+      - name: Bulletproof Install Dependencies
+        run: |
+          npm init -y
+          npm install -D @playwright/test
+          npm pkg set type="module" || true
         
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps
         
+      # รันการทดสอบทั้งหมดในโฟลเดอร์ tests
       - name: Run RJ Ailiverse Flows
-        run: npx playwright test tests/rj-ailiverse-flows.spec.js
+        run: npx playwright test
         env:
           BASE_URL: ${{ secrets.BASE_URL }}
           
@@ -37,4 +41,3 @@ jobs:
           name: playwright-report
           path: playwright-report/
           retention-days: 30
-```
