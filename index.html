@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+ฃ<!DOCTYPE html>
 <html lang="th">
 <head>
     <meta charset="UTF-8">
@@ -8,7 +8,10 @@
     <!-- เรียกใช้ไฟล์ข้อมูลแยก (Static Data) -->
     <script src="./data.js"></script>
 
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Tailwind Configuration -->
     <script>
       tailwind.config = {
         theme: {
@@ -32,6 +35,7 @@
       }
     </script>
     
+    <!-- Custom Styles -->
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&display=swap');
         
@@ -75,6 +79,7 @@
         }
     </style>
 
+    <!-- Import Maps -->
     <script type="importmap">
     {
       "imports": {
@@ -318,7 +323,8 @@
                   {label && <label className="block text-xs md:text-sm font-bold text-slate-800 mb-2 ml-1 drop-shadow-sm">{label}</label>}
                   <select required disabled={disabled} className={`w-full px-4 py-3.5 rounded-xl border focus:outline-none transition-all shadow-[inset_0_2px_5px_rgba(0,0,0,0.05),inset_0_0_15px_rgba(255,255,255,0.4)] font-medium tracking-wide appearance-none ${disabled ? 'bg-white/30 border-white/40 text-slate-600 cursor-not-allowed' : 'bg-white/40 border-white/50 text-slate-800 hover:bg-white/50 focus:bg-white/60 focus:border-white focus:ring-2 focus:ring-white/50 backdrop-blur-xl'}`} {...props}>
                       <option value="" disabled>{placeholder}</option>
-                      {/* ตัดคำว่า อื่นๆ ที่ล็อกไว้ออก เพื่อไม่ให้ซ้ำซ้อน */}
+                      <option value="อื่นๆ" className="text-slate-800">อื่นๆ</option>
+                      <option value={options.map ? options[0] : ""} className="hidden">{options[0]}</option>
                       {options.map(opt => <option key={opt} value={opt} className="text-slate-800">{opt}</option>)}
                   </select>
               </div>
@@ -426,7 +432,7 @@
           const speakThai = async (text, onEndCallback = null, forceStandard = false, speaker = 'FAH') => {
             stopAudio(); currentSpeechIdRef.current += 1; const speechId = currentSpeechIdRef.current; 
             let targetVoice = "Aoede"; 
-            let cleanSpeakText = text.replace(/\[.*?\]/g, '').replace(/\*.*?\*/g, '').replace(/#.*?#/g, '').replace(/^(ฟ้า|เมฆ|พี่เอก|เอก|น้องชาย|ลูกสาว|แฟน|แฟนของฟ้า|Fah|Mek|Brother|Sister|Boyfriend|AI)\s*:\s*/i, '').trim();
+            let cleanSpeakText = text.replace(/\[.*?\]/g, '').replace(/\*.*?\*/g, '').replace(/#.*?#/g, '').replace(/^(ฟ้า|เมฆ|พี่เอก|เอก|แฟน|แฟนของฟ้า|แฟนหนุ่ม|น้องชาย|ลูกสาว|Fah|Mek|Brother|Sister|Boyfriend|AI)\s*:\s*/i, '').trim();
             let emotionPrompt = "";
             
             if (isListening) { recognitionRef.current?.stop(); setIsListening(false); }
@@ -434,10 +440,10 @@
             // ใช้ Prompt ควบคุมเพื่อให้ AI สังเคราะห์เสียงพูดตามเพศและอารมณ์ให้ชัดเจน
             if (isRoleplay && !forceStandard) { 
                 if (speaker === 'BROTHER') { 
-                    targetVoice = "Charon"; // เสียงผู้ชายวัยรุ่น
+                    targetVoice = "Charon"; // เสียงผู้ชาย (Charon เหมาะสมที่สุด)
                     emotionPrompt = `[พูดด้วยเสียงผู้ชายวัยรุ่น 18 ปี กำลังอารมณ์เสียและเศร้าเสียใจ]: ${cleanSpeakText}`; 
                 } else if (speaker === 'BOYFRIEND') {
-                    targetVoice = "Charon"; // เสียงผู้ชาย แต่ปรับบุคลิกให้นุ่มนวล
+                    targetVoice = "Charon"; // เสียงผู้ชายวัยผู้ใหญ่
                     emotionPrompt = `[พูดด้วยเสียงผู้ชายวัยผู้ใหญ่ นุ่มนวล อบอุ่น ใจเย็น สุภาพ และคอยให้กำลังใจ]: ${cleanSpeakText}`;
                 } else { 
                     targetVoice = "Aoede"; // เสียงผู้หญิง
@@ -489,7 +495,7 @@
               const sc = SKILL_LAB_SCENARIOS.find(s => s.id === store.selectedLabId); 
               const contextText = sc?.language === 'en' 
                   ? "Scenario ended. Patient is a 46yo male, brain dead from car accident. Relatives: Fah (22) and Mek (18). Let's start the roleplay." 
-                  : "ข้อมูลเบื้องต้น: คนไข้ชาย อายุ 46 ปี ประสบอุบัติเหตุรถยนต์ แพทย์ประเมินก้านสมองและทดสอบการหายใจแล้ว ยืนยันภาวะสมองตาย ญาติหน้าห้อง ICU มี ฟ้า (ลูกสาว), เมฆ (น้องชาย) และ แฟนของฟ้าที่มาคอยให้กำลังใจ เริ่มการเจรจาได้เลยค่ะ";
+                  : "ข้อมูลเบื้องต้น: คนไข้ชาย อายุ 46 ปี ประสบอุบัติเหตุรถยนต์ แพทย์ประเมินก้านสมองและทดสอบการหายใจแล้ว ยืนยันภาวะสมองตาย แต่อวัยวะยังสามารถใช้งานได้ ญาติที่รออยู่คือ ลูกสาว (ฟ้า อายุ 22) และลูกชาย (เมฆ อายุ 18) เริ่มการเจรจาได้เลยค่ะ";
               
               globalStore.setState({ roleplayPhase: 'giving_context', currentEmotion: 'SAD', currentSpeaker: 'FAH' });
               const contextMsgId = Date.now(); 
@@ -599,11 +605,12 @@
                       const u = store.loggedInUser; 
                       if (u) { 
                           const evalRecord = { timestamp: new Date().toISOString(), scenarioId: store.selectedLabId, passed: isPass, score: empathyScore, evaluation: cleanResponse, chatLog: history }; 
+                          // 🌟 ปลดล็อก Skill Lab Passed แม้ผู้เรียนจะกดจบกลางคัน 🌟
                           const upUser = { ...u, skillLabPassed: true, skillLabHistory: [...(u.skillLabHistory || []), evalRecord] }; 
                           globalStore.setState(p => ({ loggedInUser: upUser, dbUsers: p.dbUsers.map(x => x.id === upUser.id ? upUser : x) })); 
                           actions.saveUserToDB(upUser); 
                       }
-                      actions.showMsg(`บันทึกผลเรียบร้อย (Empathy Score: ${empathyScore}) ปลดล็อก Posttest แล้ว!`, 'success'); 
+                      actions.showMsg(`บันทึกผลเรียบร้อย (Empathy Score: ${empathyScore})`, 'success'); 
                       speakThai(cleanResponse.replace(/[*#]/g, ''), null, true);
                   } catch (e) { 
                       setMessages(prev => [...prev, { id: Date.now(), sender: 'ai', text: `ข้อผิดพลาด: ${e.message}`, isVoiceOnly: false }]); 
@@ -642,7 +649,7 @@
           };
 
           // -------------------------------------------------------------------------
-          // 🔴 ระบบแยกข้อความแชทเพื่อตัดสินว่าใครคือคนพูด (Fah หรือ Mek หรือ Boyfriend)
+          // 🔴 ระบบแยกข้อความแชทเพื่อตัดสินว่าใครคือคนพูด (Fah, Mek หรือ Boyfriend)
           // -------------------------------------------------------------------------
           const handleSendChat = async (e, quickActionText = null) => {
               if (e) e.preventDefault(); 
@@ -658,7 +665,7 @@
               setSelectedImage(null); 
               setIsTyping(true);
               
-              const historyContext = messages.filter(m => !m.isWelcome).slice(-10).map(m => `${m.sender === 'user' ? 'ผู้เรียน' : 'ครอบครัว'}: ${m.text}`).join('\n');
+              const historyContext = messages.filter(m => !m.isWelcome).slice(-10).map(m => `${m.sender === 'user' ? 'ผู้เรียน' : (m.speakerName || 'ฟ้า')}: ${m.text}`).join('\n');
               
               const generalPrompt = `คุณคือ "ฟ้า" AI ผู้ช่วยสอน อายุ 22 ปี เป็นมิตร สุภาพ ลงท้ายด้วย "ค่ะ"\n[กฎเหล็กสูงสุดระดับชาติ]: ห้ามคุกคามทางเพศหรือหยาบคาย\nเรียกคู่สนทนาตามชื่อหรืออาชีพที่เขาแนะนำ ประวัติ:\n${historyContext}\nผู้เรียน: ${userMsg}\nฟ้า:`;
               const roleplayPrompt = `${currentScenarioPrompt}\n\nประวัติ:\n${historyContext}\nผู้เรียน: ${userMsg}\nญาติ (ใส่ Tag อารมณ์และชื่อคนพูดก่อนเสมอ):`;
@@ -1040,6 +1047,9 @@
           );
         }
 
+        // ============================================================================
+        // 7. SCREENS (หน้าจอต่างๆ)
+        // ============================================================================
         function LandingScreen({ store, actions }) {
           return (
             <div className="flex min-h-screen w-full relative overflow-hidden items-center justify-center bg-transparent z-50">
@@ -1099,10 +1109,14 @@
           const maxReg = activeRegions.length > 0 ? activeRegions[0] : { name: 'รอข้อมูลบุคลากร', users: 0 };
           const minReg = activeRegions.length > 1 ? activeRegions[activeRegions.length-1] : (activeRegions.length > 0 ? activeRegions[0] : { name: 'รอข้อมูลบุคลากร', users: 0 });
 
+          const rawInsight = window.AI_INSIGHT_TEXT || '';
+          const aiInsightText = rawInsight.replace('{{USERS}}', totalStats.users.toLocaleString()).replace('{{PASSED}}', totalStats.passed.toLocaleString()).replace('{{MAX_REG_NAME}}', maxReg.name).replace('{{MAX_REG_USERS}}', maxReg.users).replace('{{MIN_REG_NAME}}', minReg.name).replace('{{MIN_REG_USERS}}', minReg.users);
+
+          const rawSpeech = window.POLICY_SPEECH || '';
+          const policySpeech = rawSpeech.replace('{{USERS}}', totalStats.users).replace('{{PASSED}}', totalStats.passed).replace('{{MAX_REG_NAME}}', maxReg.name);
+
           const [typedInsight, setTypedInsight] = useState("");
           const [isPlaying, setIsPlaying] = useState(false);
-          const [isFetchingLive, setIsFetchingLive] = useState(false);
-          const [currentPolicySpeech, setCurrentPolicySpeech] = useState("");
 
           useEffect(() => {
               const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -1152,55 +1166,24 @@
           };
 
           useEffect(() => {
-              let isMounted = true;
-              let interval;
-              
-              const fetchAndPlay = async () => {
-                  let currentInsight = window.AI_INSIGHT_TEXT || '';
-                  let currentSpeech = window.POLICY_SPEECH || '';
-                  const liveUrl = window.LIVE_REPORT_URL || '';
-
-                  if (liveUrl) {
-                      setIsFetchingLive(true);
-                      try {
-                          const res = await fetch(liveUrl);
-                          if (res.ok) {
-                              const text = await res.text();
-                              const parts = text.split("|||");
-                              if (parts[0]) currentInsight = parts[0].trim();
-                              if (parts[1]) currentSpeech = parts[1].trim();
-                          }
-                      } catch(e) { console.error("Live fetch error", e); }
-                      if (!isMounted) return;
-                      setIsFetchingLive(false);
+              if (showReport) {
+                  if (execMessages.length === 0) {
+                      setExecMessages([{ id: 'init', role: 'ai', text: aiInsightText }]);
+                      setIsPlaying(true);
                   }
-
-                  const finalInsight = currentInsight.replace(/{{USERS}}/g, totalStats.users.toLocaleString()).replace(/{{PASSED}}/g, totalStats.passed.toLocaleString()).replace(/{{MAX_REG_NAME}}/g, maxReg.name).replace(/{{MAX_REG_USERS}}/g, maxReg.users).replace(/{{MIN_REG_NAME}}/g, minReg.name).replace(/{{MIN_REG_USERS}}/g, minReg.users);
-                  const finalSpeech = currentSpeech.replace(/{{USERS}}/g, totalStats.users).replace(/{{PASSED}}/g, totalStats.passed).replace(/{{MAX_REG_NAME}}/g, maxReg.name);
-
-                  setCurrentPolicySpeech(finalSpeech); 
-                  setExecMessages([{ id: 'init', role: 'ai', text: finalInsight }]);
-                  setIsPlaying(true);
                   
                   let i = 0; setTypedInsight("");
-                  interval = setInterval(() => {
-                      if(!isMounted) return;
-                      setTypedInsight(finalInsight.substring(0, i)); i++;
-                      if (i > finalInsight.length) { clearInterval(interval); setIsPlaying(false); }
+                  const interval = setInterval(() => {
+                      setTypedInsight(aiInsightText.substring(0, i)); i++;
+                      if (i > aiInsightText.length) { clearInterval(interval); setIsPlaying(false); }
                   }, 15);
 
-                  setTimeout(() => { if(isMounted) actions.speakText({ text: finalSpeech, hidden: true }) }, 800);
-              };
-
-              if (showReport) {
-                  setExecMessages([]);
-                  fetchAndPlay();
+                  setTimeout(() => actions.speakText({ text: policySpeech, hidden: true }), 800);
+                  return () => clearInterval(interval);
               } else {
-                  setTypedInsight(""); setIsPlaying(false); setExecMessages([]);
+                  setTypedInsight(""); setIsPlaying(false);
               }
-
-              return () => { isMounted = false; if (interval) clearInterval(interval); };
-          }, [showReport, totalStats.users, totalStats.passed, maxReg.name, maxReg.users, minReg.name, minReg.users]);
+          }, [showReport]);
 
           useEffect(() => { 
             const handleMessage = (event) => { 
@@ -1254,11 +1237,6 @@
                        </div>
                     </div>
                  </div>
-
-                 {/* 🌟 ปุ่มลับเข้าหน้า Admin (อยู่ที่มุมซ้ายล่าง กด 3 ครั้ง) 🌟 */}
-                 <button onClick={actions.handleAdminClick} className="fixed bottom-4 left-4 z-50 text-white/20 hover:text-white/60 p-2 rounded-full transition-colors no-print cursor-pointer">
-                     <SafeIcon name="Settings" size={24} />
-                 </button>
 
                  {/* The Impact Dashboard Reveal (Executive Modal) */}
                  {showReport && (
@@ -1320,7 +1298,7 @@
                                                      </button>
                                                  ) : (
                                                      <span className="text-[9px] text-emerald-400 font-mono flex items-center gap-1 uppercase">
-                                                         <span className={`w-1.5 h-1.5 ${isFetchingLive ? 'bg-amber-400' : 'bg-emerald-400'} rounded-full animate-pulse`}></span> {isFetchingLive ? 'FETCHING LIVE DATA...' : 'Sync Active'}
+                                                         <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span> Sync Active
                                                      </span>
                                                  )}
                                              </div>
@@ -1420,6 +1398,9 @@
           );
         }
 
+        // ============================================================================
+        // 8. OTHER SCREENS
+        // ============================================================================
         function AuthWizard({ store, actions }) {
           const { authStep, tempLicense, registrationData: d, otpData } = store; 
           const [isChecking, setIsChecking] = useState(false); 
@@ -1434,24 +1415,7 @@
             if (authStep === 'check_license') {
               const handleVerify = async (e) => {
                 e.preventDefault(); if (!tempLicense) return; setIsChecking(true);
-                const license = tempLicense.trim(); 
-                
-                // ค้นหาใน Cache เบื้องต้น
-                let existUser = store.dbUsers.find(u => String(u.license || '').trim() === license || String(u.id || '').trim() === license);
-                
-                // หากไม่เจอใน Cache หรือติดสิทธิ์อ่าน Collection ให้ดึงตรงจาก Firestore ทันทีเพื่อความปลอดภัยสูงสุดตามหลัก PDPA
-                if (!existUser && db) {
-                  try {
-                    const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'elearning_users', license);
-                    const docSnap = await getDoc(docRef);
-                    if (docSnap.exists()) {
-                      existUser = docSnap.data();
-                    }
-                  } catch (err) {
-                    console.warn("Direct Firestore fetch bypassed:", err);
-                  }
-                }
-
+                const license = tempLicense.trim(); const existUser = store.dbUsers.find(u => String(u.license || '').trim() === license || String(u.id || '').trim() === license);
                 let processedData = {};
                 if (existUser) { 
                     processedData = { ...existUser }; 
@@ -1478,7 +1442,6 @@
                       let finalUserType = store.registrationData.userType || 'เรียนใหม่'; 
                       if (selectedUserType === 'เข้าเรียนต่อ' && finalUserType === 'เรียนใหม่') finalUserType = 'Online'; 
                       else if (selectedUserType === 'เรียนใหม่') finalUserType = 'เรียนใหม่'; 
-                      else if (selectedUserType === 'Onsite / Online') finalUserType = 'Online'; // หากเลือก Onsite/Online ให้ตั้งต้นที่ Online ก่อน
                       globalStore.setState(p => ({ registrationData: { ...p.registrationData, userType: finalUserType }, authStep: 'register' })); 
                   } 
               };
@@ -1542,11 +1505,7 @@
                   <form onSubmit={handleRequestOTP} className="flex-1 flex flex-col">
                     <div className="max-h-[40vh] overflow-y-auto custom-scrollbar pr-2 pb-4 space-y-4">
                        <FormInput label="ชื่อ - สกุล" value={d.name || ''} onChange={e => globalStore.setState(p => ({ registrationData: {...p.registrationData, name: e.target.value} }))} placeholder="ระบุชื่อและนามสกุล" />
-                       {d.isPrefilled ? (
-                           <FormInput label="สิทธิ์การเรียน" value={d.userType || 'เรียนใหม่'} disabled={true} />
-                       ) : (
-                           <FormSelect label="สิทธิ์การเรียน" value={d.userType || 'เรียนใหม่'} onChange={e => globalStore.setState(p => ({ registrationData: {...p.registrationData, userType: e.target.value} }))} options={['เรียนใหม่', 'Online', 'Onsite']} placeholder="-- เลือกสิทธิ์การเรียน --" />
-                       )}
+                       <FormInput label="สิทธิ์การเรียน" value={d.userType || 'เรียนใหม่'} disabled={true} />
                        <FormInput label="เบอร์โทรศัพท์" type="tel" value={d.phone || ''} onChange={e => globalStore.setState(p => ({ registrationData: {...p.registrationData, phone: e.target.value} }))} placeholder="08xxxxxxxx" />
                        <FormInput label="อีเมล (สำหรับรับ OTP)" type="email" value={d.email || ''} onChange={e => globalStore.setState(p => ({ registrationData: {...p.registrationData, email: e.target.value} }))} placeholder="email@example.com" />
                        <FormInput label="ตำแหน่ง" value={d.position || ''} onChange={e => globalStore.setState(p => ({ registrationData: {...p.registrationData, position: e.target.value} }))} placeholder="ระบุตำแหน่ง" />
@@ -1918,7 +1877,7 @@
                          </a>
                       </div>
                   )}
-
+                  
                   {/* แหล่งข้อมูลอ้างอิงศูนย์รับบริจาคอวัยวะสภากาชาดไทย */}
                   <div className="mt-8 mb-8 text-left">
                       <h3 className="text-sm font-extrabold text-slate-800 mb-3 flex items-center gap-2 drop-shadow-sm"><SafeIcon name="Globe" className="text-line-600" size={18} /> แหล่งข้อมูลอ้างอิงสำคัญ</h3>
@@ -2012,6 +1971,14 @@
                        <span className="drop-shadow-sm">{store.uiMessage.text}</span>
                    </div>
                </div>
+               
+               {/* 🌟 ปุ่มลับเข้าหน้า Admin (โชว์เฉพาะหน้า Landing/Intro ป้องกันนักเรียนกดโดน) 🌟 */}
+               {['landing', 'intro'].includes(store.currentScreen) && (
+                   <button onClick={actions.handleAdminClick} className="fixed bottom-4 left-4 z-50 text-white/80 hover:text-white bg-black/30 hover:bg-black/50 backdrop-blur-md p-3 rounded-full transition-all no-print cursor-pointer shadow-lg border border-white/30">
+                       <SafeIcon name="Settings" size={24} />
+                   </button>
+               )}
+
                <GlobalAIChatbot store={store} />
             </div>
           );
