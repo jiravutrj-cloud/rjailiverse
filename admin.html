@@ -297,11 +297,19 @@
 
             const updateUserStatus = async (userId, newStatus, newType) => {
                 try {
-                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_users', userId), { status: newStatus, userType: newType }, { merge: true });
+                    let updatePayload = { status: newStatus, userType: newType };
+                    // 🌟 Auto-refill: หากตั้งเป็นสิทธิ์ Onsite จะได้รับเวลาเรียน 10 ชม. + ผ่านห้องปฏิบัติการอัตโนมัติ
+                    if (newType === 'Onsite') {
+                        updatePayload.studySeconds = 36000;
+                        updatePayload.progress = 100;
+                        updatePayload.skillLabPassed = true;
+                    }
+                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_users', userId), updatePayload, { merge: true });
                     showAlert('อัปเดตสิทธิ์สำเร็จ');
                 } catch (e) { showAlert('เกิดข้อผิดพลาด', 'error'); }
             };
 
+            const deleteUser = async (userId) => {
             const deleteUser = async (userId) => {
                 if (window.confirm('ยืนยันการลบสิทธิ์ผู้ใช้งานนี้ออกจากระบบ? (ข้อมูลการเรียนจะถูกลบถาวร)')) {
                     try {
@@ -314,7 +322,19 @@
             const handleAddManualUser = async (e) => {
                 e.preventDefault();
                 const uid = manualForm.license || Date.now().toString();
-                const newUser = { id: uid, ...manualForm, progress: 0, studySeconds: 0, status: 'กำลังเรียน', pretest: '-', posttest: '-', skillLabPassed: false, lastVideoId: 1, videoTimes: {} };
+                const isOnsite = manualForm.userType === 'Onsite';
+                const newUser = { 
+                    id: uid, 
+                    ...manualForm, 
+                    progress: isOnsite ? 100 : 0, 
+                    studySeconds: isOnsite ? 36000 : 0, 
+                    status: 'กำลังเรียน', 
+                    pretest: '-', 
+                    posttest: '-', 
+                    skillLabPassed: isOnsite, 
+                    lastVideoId: 1, 
+                    videoTimes: {} 
+                };
                 try {
                     await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_users', uid), newUser, { merge: true });
                     setShowManualForm(false);
@@ -323,15 +343,56 @@
             };
 
             const saveContentConfig = async () => {
-                try { 
-                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_config', 'content'), { 
-                        lessons: contentConfig.lessons, 
-                        questionSets: contentConfig.questionSets,
-                        updatedAt: new Date().toISOString() 
-                    }, { merge: true }); 
-                    showAlert('อัปโหลดข้อมูลขึ้นระบบสำเร็จ'); 
-                } catch(e) { 
-                    showAlert('เกิดข้อผิดพลาดในการบันทึก', 'error'); 
+            const syncFromGoogleSheet = async (isManual = false) => {
+                if (!systemConfig.masterCsvUrl) {
+                    if (isManual) showAlert('กรุณาระบุลิงก์ Google Sheets แบบ CSV ก่อน', 'error');
+                    return;
+                }
+                if (isManual) showAlert('กำลังดึงข้อมูลสิทธิ์ผู้เรียนจากตาราง...', 'info');
+                try {
+                    const res = await fetch(systemConfig.masterCsvUrl);
+                    if (!res.ok) throw new Error('Cannot fetch CSV');
+                    const text = await res.text();
+                    const rows = text.split('\n').filter(r => r.trim());
+                    if (rows.length <= 1) {
+                        if (isManual) showAlert('ไม่พบข้อมูลผู้เรียนในตาราง', 'error');
+                        return;
+                    }
+
+                    let newCount = 0; let updateCount = 0;
+                    for (let i = 1; i < rows.length; i++) {
+                        const cols = rows[i].split(',').map(c => c.trim().replace(/^"|"$/g, ''));
+                        if (cols.length >= 4 && cols[1]) {
+                            const name = cols[0]; const license = cols[1]; const hospital = cols[2]; const userType = cols[3];
+                            const existingUser = usersList.find(u => String(u.id) === String(license));
+                            
+                            // 🌟 ตรวจจับสิทธิ์ Onsite เพื่อให้ข้ามการเรียนและทำข้อสอบได้เลย
+                            const isOnsite = userType === 'Onsite';
+                            let targetStudySecs = isOnsite ? 36000 : 0;
+                            let targetProgress = isOnsite ? 100 : 0;
+                            let targetSkillLab = isOnsite ? true : false;
+
+                            if (!existingUser) {
+                                const newUser = { id: license, name, license, hospital, userType: userType || 'เรียนใหม่', progress: targetProgress, studySeconds: targetStudySecs, status: 'กำลังเรียน', pretest: '-', posttest: '-', skillLabPassed: targetSkillLab, lastVideoId: 1, videoTimes: {} };
+                                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_users', license), newUser, { merge: true });
+                                newCount++;
+                            } else if (existingUser.userType !== userType || existingUser.name !== name || existingUser.hospital !== hospital) {
+                                let updateData = { name, userType, hospital };
+                                // อัปเดตแพ็กเกจเวลา หากมีการปรับสิทธิ์เป็น Onsite ภายหลัง
+                                if (isOnsite && existingUser.userType !== 'Onsite') {
+                                    updateData.progress = 100;
+                                    updateData.studySeconds = 36000;
+                                    updateData.skillLabPassed = true;
+                                }
+                                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_users', license), updateData, { merge: true });
+                                updateCount++;
+                            }
+                        }
+                    }
+                    if (isManual) showAlert(`ซิงค์ข้อมูลสำเร็จ! (เพิ่มใหม่ ${newCount} คน, อัปเดต ${updateCount} คน)`);
+                } catch (e) {
+                    if (isManual) showAlert('ดึงข้อมูลล้มเหลว กรุณาตรวจสอบลิงก์ CSV', 'error');
+                    console.error("Sync Sheet Error:", e);
                 }
             };
 
