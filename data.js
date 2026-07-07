@@ -24,6 +24,10 @@ window.CHARACTER_VIDEOS = {
 
 window.FAH_PROFILE_PIC = "https://res.cloudinary.com/djwclucoz/image/upload/v1781599152/%E0%B8%A5%E0%B8%9A%E0%B8%84%E0%B8%99%E0%B8%94%E0%B9%89%E0%B8%B2%E0%B8%99%E0%B8%AB%E0%B8%A5%E0%B8%B1%E0%B8%87%E0%B8%AD%E0%B8%AD%E0%B8%81%E0%B8%97%E0%B8%B1%E0%B9%89%E0%B8%87%E0%B8%AB%E0%B8%A1%E0%B8%94_2K_202606161538_tdnggg.jpg";
 
+// 🌟 ตั้งค่าลิงก์สำหรับดึงข้อมูลรายงานผู้บริหาร (Live Update) 🌟
+// นำลิงก์ Raw Text (.txt) หรือ Google Sheets CSV มาใส่ตรงนี้ได้เลยค่ะ
+window.LIVE_REPORT_URL = ""; 
+
 window.HOSPITAL_MAPPING = { 
   "เขตสุขภาพที่ 1": [{ name: "รพ.มหาราชนครเชียงใหม่", prov: "เชียงใหม่" }], "เขตสุขภาพที่ 2": [{ name: "รพ.พุทธชินราช", prov: "พิษณุโลก" }],
   "เขตสุขภาพที่ 3": [{ name: "รพ.สวรรค์ประชารักษ์", prov: "นครสวรรค์" }], "เขตสุขภาพที่ 4": [{ name: "รพ.สระบุรี", prov: "สระบุรี" }],
