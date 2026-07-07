@@ -8,10 +8,7 @@
     <!-- เรียกใช้ไฟล์ข้อมูลแยก (Static Data) -->
     <script src="./data.js"></script>
 
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-
-    <!-- Tailwind Configuration -->
     <script>
       tailwind.config = {
         theme: {
@@ -35,7 +32,6 @@
       }
     </script>
     
-    <!-- Custom Styles -->
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&display=swap');
         
@@ -79,7 +75,6 @@
         }
     </style>
 
-    <!-- Import Maps -->
     <script type="importmap">
     {
       "imports": {
@@ -431,7 +426,7 @@
           const speakThai = async (text, onEndCallback = null, forceStandard = false, speaker = 'FAH') => {
             stopAudio(); currentSpeechIdRef.current += 1; const speechId = currentSpeechIdRef.current; 
             let targetVoice = "Aoede"; 
-            let cleanSpeakText = text.replace(/\[.*?\]/g, '').replace(/\*.*?\*/g, '').replace(/#.*?#/g, '').replace(/^(ฟ้า|เมฆ|น้องชาย|ลูกสาว|Fah|Mek|Brother|Sister|AI)\s*:\s*/i, '').trim();
+            let cleanSpeakText = text.replace(/\[.*?\]/g, '').replace(/\*.*?\*/g, '').replace(/#.*?#/g, '').replace(/^(ฟ้า|เมฆ|พี่เอก|เอก|น้องชาย|ลูกสาว|แฟน|แฟนของฟ้า|Fah|Mek|Brother|Sister|Boyfriend|AI)\s*:\s*/i, '').trim();
             let emotionPrompt = "";
             
             if (isListening) { recognitionRef.current?.stop(); setIsListening(false); }
@@ -439,8 +434,11 @@
             // ใช้ Prompt ควบคุมเพื่อให้ AI สังเคราะห์เสียงพูดตามเพศและอารมณ์ให้ชัดเจน
             if (isRoleplay && !forceStandard) { 
                 if (speaker === 'BROTHER') { 
-                    targetVoice = "Charon"; // เสียงผู้ชาย (Charon เหมาะสมที่สุด)
+                    targetVoice = "Charon"; // เสียงผู้ชายวัยรุ่น
                     emotionPrompt = `[พูดด้วยเสียงผู้ชายวัยรุ่น 18 ปี กำลังอารมณ์เสียและเศร้าเสียใจ]: ${cleanSpeakText}`; 
+                } else if (speaker === 'BOYFRIEND') {
+                    targetVoice = "Charon"; // เสียงผู้ชาย แต่ปรับบุคลิกให้นุ่มนวล
+                    emotionPrompt = `[พูดด้วยเสียงผู้ชายวัยผู้ใหญ่ นุ่มนวล อบอุ่น ใจเย็น สุภาพ และคอยให้กำลังใจ]: ${cleanSpeakText}`;
                 } else { 
                     targetVoice = "Aoede"; // เสียงผู้หญิง
                     emotionPrompt = `[พูดด้วยเสียงผู้หญิงวัยรุ่น 22 ปี กำลังร้องไห้และสับสน]: ${cleanSpeakText}`; 
@@ -491,7 +489,7 @@
               const sc = SKILL_LAB_SCENARIOS.find(s => s.id === store.selectedLabId); 
               const contextText = sc?.language === 'en' 
                   ? "Scenario ended. Patient is a 46yo male, brain dead from car accident. Relatives: Fah (22) and Mek (18). Let's start the roleplay." 
-                  : "ข้อมูลเบื้องต้น: คนไข้ชาย อายุ 46 ปี ประสบอุบัติเหตุรถยนต์ แพทย์ประเมินก้านสมองและทดสอบการหายใจแล้ว ยืนยันภาวะสมองตาย แต่อวัยวะยังสามารถใช้งานได้ ญาติที่รออยู่คือ ลูกสาว (ฟ้า อายุ 22) และลูกชาย (เมฆ อายุ 18) เริ่มการเจรจาได้เลยค่ะ";
+                  : "ข้อมูลเบื้องต้น: คนไข้ชาย อายุ 46 ปี ประสบอุบัติเหตุรถยนต์ แพทย์ประเมินก้านสมองและทดสอบการหายใจแล้ว ยืนยันภาวะสมองตาย ญาติหน้าห้อง ICU มี ฟ้า (ลูกสาว), เมฆ (น้องชาย) และ แฟนของฟ้าที่มาคอยให้กำลังใจ เริ่มการเจรจาได้เลยค่ะ";
               
               globalStore.setState({ roleplayPhase: 'giving_context', currentEmotion: 'SAD', currentSpeaker: 'FAH' });
               const contextMsgId = Date.now(); 
@@ -593,22 +591,21 @@
                       const isPass = aiResponse.includes('[PASS]'); 
                       const empathyMatch = aiResponse.match(/\[EMPATHY:\s*(\d+)\]/i);
                       const empathyScore = empathyMatch ? parseInt(empathyMatch[1]) : (isPass ? 80 : 40);
-                  
-                  let cleanResponse = aiResponse.replace(/\[PASS\]/g, '').replace(/\[FAIL\]/g, '').replace(/\[EMPATHY:\s*\d+\]/gi, '').trim();
-                  
-                  setMessages(prev => [...prev, { id: Date.now()+1, sender: 'ai', text: cleanResponse, isVoiceOnly: false }]); 
-                  
-                  const u = store.loggedInUser; 
-                  if (u) { 
-                      const evalRecord = { timestamp: new Date().toISOString(), scenarioId: store.selectedLabId, passed: isPass, score: empathyScore, evaluation: cleanResponse, chatLog: history }; 
-                      // ปลดล็อก Posttest ทันทีที่มีการประเมิน (ไม่จำเป็นต้องเจรจาสำเร็จ)
-                      const upUser = { ...u, skillLabPassed: true, skillLabHistory: [...(u.skillLabHistory || []), evalRecord] }; 
-                      globalStore.setState(p => ({ loggedInUser: upUser, dbUsers: p.dbUsers.map(x => x.id === upUser.id ? upUser : x) })); 
-                      actions.saveUserToDB(upUser); 
-                  }
-                  actions.showMsg(`บันทึกผลเรียบร้อย (Empathy Score: ${empathyScore}) ปลดล็อก Posttest แล้ว!`, 'success'); 
-                  speakThai(cleanResponse.replace(/[*#]/g, ''), null, true);
-              } catch (e) { 
+                      
+                      let cleanResponse = aiResponse.replace(/\[PASS\]/g, '').replace(/\[FAIL\]/g, '').replace(/\[EMPATHY:\s*\d+\]/gi, '').trim();
+                      
+                      setMessages(prev => [...prev, { id: Date.now()+1, sender: 'ai', text: cleanResponse, isVoiceOnly: false }]); 
+                      
+                      const u = store.loggedInUser; 
+                      if (u) { 
+                          const evalRecord = { timestamp: new Date().toISOString(), scenarioId: store.selectedLabId, passed: isPass, score: empathyScore, evaluation: cleanResponse, chatLog: history }; 
+                          const upUser = { ...u, skillLabPassed: true, skillLabHistory: [...(u.skillLabHistory || []), evalRecord] }; 
+                          globalStore.setState(p => ({ loggedInUser: upUser, dbUsers: p.dbUsers.map(x => x.id === upUser.id ? upUser : x) })); 
+                          actions.saveUserToDB(upUser); 
+                      }
+                      actions.showMsg(`บันทึกผลเรียบร้อย (Empathy Score: ${empathyScore}) ปลดล็อก Posttest แล้ว!`, 'success'); 
+                      speakThai(cleanResponse.replace(/[*#]/g, ''), null, true);
+                  } catch (e) { 
                       setMessages(prev => [...prev, { id: Date.now(), sender: 'ai', text: `ข้อผิดพลาด: ${e.message}`, isVoiceOnly: false }]); 
                   }
               } else if (actionType === 'return_to_dashboard') {
@@ -645,7 +642,7 @@
           };
 
           // -------------------------------------------------------------------------
-          // 🔴 ระบบแยกข้อความแชทเพื่อตัดสินว่าใครคือคนพูด (Fah หรือ Mek)
+          // 🔴 ระบบแยกข้อความแชทเพื่อตัดสินว่าใครคือคนพูด (Fah หรือ Mek หรือ Boyfriend)
           // -------------------------------------------------------------------------
           const handleSendChat = async (e, quickActionText = null) => {
               if (e) e.preventDefault(); 
@@ -661,7 +658,7 @@
               setSelectedImage(null); 
               setIsTyping(true);
               
-              const historyContext = messages.filter(m => !m.isWelcome).slice(-10).map(m => `${m.sender === 'user' ? 'ผู้เรียน' : 'ฟ้า'}: ${m.text}`).join('\n');
+              const historyContext = messages.filter(m => !m.isWelcome).slice(-10).map(m => `${m.sender === 'user' ? 'ผู้เรียน' : 'ครอบครัว'}: ${m.text}`).join('\n');
               
               const generalPrompt = `คุณคือ "ฟ้า" AI ผู้ช่วยสอน อายุ 22 ปี เป็นมิตร สุภาพ ลงท้ายด้วย "ค่ะ"\n[กฎเหล็กสูงสุดระดับชาติ]: ห้ามคุกคามทางเพศหรือหยาบคาย\nเรียกคู่สนทนาตามชื่อหรืออาชีพที่เขาแนะนำ ประวัติ:\n${historyContext}\nผู้เรียน: ${userMsg}\nฟ้า:`;
               const roleplayPrompt = `${currentScenarioPrompt}\n\nประวัติ:\n${historyContext}\nผู้เรียน: ${userMsg}\nญาติ (ใส่ Tag อารมณ์และชื่อคนพูดก่อนเสมอ):`;
@@ -670,14 +667,20 @@
               try {
                   let rawResponse = await callGeminiAPI(userMsg || "ช่วยแปลสไลด์หน่อย", systemPrompt, imageToSend); 
                   let spk = 'FAH'; 
+                  let visualSpeaker = 'FAH'; // ตัวแปรสำหรับคุมวิดีโอ
                   let cleanText = rawResponse; 
                   const checkStr = cleanText.substring(0, 150).toLowerCase();
                   
                   // ตรวจจับชื่อคนพูดจากบริบท (Detect Speaker)
                   if (checkStr.match(/\[\s*(เมฆ|น้องชาย|mek|brother)\s*\]|(^|\s)(เมฆ|น้องชาย|mek|brother)\s*:/)) {
                       spk = 'BROTHER'; 
+                      visualSpeaker = 'BROTHER';
+                  } else if (checkStr.match(/\[\s*(พี่เอก|เอก|แฟน|แฟนของฟ้า|แฟนหนุ่ม|boyfriend)\s*\]|(^|\s)(พี่เอก|เอก|แฟน|แฟนของฟ้า|แฟนหนุ่ม|boyfriend)\s*:/)) {
+                      spk = 'BOYFRIEND'; 
+                      visualSpeaker = 'FAH'; // แฟนพูด แต่วิดีโอยังจับภาพฟ้าที่กำลังซบไหล่หรือฟังอยู่
                   } else if (checkStr.match(/\[\s*(ฟ้า|ลูกสาว|fah|sister)\s*\]|(^|\s)(ฟ้า|ลูกสาว|fah|sister)\s*:/)) {
                       spk = 'FAH';
+                      visualSpeaker = 'FAH';
                   }
                   
                   let foundEmotion = "SAD"; 
@@ -686,14 +689,17 @@
                       if (new RegExp(`\\[\\s*${em}\\s*\\]`, 'i').test(checkStr)) { foundEmotion = em; break; } 
                   }
                   
-                  globalStore.setState({ currentSpeaker: spk, currentEmotion: foundEmotion });
-                  cleanText = cleanText.replace(/\[.*?\]/g, '').replace(/^(ฟ้า|เมฆ|น้องชาย|ลูกสาว|Fah|Mek|Brother|Sister)\s*:\s*/i, '').replace(/[*#]/g, '').trim();
+                  globalStore.setState({ currentSpeaker: visualSpeaker, currentEmotion: foundEmotion });
+                  cleanText = cleanText.replace(/\[.*?\]/g, '').replace(/^(ฟ้า|เมฆ|พี่เอก|เอก|น้องชาย|ลูกสาว|แฟน|แฟนของฟ้า|Fah|Mek|Brother|Sister|Boyfriend)\s*:\s*/i, '').replace(/[*#]/g, '').trim();
                   
                   const isVoiceOnly = isRoleplay && roleplayPhase === 'negotiating'; 
-                  const speakerName = spk === 'BROTHER' ? 'เมฆ' : 'ฟ้า'; 
+                  const speakerName = spk === 'BROTHER' ? 'เมฆ' : spk === 'BOYFRIEND' ? 'พี่เอก' : 'ฟ้า'; 
                   const msgId = Date.now() + 1;
                   
-                  setMessages(prev => [...prev, { id: msgId, sender: 'ai', text: cleanText, isVoiceOnly, speakerName }]); 
+                  // แนบชื่อคนพูดเข้าไปในประวัติแชทเพื่อให้อ่านง่ายขึ้น
+                  const displayChatText = (isRoleplay && roleplayPhase === 'negotiating') ? `(${speakerName}) ${cleanText}` : cleanText;
+                  
+                  setMessages(prev => [...prev, { id: msgId, sender: 'ai', text: displayChatText, isVoiceOnly, speakerName }]); 
                   setIsTyping(false); 
                   
                   speakThai(cleanText, () => setMessages(prev => prev.map(m => m.id === msgId ? { ...m, isVoiceOnly: false, isHidden: isRoleplay && roleplayPhase === 'negotiating' } : m)), false, spk);
@@ -748,6 +754,10 @@
 
           const scenario = SKILL_LAB_SCENARIOS.find(s => s.id === store.selectedLabId);
           
+          let videoToPlay = CHARACTER_VIDEOS['FAH']['NEUTRAL'];
+          if (currentSpeaker === 'BROTHER') videoToPlay = CHARACTER_VIDEOS['BROTHER']?.[currentEmotion] || CHARACTER_VIDEOS['BROTHER']['NEUTRAL'];
+          else videoToPlay = CHARACTER_VIDEOS['FAH']?.[currentEmotion] || CHARACTER_VIDEOS['FAH']['NEUTRAL'];
+
           const leftVideoContent = (
               <div className="w-full h-full flex flex-col md:flex-row overflow-hidden shadow-[inset_-10px_0_20px_rgba(0,0,0,0.2)] md:rounded-l-[2.5rem]">
                  <div className={`w-full md:w-[42%] h-[80px] md:h-full flex flex-row md:flex-col py-2 md:py-6 px-4 bg-slate-900/40 backdrop-blur-xl border-b md:border-b-0 md:border-r border-white/20 shrink-0 relative z-20 shadow-xl transition-colors duration-500 ${isChaos ? 'border-l-4 border-l-rose-500 bg-rose-950/40 animate-pulse' : ''}`}>
@@ -795,29 +805,36 @@
                  <div className="w-full md:w-[58%] relative bg-black/80 flex items-center justify-center shrink-0 border-l border-r border-white/20">
                      {isChaos && <div className="absolute inset-0 bg-rose-500/20 mix-blend-overlay z-10 pointer-events-none animate-pulse"></div>}
                      
+                     {roleplayPhase === 'negotiating' && (
+                         <div className="absolute top-4 right-4 md:top-6 md:right-6 z-50 bg-black/60 backdrop-blur-md px-4 py-2 rounded-full border border-white/20 text-white text-xs font-bold shadow-lg flex items-center gap-2">
+                             <span className={`w-2.5 h-2.5 rounded-full animate-pulse shadow-[0_0_8px_currentColor] ${store.currentSpeaker === 'BROTHER' ? 'bg-blue-400 text-blue-400' : store.currentSpeaker === 'BOYFRIEND' ? 'bg-emerald-400 text-emerald-400' : 'bg-pink-400 text-pink-400'}`}></span>
+                             กำลังฟัง: {store.currentSpeaker === 'BROTHER' ? 'เมฆ' : store.currentSpeaker === 'BOYFRIEND' ? 'พี่เอก' : 'ฟ้า'}
+                         </div>
+                     )}
+
                      {roleplayPhase === 'playing_scenario' && (
                          <button onClick={triggerScenarioNegotiation} className="absolute bottom-4 right-4 md:bottom-8 md:right-8 z-50 bg-white/20 hover:bg-white/40 backdrop-blur-md text-white px-4 py-2 md:px-6 md:py-3 rounded-full text-xs md:text-sm font-bold border border-white/50 transition-colors shadow-lg">
                              ข้ามวิดีโอ (Skip) ⏭️
                          </button>
                      )}
 
-                     {roleplayPhase === 'playing_scenario' ? <iframe key="vid_scenario" src={`${scenario?.videoUrl}?autoplay=1&muted=0&api=1&player_id=scenario_vid&loop=0`} className="absolute inset-0 w-full h-full border-none pointer-events-auto transition-opacity duration-700 animate-in fade-in" allow="autoplay; fullscreen" title="Scenario Video" /> : <iframe key={`vid_char_${currentSpeaker}_${currentEmotion}`} src={CHARACTER_VIDEOS[currentSpeaker]?.[currentEmotion] || CHARACTER_VIDEOS.FAH.NEUTRAL} allow="autoplay; fullscreen" className="absolute inset-0 w-full h-full border-none pointer-events-none transition-opacity duration-700 animate-in fade-in" title="Character Video" />}
+                     {roleplayPhase === 'playing_scenario' ? <iframe key="vid_scenario" src={`${scenario?.videoUrl}?autoplay=1&muted=0&api=1&player_id=scenario_vid&loop=0`} className="absolute inset-0 w-full h-full border-none pointer-events-auto transition-opacity duration-700 animate-in fade-in" allow="autoplay; fullscreen" title="Scenario Video" /> : <iframe key={`vid_char_${videoToPlay}`} src={videoToPlay} allow="autoplay; fullscreen" className="absolute inset-0 w-full h-full border-none pointer-events-none transition-opacity duration-700 animate-in fade-in" title="Character Video" />}
                  </div>
               </div>
           );
 
           const chatInterface = (
-            <div className={`flex-1 flex flex-col relative z-10 min-h-0 ${isDocked ? 'w-full h-full bg-white/40 backdrop-blur-2xl backdrop-saturate-[1.5] md:rounded-[2.5rem] md:rounded-l-none' : 'w-[calc(100vw-2rem)] h-[75vh] md:h-[600px] md:w-[400px] bg-white/40 backdrop-blur-2xl backdrop-saturate-[1.5] shadow-[0_15px_50px_rgba(0,0,0,0.2)] rounded-[2rem] md:rounded-[2.5rem] border border-white/50'}`}>
+            <div className={`flex-1 flex flex-col relative z-10 min-h-0 ${isDocked ? 'w-full h-full bg-white/40 backdrop-blur-2xl backdrop-saturate-[1.5] md:rounded-[2.5rem] md:rounded-l-none' : 'h-[60vh] md:h-[600px] md:w-[400px] bg-white/40 backdrop-blur-2xl backdrop-saturate-[1.5] shadow-[0_15px_50px_rgba(0,0,0,0.2)] rounded-t-[2.5rem] md:rounded-[2.5rem] border border-white/50'}`}>
                 <div className="absolute inset-0 bg-gradient-to-br from-white/60 via-white/30 to-transparent pointer-events-none rounded-[inherit] z-0" />
                 {!isDocked && (
-                    <div onPointerDown={handlePointerDown} className={`flex p-3 md:p-4 shrink-0 items-center justify-between shadow-sm border-b border-white/50 relative z-10 cursor-grab active:cursor-grabbing`}>
-                        <div className="flex items-center gap-2 md:gap-3">
-                            <div className="w-8 h-8 md:w-10 md:h-10 rounded-full overflow-hidden border border-white"><img src={FAH_PROFILE_PIC} alt="Fah" className="w-full h-full object-cover scale-110" /></div>
-                            <div><h3 className={`font-extrabold text-xs md:text-sm text-slate-800 drop-shadow-sm`}>{isRoleplay ? 'ครอบครัวผู้ป่วย' : 'ฟ้า (Tutor)'}</h3><p className="text-[9px] md:text-[10px] text-slate-700 font-medium">เสียง: Aoede</p></div>
+                    <div onPointerDown={handlePointerDown} className={`hidden md:flex p-4 shrink-0 items-center justify-between shadow-sm border-b border-white/50 relative z-10 cursor-grab active:cursor-grabbing`}>
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full overflow-hidden border border-white"><img src={FAH_PROFILE_PIC} alt="Fah" className="w-full h-full object-cover scale-110" /></div>
+                            <div><h3 className={`font-extrabold text-sm text-slate-800 drop-shadow-sm`}>{isRoleplay ? 'ครอบครัวผู้ป่วย' : 'ฟ้า (Tutor)'}</h3><p className="text-[10px] text-slate-700 font-medium">เสียง: Aoede</p></div>
                         </div>
                         <div className="flex gap-2 items-center">
-                            {isRoleplay && <div className="flex gap-1 mr-1 md:mr-2"><button onPointerDown={e => e.stopPropagation()} onClick={() => playSampleVoice('FAH')} className="flex items-center gap-1 bg-white/60 hover:bg-white/80 text-pink-600 px-2 py-1.5 rounded-md text-[10px] font-bold border border-white/60 transition-colors"><SafeIcon name="Volume2" size={12} /> <span className="hidden md:inline">ฟ้า</span></button><button onPointerDown={e => e.stopPropagation()} onClick={() => playSampleVoice('BROTHER')} className="flex items-center gap-1 bg-white/60 hover:bg-white/80 text-blue-600 px-2 py-1.5 rounded-md text-[10px] font-bold border border-white/60 transition-colors"><SafeIcon name="Volume2" size={12} /> <span className="hidden md:inline">เมฆ</span></button></div>}
-                            <button onPointerDown={e => e.stopPropagation()} onClick={() => setIsOpen(false)} className="text-slate-600 hover:text-slate-900 p-1 md:p-1.5 bg-white/80 hover:bg-white border border-white/60 rounded-full transition-colors shadow-sm"><SafeIcon name="X" size={18} /></button>
+                            {isRoleplay && <div className="flex gap-1 mr-2"><button onPointerDown={e => e.stopPropagation()} onClick={() => playSampleVoice('FAH')} className="flex items-center gap-1 bg-white/60 hover:bg-white/80 text-pink-600 px-2 py-1.5 rounded-md text-[10px] font-bold border border-white/60 transition-colors"><SafeIcon name="Volume2" size={12} /> ฟ้า</button><button onPointerDown={e => e.stopPropagation()} onClick={() => playSampleVoice('BROTHER')} className="flex items-center gap-1 bg-white/60 hover:bg-white/80 text-blue-600 px-2 py-1.5 rounded-md text-[10px] font-bold border border-white/60 transition-colors"><SafeIcon name="Volume2" size={12} /> เมฆ</button></div>}
+                            <button onClick={() => setIsOpen(false)} className="text-slate-600 hover:text-slate-900 p-1 bg-white/60 hover:bg-white/80 border border-white/60 rounded-full transition-colors"><SafeIcon name="X" size={20} /></button>
                         </div>
                     </div>
                 )}
@@ -828,12 +845,12 @@
                     </div>
                 )}
                 <div className="flex-1 p-3 md:p-5 overflow-y-auto custom-scrollbar space-y-4 flex flex-col relative z-10 pt-6 md:pt-4">
-                    {messages.map((m, idx) => (
+                    {messages.filter(m => !(m.isVoiceOnly && !m.isContext)).map((m, idx) => (
                         <div key={idx} className={`flex gap-2 md:gap-3 ${m.sender === 'user' ? 'justify-end' : 'justify-start'} ${m.isHidden ? 'hidden' : ''}`}>
                             {m.sender === 'ai' ? (
                                <div className={`p-3 md:p-4 rounded-2xl max-w-[85%] md:max-w-[80%] text-sm leading-relaxed whitespace-pre-wrap shadow-sm bg-white/80 backdrop-blur-md border border-white/60 text-slate-800 rounded-tl-none`}>
                                   {m.image && <img src={m.image} alt="Upload" className="w-full rounded-lg mb-2 object-cover border border-slate-200" />}
-                                  {m.isVoiceOnly && !m.isContext ? <div className={`flex items-center gap-3 font-bold px-2 py-1 ${m.speakerName === 'เมฆ' ? 'text-blue-600' : 'text-pink-600'}`}><SafeIcon name="Volume2" size={16} className="animate-pulse" /> <span>{m.speakerName || 'ฟ้า'}กำลังพูด...</span></div> : m.text}
+                                  {m.text}
                                </div>
                             ) : (
                                <div className={`p-3 md:p-4 rounded-2xl max-w-[85%] md:max-w-[80%] text-sm leading-relaxed whitespace-pre-wrap shadow-sm bg-line-100/90 backdrop-blur-md border border-line-300 text-slate-900 font-medium rounded-tr-none`}>{m.image && <img src={m.image} className="w-full rounded-lg mb-2 object-cover" />}{m.text}</div>
@@ -869,9 +886,16 @@
                       
                       {isChaos && <div className="absolute inset-0 bg-rose-500/20 mix-blend-overlay z-10 pointer-events-none animate-pulse"></div>}
 
+                      {roleplayPhase === 'negotiating' && (
+                         <div className="absolute top-16 left-1/2 -translate-x-1/2 z-50 bg-black/60 backdrop-blur-md px-4 py-2 rounded-full border border-white/20 text-white text-xs font-bold shadow-lg flex items-center gap-2">
+                             <span className={`w-2.5 h-2.5 rounded-full animate-pulse shadow-[0_0_8px_currentColor] ${store.currentSpeaker === 'BROTHER' ? 'bg-blue-400 text-blue-400' : store.currentSpeaker === 'BOYFRIEND' ? 'bg-emerald-400 text-emerald-400' : 'bg-pink-400 text-pink-400'}`}></span>
+                             กำลังฟัง: {store.currentSpeaker === 'BROTHER' ? 'เมฆ' : store.currentSpeaker === 'BOYFRIEND' ? 'พี่เอก' : 'ฟ้า'}
+                         </div>
+                      )}
+
                       {roleplayPhase === 'playing_scenario' ?
                           <iframe key="vid_scenario_mobile" src={`${scenario?.videoUrl}?autoplay=1&muted=0&api=1&player_id=scenario_vid_m&loop=0`} className="absolute inset-0 w-full h-full border-none z-0 object-cover pointer-events-none" allow="autoplay; fullscreen" title="Scenario Video Mobile" /> :
-                          <iframe key={`vid_char_m_${currentSpeaker}_${currentEmotion}`} src={CHARACTER_VIDEOS[currentSpeaker]?.[currentEmotion] || CHARACTER_VIDEOS.FAH.NEUTRAL} className="absolute inset-0 w-full h-full border-none pointer-events-none z-0 object-cover" allow="autoplay; fullscreen" title="Character Video Mobile" />
+                          <iframe key={`vid_char_m_${videoToPlay}`} src={videoToPlay} className="absolute inset-0 w-full h-full border-none pointer-events-none z-0 object-cover" allow="autoplay; fullscreen" title="Character Video Mobile" />
                       }
                   </div>
 
@@ -951,7 +975,7 @@
                       <div className="flex flex-col text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] w-full">
                           <h3 className="font-extrabold text-sm mb-1 tracking-wide">@SkillLab_bot</h3>
                           <p className="text-sm font-medium line-clamp-2 leading-snug opacity-95">
-                              {messages[messages.length-1]?.text || 'พร้อมเจรจา เปิดไมค์พูดหรือพิมพ์แชทได้เลยค่ะ'}
+                              {messages.filter(m => !(m.isVoiceOnly && !m.isContext))[messages.filter(m => !(m.isVoiceOnly && !m.isContext)).length-1]?.text || 'พร้อมเจรจา เปิดไมค์พูดหรือพิมพ์แชทได้เลยค่ะ'}
                           </p>
                       </div>
                   </div>
@@ -961,12 +985,12 @@
                       
                       <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3 custom-scrollbar relative z-10">
                           <div className="mt-auto"></div>
-                          {messages.slice(-3).map((m, idx) => (
+                          {messages.filter(m => !(m.isVoiceOnly && !m.isContext)).slice(-3).map((m, idx) => (
                              <div key={idx} className={`flex gap-2 ${m.sender === 'user' ? 'justify-end' : 'justify-start'} ${m.isHidden ? 'hidden' : ''}`}>
                                {m.sender === 'ai' ? (
                                  <div className="p-3.5 rounded-2xl max-w-[85%] text-sm leading-relaxed whitespace-pre-wrap bg-white/10 text-white border border-white/20 rounded-tl-none shadow-sm backdrop-blur-md">
                                    {m.image && <img src={m.image} className="w-full rounded-lg mb-2 object-cover border border-white/20" />}
-                                   {m.isVoiceOnly && !m.isContext ? <div className={`flex items-center gap-2 font-bold px-1 ${m.speakerName === 'เมฆ' ? 'text-blue-400' : 'text-pink-400'}`}><SafeIcon name="Volume2" size={16} className="animate-pulse" /> <span>{m.speakerName || 'ฟ้า'}กำลังพูด...</span></div> : m.text}
+                                   {m.text}
                                  </div>
                                ) : (
                                  <div className="p-3.5 rounded-2xl max-w-[85%] text-sm leading-relaxed whitespace-pre-wrap bg-line-500 text-white font-medium rounded-tr-none shadow-md border border-line-400">
@@ -1016,9 +1040,6 @@
           );
         }
 
-        // ============================================================================
-        // 7. SCREENS (หน้าจอต่างๆ)
-        // ============================================================================
         function LandingScreen({ store, actions }) {
           return (
             <div className="flex min-h-screen w-full relative overflow-hidden items-center justify-center bg-transparent z-50">
@@ -1139,14 +1160,12 @@
                   let currentSpeech = window.POLICY_SPEECH || '';
                   const liveUrl = window.LIVE_REPORT_URL || '';
 
-                  // 1. วิ่งไปดึงข้อมูล Live จากลิงก์ (ถ้าพี่ใส่ลิงก์ไว้)
                   if (liveUrl) {
                       setIsFetchingLive(true);
                       try {
                           const res = await fetch(liveUrl);
                           if (res.ok) {
                               const text = await res.text();
-                              // แบ่ง ข้อความรายงาน และ สคริปต์พูด ด้วยเครื่องหมาย |||
                               const parts = text.split("|||");
                               if (parts[0]) currentInsight = parts[0].trim();
                               if (parts[1]) currentSpeech = parts[1].trim();
@@ -1156,15 +1175,13 @@
                       setIsFetchingLive(false);
                   }
 
-                  // 2. แทนที่ค่าตัวแปรสถิติต่างๆ แบบอัตโนมัติ
                   const finalInsight = currentInsight.replace(/{{USERS}}/g, totalStats.users.toLocaleString()).replace(/{{PASSED}}/g, totalStats.passed.toLocaleString()).replace(/{{MAX_REG_NAME}}/g, maxReg.name).replace(/{{MAX_REG_USERS}}/g, maxReg.users).replace(/{{MIN_REG_NAME}}/g, minReg.name).replace(/{{MIN_REG_USERS}}/g, minReg.users);
                   const finalSpeech = currentSpeech.replace(/{{USERS}}/g, totalStats.users).replace(/{{PASSED}}/g, totalStats.passed).replace(/{{MAX_REG_NAME}}/g, maxReg.name);
 
-                  setCurrentPolicySpeech(finalSpeech); // เซฟไว้ให้ปุ่มกดฟังซ้ำ
+                  setCurrentPolicySpeech(finalSpeech); 
                   setExecMessages([{ id: 'init', role: 'ai', text: finalInsight }]);
                   setIsPlaying(true);
                   
-                  // 3. เริ่มพิมพ์ข้อความและออกเสียงพูด
                   let i = 0; setTypedInsight("");
                   interval = setInterval(() => {
                       if(!isMounted) return;
@@ -1298,7 +1315,7 @@
                                                      <SafeIcon name="Cpu" size={18} /> Fah AI Executive Intelligence
                                                  </h3>
                                                  {!isPlaying && execMessages.length <= 1 ? (
-                                                     <button onClick={() => actions.speakText({text: currentPolicySpeech, hidden: true})} className="bg-blue-600 hover:bg-blue-500 text-white text-[10px] px-3 py-1.5 rounded-full font-bold flex items-center gap-1 animate-pulse">
+                                                     <button onClick={() => actions.speakText(policySpeech)} className="bg-blue-600 hover:bg-blue-500 text-white text-[10px] px-3 py-1.5 rounded-full font-bold flex items-center gap-1 animate-pulse">
                                                          <SafeIcon name="PlayCircle" size={12} /> ฟังรายงาน
                                                      </button>
                                                  ) : (
@@ -1403,9 +1420,6 @@
           );
         }
 
-        // ============================================================================
-        // 8. OTHER SCREENS
-        // ============================================================================
         function AuthWizard({ store, actions }) {
           const { authStep, tempLicense, registrationData: d, otpData } = store; 
           const [isChecking, setIsChecking] = useState(false); 
