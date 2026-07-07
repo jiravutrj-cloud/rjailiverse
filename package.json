@@ -1,0 +1,11 @@
+{
+"name": "rj-ailiverse-qa",
+"version": "1.0.0",
+"description": "Automated E2E Testing for RJ Ailiverse",
+"scripts": {
+"test": "playwright test"
+},
+"devDependencies": {
+"@playwright/test": "^1.42.1"
+}
+}
