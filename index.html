@@ -1077,14 +1077,10 @@
           const maxReg = activeRegions.length > 0 ? activeRegions[0] : { name: 'รอข้อมูลบุคลากร', users: 0 };
           const minReg = activeRegions.length > 1 ? activeRegions[activeRegions.length-1] : (activeRegions.length > 0 ? activeRegions[0] : { name: 'รอข้อมูลบุคลากร', users: 0 });
 
-          const rawInsight = window.AI_INSIGHT_TEXT || '';
-          const aiInsightText = rawInsight.replace('{{USERS}}', totalStats.users.toLocaleString()).replace('{{PASSED}}', totalStats.passed.toLocaleString()).replace('{{MAX_REG_NAME}}', maxReg.name).replace('{{MAX_REG_USERS}}', maxReg.users).replace('{{MIN_REG_NAME}}', minReg.name).replace('{{MIN_REG_USERS}}', minReg.users);
-
-          const rawSpeech = window.POLICY_SPEECH || '';
-          const policySpeech = rawSpeech.replace('{{USERS}}', totalStats.users).replace('{{PASSED}}', totalStats.passed).replace('{{MAX_REG_NAME}}', maxReg.name);
-
           const [typedInsight, setTypedInsight] = useState("");
           const [isPlaying, setIsPlaying] = useState(false);
+          const [isFetchingLive, setIsFetchingLive] = useState(false);
+          const [currentPolicySpeech, setCurrentPolicySpeech] = useState("");
 
           useEffect(() => {
               const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -1134,24 +1130,59 @@
           };
 
           useEffect(() => {
-              if (showReport) {
-                  if (execMessages.length === 0) {
-                      setExecMessages([{ id: 'init', role: 'ai', text: aiInsightText }]);
-                      setIsPlaying(true);
+              let isMounted = true;
+              let interval;
+              
+              const fetchAndPlay = async () => {
+                  let currentInsight = window.AI_INSIGHT_TEXT || '';
+                  let currentSpeech = window.POLICY_SPEECH || '';
+                  const liveUrl = window.LIVE_REPORT_URL || '';
+
+                  // 1. วิ่งไปดึงข้อมูล Live จากลิงก์ (ถ้าพี่ใส่ลิงก์ไว้)
+                  if (liveUrl) {
+                      setIsFetchingLive(true);
+                      try {
+                          const res = await fetch(liveUrl);
+                          if (res.ok) {
+                              const text = await res.text();
+                              // แบ่ง ข้อความรายงาน และ สคริปต์พูด ด้วยเครื่องหมาย |||
+                              const parts = text.split("|||");
+                              if (parts[0]) currentInsight = parts[0].trim();
+                              if (parts[1]) currentSpeech = parts[1].trim();
+                          }
+                      } catch(e) { console.error("Live fetch error", e); }
+                      if (!isMounted) return;
+                      setIsFetchingLive(false);
                   }
+
+                  // 2. แทนที่ค่าตัวแปรสถิติต่างๆ แบบอัตโนมัติ
+                  const finalInsight = currentInsight.replace(/{{USERS}}/g, totalStats.users.toLocaleString()).replace(/{{PASSED}}/g, totalStats.passed.toLocaleString()).replace(/{{MAX_REG_NAME}}/g, maxReg.name).replace(/{{MAX_REG_USERS}}/g, maxReg.users).replace(/{{MIN_REG_NAME}}/g, minReg.name).replace(/{{MIN_REG_USERS}}/g, minReg.users);
+                  const finalSpeech = currentSpeech.replace(/{{USERS}}/g, totalStats.users).replace(/{{PASSED}}/g, totalStats.passed).replace(/{{MAX_REG_NAME}}/g, maxReg.name);
+
+                  setCurrentPolicySpeech(finalSpeech); // เซฟไว้ให้ปุ่มกดฟังซ้ำ
+                  setExecMessages([{ id: 'init', role: 'ai', text: finalInsight }]);
+                  setIsPlaying(true);
                   
+                  // 3. เริ่มพิมพ์ข้อความและออกเสียงพูด
                   let i = 0; setTypedInsight("");
-                  const interval = setInterval(() => {
-                      setTypedInsight(aiInsightText.substring(0, i)); i++;
-                      if (i > aiInsightText.length) { clearInterval(interval); setIsPlaying(false); }
+                  interval = setInterval(() => {
+                      if(!isMounted) return;
+                      setTypedInsight(finalInsight.substring(0, i)); i++;
+                      if (i > finalInsight.length) { clearInterval(interval); setIsPlaying(false); }
                   }, 15);
 
-                  setTimeout(() => actions.speakText({ text: policySpeech, hidden: true }), 800);
-                  return () => clearInterval(interval);
+                  setTimeout(() => { if(isMounted) actions.speakText({ text: finalSpeech, hidden: true }) }, 800);
+              };
+
+              if (showReport) {
+                  setExecMessages([]);
+                  fetchAndPlay();
               } else {
-                  setTypedInsight(""); setIsPlaying(false);
+                  setTypedInsight(""); setIsPlaying(false); setExecMessages([]);
               }
-          }, [showReport]);
+
+              return () => { isMounted = false; if (interval) clearInterval(interval); };
+          }, [showReport, totalStats.users, totalStats.passed, maxReg.name, maxReg.users, minReg.name, minReg.users]);
 
           useEffect(() => { 
             const handleMessage = (event) => { 
@@ -1266,12 +1297,12 @@
                                                      <SafeIcon name="Cpu" size={18} /> Fah AI Executive Intelligence
                                                  </h3>
                                                  {!isPlaying && execMessages.length <= 1 ? (
-                                                     <button onClick={() => actions.speakText(policySpeech)} className="bg-blue-600 hover:bg-blue-500 text-white text-[10px] px-3 py-1.5 rounded-full font-bold flex items-center gap-1 animate-pulse">
+                                                     <button onClick={() => actions.speakText({text: currentPolicySpeech, hidden: true})} className="bg-blue-600 hover:bg-blue-500 text-white text-[10px] px-3 py-1.5 rounded-full font-bold flex items-center gap-1 animate-pulse">
                                                          <SafeIcon name="PlayCircle" size={12} /> ฟังรายงาน
                                                      </button>
                                                  ) : (
                                                      <span className="text-[9px] text-emerald-400 font-mono flex items-center gap-1 uppercase">
-                                                         <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span> Sync Active
+                                                         <span className={`w-1.5 h-1.5 ${isFetchingLive ? 'bg-amber-400' : 'bg-emerald-400'} rounded-full animate-pulse`}></span> {isFetchingLive ? 'FETCHING LIVE DATA...' : 'Sync Active'}
                                                      </span>
                                                  )}
                                              </div>
@@ -1872,6 +1903,28 @@
                          </a>
                       </div>
                   )}
+
+                  {/* แหล่งข้อมูลอ้างอิงศูนย์รับบริจาคอวัยวะสภากาชาดไทย */}
+                  <div className="mt-8 mb-8 text-left">
+                      <h3 className="text-sm font-extrabold text-slate-800 mb-3 flex items-center gap-2 drop-shadow-sm"><SafeIcon name="Globe" className="text-line-600" size={18} /> แหล่งข้อมูลอ้างอิงสำคัญ</h3>
+                      <div className="flex flex-col sm:flex-row gap-3">
+                          <a href="https://organdonate.redcross.or.th/" target="_blank" rel="noopener noreferrer" className="flex-1 bg-white/60 hover:bg-white/90 border border-white/80 p-4 rounded-2xl flex items-center gap-3 transition-all shadow-sm hover:shadow-md active:scale-95 backdrop-blur-md group">
+                              <div className="w-10 h-10 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform"><SafeIcon name="Heart" size={20} className="animate-pulse" /></div>
+                              <div>
+                                  <div className="text-sm font-bold text-slate-800 drop-shadow-sm">ศูนย์รับบริจาคอวัยวะฯ</div>
+                                  <div className="text-[10px] text-slate-600 font-medium">เว็บไซต์หลัก สภากาชาดไทย</div>
+                              </div>
+                          </a>
+                          <a href="https://organdonate.redcross.or.th/download" target="_blank" rel="noopener noreferrer" className="flex-1 bg-white/60 hover:bg-white/90 border border-white/80 p-4 rounded-2xl flex items-center gap-3 transition-all shadow-sm hover:shadow-md active:scale-95 backdrop-blur-md group">
+                              <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform"><SafeIcon name="Download" size={20} /></div>
+                              <div>
+                                  <div className="text-sm font-bold text-slate-800 drop-shadow-sm">ดาวน์โหลดแบบฟอร์ม</div>
+                                  <div className="text-[10px] text-slate-600 font-medium">เอกสารและคู่มือปฏิบัติงาน</div>
+                              </div>
+                          </a>
+                      </div>
+                  </div>
+
                   {!inline && <button onClick={actions.handleLogout} className="mt-2 text-sm font-bold bg-white/40 hover:bg-white/60 backdrop-blur-md px-6 py-3 rounded-full border border-white/60 text-rose-600 transition-colors shadow-sm">ออกจากระบบ</button>}
               </div>
           );
