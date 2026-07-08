@@ -243,14 +243,12 @@
 
             const syncFromGoogleSheet = async (isManual = false) => {
                 if (!systemConfig.masterCsvUrl) {
-                    if (isManual) showAlert('กรุณาระบุลิงก์ Google Sheets แบบ CSV ก่อน (ตั้งค่าที่แท็บ Auto-Sync)', 'error');
+                    if (isManual) showAlert('กรุณาระบุลิงก์ Google Sheets แบบ CSV ก่อน', 'error');
                     return;
                 }
                 if (isManual) showAlert('กำลังดึงข้อมูลสิทธิ์ผู้เรียนจากตาราง...', 'info');
                 try {
-                    const noCacheUrl = systemConfig.masterCsvUrl + (systemConfig.masterCsvUrl.includes('?') ? '&' : '?') + 't=' + new Date().getTime();
-                    const res = await fetch(noCacheUrl, { cache: 'no-store' });
-                    
+                    const res = await fetch(systemConfig.masterCsvUrl);
                     if (!res.ok) throw new Error('Cannot fetch CSV');
                     const text = await res.text();
                     const rows = text.split('\n').filter(r => r.trim());
@@ -261,93 +259,38 @@
 
                     let newCount = 0; let updateCount = 0;
                     for (let i = 1; i < rows.length; i++) {
-                        const regex = /,(?=(?:(?:[^"]*"){2})*[^"]*$)/;
-                        const cols = rows[i].split(regex).map(c => c.trim().replace(/^"|"$/g, ''));
-                        
-                        // อัปเดตตามโครงสร้างคอลัมน์ใหม่เป๊ะๆ
-                        if (cols.length >= 10 && cols[2]) {
-                            const name = cols[1] || ''; 
-                            // 🌟 ทำความสะอาดรหัสใบอนุญาตให้เหลือแต่ตัวเลข/ตัวอักษร ตัดช่องว่างทิ้งหมด
-                            const license = String(cols[2]).replace(/[^a-zA-Z0-9]/g, ''); 
-                            if (!license) continue;
-
-                            const phone = (cols[3] || '').replace(/[^0-9]/g, '');
-                            const email = cols[4] || '';
-                            const position = cols[5] || '';
-                            const department = cols[6] || '';
-                            const hospital = cols[7] || ''; 
-                            const province = cols[8] || '';
+                        const cols = rows[i].split(',').map(c => c.trim().replace(/^"|"$/g, ''));
+                        if (cols.length >= 4 && cols[1]) {
+                            const name = cols[0]; const license = cols[1]; const hospital = cols[2]; const userType = cols[3];
+                            const existingUser = usersList.find(u => String(u.id) === String(license));
                             
-                            let rawUserType = (cols[9] || '').trim().toLowerCase();
-                            let userType = 'เรียนใหม่';
-                            if (rawUserType === 'onsite') userType = 'Onsite';
-                            else if (rawUserType === 'online') userType = 'Online';
-
-                            const existingUser = usersList.find(u => String(u.id) === license);
+                            // 🌟 ตรวจจับสิทธิ์ Onsite เพื่อให้ข้ามการเรียนและทำข้อสอบได้เลย
                             const isOnsite = userType === 'Onsite';
+                            let targetStudySecs = isOnsite ? 36000 : 0;
+                            let targetProgress = isOnsite ? 100 : 0;
+                            let targetSkillLab = isOnsite ? true : false;
 
-                            let targetPayload = {
-                                id: license, // บังคับเซฟ ID ให้ตรงกับ License
-                                name: name,
-                                license: license,
-                                phone: phone,
-                                email: email,
-                                position: position,
-                                department: department,
-                                hospital: hospital,
-                                province: province,
-                                userType: userType
-                            };
-
-                            // ถ้าเป็นคนใหม่
                             if (!existingUser) {
-                                targetPayload.status = 'กำลังเรียน';
-                                targetPayload.pretest = '-';
-                                targetPayload.posttest = '-';
-                                targetPayload.lastVideoId = 1;
-                                targetPayload.videoTimes = {};
-                                targetPayload.progress = isOnsite ? 100 : 0;
-                                targetPayload.studySeconds = isOnsite ? 36000 : 0;
-                                targetPayload.skillLabPassed = isOnsite;
-                                
-                                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_users', license), targetPayload, { merge: true });
+                                const newUser = { id: license, name, license, hospital, userType: userType || 'เรียนใหม่', progress: targetProgress, studySeconds: targetStudySecs, status: 'กำลังเรียน', pretest: '-', posttest: '-', skillLabPassed: targetSkillLab, lastVideoId: 1, videoTimes: {} };
+                                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_users', license), newUser, { merge: true });
                                 newCount++;
-                            } else {
-                                // ถ้าเป็นคนเก่า บังคับอัปเดตข้อมูลส่วนตัวใหม่ทั้งหมด
-                                if (isOnsite && ((existingUser.progress || 0) < 100 || !existingUser.skillLabPassed)) {
-                                    targetPayload.progress = 100;
-                                    targetPayload.studySeconds = 36000;
-                                    targetPayload.skillLabPassed = true;
+                            } else if (existingUser.userType !== userType || existingUser.name !== name || existingUser.hospital !== hospital) {
+                                let updateData = { name, userType, hospital };
+                                // อัปเดตแพ็กเกจเวลา หากมีการปรับสิทธิ์เป็น Onsite ภายหลัง
+                                if (isOnsite && existingUser.userType !== 'Onsite') {
+                                    updateData.progress = 100;
+                                    updateData.studySeconds = 36000;
+                                    updateData.skillLabPassed = true;
                                 }
-                                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_users', license), targetPayload, { merge: true });
+                                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_users', license), updateData, { merge: true });
                                 updateCount++;
                             }
                         }
                     }
-                    if (isManual) showAlert(`ซิงค์ข้อมูลสำเร็จ! (เพิ่มใหม่ ${newCount} คน, อัปเดต/Auto-refill ${updateCount} คน)`);
+                    if (isManual) showAlert(`ซิงค์ข้อมูลสำเร็จ! (เพิ่มใหม่ ${newCount} คน, อัปเดต ${updateCount} คน)`);
                 } catch (e) {
                     if (isManual) showAlert('ดึงข้อมูลล้มเหลว กรุณาตรวจสอบลิงก์ CSV', 'error');
                     console.error("Sync Sheet Error:", e);
-                }
-            };
-
-            // 🌟 แก้ไขระบบบังคับเติมเวลาให้ครอบคลุม Onsite ทุกรูปแบบ
-            const handleForceRefillAll = async () => {
-                if(!window.confirm('ระบบจะค้นหาผู้เรียนที่มีสิทธิ์ Onsite ทั้งหมด และเติมเวลาเรียนเป็น 100% พร้อมผ่าน Skill Lab อัตโนมัติ ยืนยันหรือไม่?')) return;
-                let count = 0;
-                showAlert('กำลังประมวลผล Auto-Refill...', 'info');
-                try {
-                    for(const u of usersList) {
-                        const isUserOnsite = u.userType === 'Onsite' || String(u.userType).toLowerCase() === 'onsite';
-                        if (isUserOnsite && (u.progress < 100 || !u.skillLabPassed)) {
-                            await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_users', String(u.id)), { progress: 100, studySeconds: 36000, skillLabPassed: true, userType: 'Onsite' }, { merge: true });
-                            count++;
-                        }
-                    }
-                    showAlert(`ดำเนินการ Auto-Refill สำเร็จ ${count} รายการ`);
-                } catch(e) {
-                    showAlert('เกิดข้อผิดพลาดในการ Refill', 'error');
-                    console.error(e);
                 }
             };
 
@@ -508,15 +451,9 @@
                                         <h2 className="text-2xl font-black text-slate-800 flex items-center gap-2"><SafeIcon name="Users" className="text-line-600" /> จัดการสิทธิ์ผู้เรียน</h2>
                                         <p className="text-slate-500 text-sm mt-1">ผู้เรียนทั้งหมดในระบบ: {usersList.length} ราย</p>
                                     </div>
-                                    <div className="flex flex-wrap gap-2 w-full md:w-auto mt-4 md:mt-0">
-                                        <div className="bg-white px-4 py-2 rounded-lg border flex items-center gap-2 flex-1 md:w-64 min-w-[200px]"><SafeIcon name="Search" className="text-slate-400 shrink-0" /><input type="text" placeholder="ค้นหาชื่อ หรือ ใบอนุญาต..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="outline-none text-sm w-full bg-transparent" /></div>
-                                        
-                                        <button onClick={() => syncFromGoogleSheet(true)} className="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold text-sm shadow-sm hover:bg-blue-500 shrink-0 flex items-center gap-1"><SafeIcon name="RefreshCw" size={16}/> ดึงสิทธิ์จาก Sheet</button>
-                                        
-                                        <button onClick={handleForceRefillAll} className="bg-amber-500 text-white px-4 py-2 rounded-lg font-bold text-sm shadow-sm hover:bg-amber-400 shrink-0 flex items-center gap-1"><SafeIcon name="Activity" size={16}/> Auto-Refill Onsite</button>
-
-                                        <button onClick={() => setShowManualForm(!showManualForm)} className="bg-slate-800 text-white px-4 py-2 rounded-lg font-bold text-sm shadow-sm hover:bg-slate-700 shrink-0 flex items-center gap-1"><SafeIcon name="Plus" size={16}/> เพิ่มมือ</button>
-                                        
+                                    <div className="flex gap-2 w-full md:w-auto">
+                                        <div className="bg-white px-4 py-2 rounded-lg border flex items-center gap-2 flex-1 md:w-64"><SafeIcon name="Search" className="text-slate-400 shrink-0" /><input type="text" placeholder="ค้นหาชื่อ หรือ ใบอนุญาต..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="outline-none text-sm w-full bg-transparent" /></div>
+                                        <button onClick={() => setShowManualForm(!showManualForm)} className="bg-line-500 text-white px-4 py-2 rounded-lg font-bold text-sm shadow-sm hover:bg-line-600 shrink-0 flex items-center gap-1"><SafeIcon name="Plus" size={16}/> เพิ่มมือ</button>
                                         <button onClick={handleExportCSV} className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg font-bold text-sm shadow-sm flex items-center gap-1"><SafeIcon name="Download" size={16}/> CSV</button>
                                     </div>
                                 </div>
