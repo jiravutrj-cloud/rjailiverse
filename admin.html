@@ -243,7 +243,7 @@
 
             const syncFromGoogleSheet = async (isManual = false) => {
                 if (!systemConfig.masterCsvUrl) {
-                    if (isManual) showAlert('กรุณาระบุลิงก์ Google Sheets แบบ CSV ก่อน', 'error');
+                    if (isManual) showAlert('กรุณาระบุลิงก์ Google Sheets แบบ CSV ก่อน (ตั้งค่าที่แท็บ Auto-Sync)', 'error');
                     return;
                 }
                 if (isManual) showAlert('กำลังดึงข้อมูลสิทธิ์ผู้เรียนจากตาราง...', 'info');
@@ -274,23 +274,53 @@
                                 const newUser = { id: license, name, license, hospital, userType: userType || 'เรียนใหม่', progress: targetProgress, studySeconds: targetStudySecs, status: 'กำลังเรียน', pretest: '-', posttest: '-', skillLabPassed: targetSkillLab, lastVideoId: 1, videoTimes: {} };
                                 await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_users', license), newUser, { merge: true });
                                 newCount++;
-                            } else if (existingUser.userType !== userType || existingUser.name !== name || existingUser.hospital !== hospital) {
-                                let updateData = { name, userType, hospital };
-                                // อัปเดตแพ็กเกจเวลา หากมีการปรับสิทธิ์เป็น Onsite ภายหลัง
-                                if (isOnsite && existingUser.userType !== 'Onsite') {
+                            } else {
+                                let updateData = {};
+                                let needsUpdate = false;
+
+                                // เช็คว่ามีการเปลี่ยนชื่อ โรงพยาบาล หรือประเภทสิทธิ์หรือไม่
+                                if (existingUser.userType !== userType || existingUser.name !== name || existingUser.hospital !== hospital) {
+                                    updateData = { name, userType, hospital };
+                                    needsUpdate = true;
+                                }
+
+                                // 🌟 ภารกิจ Auto-refill: ถ้าเป็น Onsite แต่หลอดเวลายังไม่เต็ม หรือยังไม่ผ่าน Skill Lab ให้เติมทันที
+                                if (isOnsite && (existingUser.progress < 100 || !existingUser.skillLabPassed)) {
                                     updateData.progress = 100;
                                     updateData.studySeconds = 36000;
                                     updateData.skillLabPassed = true;
+                                    needsUpdate = true;
                                 }
-                                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_users', license), updateData, { merge: true });
-                                updateCount++;
+
+                                if (needsUpdate) {
+                                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_users', license), updateData, { merge: true });
+                                    updateCount++;
+                                }
                             }
                         }
                     }
-                    if (isManual) showAlert(`ซิงค์ข้อมูลสำเร็จ! (เพิ่มใหม่ ${newCount} คน, อัปเดต ${updateCount} คน)`);
+                    if (isManual) showAlert(`ซิงค์ข้อมูลสำเร็จ! (เพิ่มใหม่ ${newCount} คน, อัปเดต/Auto-refill ${updateCount} คน)`);
                 } catch (e) {
                     if (isManual) showAlert('ดึงข้อมูลล้มเหลว กรุณาตรวจสอบลิงก์ CSV', 'error');
                     console.error("Sync Sheet Error:", e);
+                }
+            };
+
+            // 🌟 ระบบบังคับเติมเวลาให้ Onsite ทั้งระบบทันที (Emergency Refill)
+            const handleForceRefillAll = async () => {
+                if(!window.confirm('ระบบจะค้นหาผู้เรียนที่มีสิทธิ์ Onsite ทั้งหมด และเติมเวลาเรียนเป็น 100% พร้อมผ่าน Skill Lab อัตโนมัติ ยืนยันหรือไม่?')) return;
+                let count = 0;
+                showAlert('กำลังประมวลผล Auto-Refill...', 'info');
+                try {
+                    for(const u of usersList) {
+                        if (u.userType === 'Onsite' && (u.progress < 100 || !u.skillLabPassed)) {
+                            await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_users', u.id), { progress: 100, studySeconds: 36000, skillLabPassed: true }, { merge: true });
+                            count++;
+                        }
+                    }
+                    showAlert(`ดำเนินการ Auto-Refill สำเร็จ ${count} รายการ`);
+                } catch(e) {
+                    showAlert('เกิดข้อผิดพลาดในการ Refill', 'error');
                 }
             };
 
@@ -451,9 +481,15 @@
                                         <h2 className="text-2xl font-black text-slate-800 flex items-center gap-2"><SafeIcon name="Users" className="text-line-600" /> จัดการสิทธิ์ผู้เรียน</h2>
                                         <p className="text-slate-500 text-sm mt-1">ผู้เรียนทั้งหมดในระบบ: {usersList.length} ราย</p>
                                     </div>
-                                    <div className="flex gap-2 w-full md:w-auto">
-                                        <div className="bg-white px-4 py-2 rounded-lg border flex items-center gap-2 flex-1 md:w-64"><SafeIcon name="Search" className="text-slate-400 shrink-0" /><input type="text" placeholder="ค้นหาชื่อ หรือ ใบอนุญาต..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="outline-none text-sm w-full bg-transparent" /></div>
-                                        <button onClick={() => setShowManualForm(!showManualForm)} className="bg-line-500 text-white px-4 py-2 rounded-lg font-bold text-sm shadow-sm hover:bg-line-600 shrink-0 flex items-center gap-1"><SafeIcon name="Plus" size={16}/> เพิ่มมือ</button>
+                                    <div className="flex flex-wrap gap-2 w-full md:w-auto mt-4 md:mt-0">
+                                        <div className="bg-white px-4 py-2 rounded-lg border flex items-center gap-2 flex-1 md:w-64 min-w-[200px]"><SafeIcon name="Search" className="text-slate-400 shrink-0" /><input type="text" placeholder="ค้นหาชื่อ หรือ ใบอนุญาต..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="outline-none text-sm w-full bg-transparent" /></div>
+                                        
+                                        <button onClick={() => syncFromGoogleSheet(true)} className="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold text-sm shadow-sm hover:bg-blue-500 shrink-0 flex items-center gap-1"><SafeIcon name="RefreshCw" size={16}/> ดึงสิทธิ์จาก Sheet</button>
+                                        
+                                        <button onClick={handleForceRefillAll} className="bg-amber-500 text-white px-4 py-2 rounded-lg font-bold text-sm shadow-sm hover:bg-amber-400 shrink-0 flex items-center gap-1"><SafeIcon name="Activity" size={16}/> Auto-Refill Onsite</button>
+
+                                        <button onClick={() => setShowManualForm(!showManualForm)} className="bg-slate-800 text-white px-4 py-2 rounded-lg font-bold text-sm shadow-sm hover:bg-slate-700 shrink-0 flex items-center gap-1"><SafeIcon name="Plus" size={16}/> เพิ่มมือ</button>
+                                        
                                         <button onClick={handleExportCSV} className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg font-bold text-sm shadow-sm flex items-center gap-1"><SafeIcon name="Download" size={16}/> CSV</button>
                                     </div>
                                 </div>
