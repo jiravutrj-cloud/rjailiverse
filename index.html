@@ -1253,7 +1253,7 @@
                             </div>
                             
                             <div className="w-full relative z-10 mt-2 animate-in fade-in slide-in-from-bottom-6 duration-1000 delay-300 no-print">
-                                <button onClick={() => window.location.href='./executive.html'} className="w-full py-3.5 px-4 bg-slate-900/60 hover:bg-slate-900/80 backdrop-blur-xl border border-slate-700/50 text-white/90 rounded-2xl text-[13px] md:text-sm font-bold transition-all shadow-[0_10px_30px_rgba(0,0,0,0.3)] flex items-center justify-center gap-2 group">
+                                <button onClick={() => setShowReport(true)} className="w-full py-3.5 px-4 bg-slate-900/60 hover:bg-slate-900/80 backdrop-blur-xl border border-slate-700/50 text-white/90 rounded-2xl text-[13px] md:text-sm font-bold transition-all shadow-[0_10px_30px_rgba(0,0,0,0.3)] flex items-center justify-center gap-2 group">
                                     <SafeIcon name="ShieldCheck" size={18} className="text-gold-400 group-hover:scale-110 transition-transform" />
                                     <span className="bg-gradient-to-r from-yellow-200 via-yellow-400 to-yellow-600 text-transparent bg-clip-text drop-shadow-sm">AI Policy Intelligence Report</span>
                                 </button>
@@ -1438,11 +1438,9 @@
             if (authStep === 'check_license') {
               const handleVerify = async (e) => {
                 e.preventDefault(); if (!tempLicense) return; setIsChecking(true);
+                const license = tempLicense.trim(); 
                 
-                // 🌟 ทำความสะอาดรหัสฝั่งผู้เรียน ให้เหลือแต่ตัวเลข/ตัวอักษร ตัดช่องว่างทิ้งหมด
-                const license = String(tempLicense).replace(/[^a-zA-Z0-9]/g, ''); 
-                
-                let existUser = store.dbUsers.find(u => String(u.license || '').replace(/[^a-zA-Z0-9]/g, '') === license || String(u.id || '').replace(/[^a-zA-Z0-9]/g, '') === license);
+                let existUser = store.dbUsers.find(u => String(u.license || '').trim() === license || String(u.id || '').trim() === license);
                 
                 if (!existUser && db) {
                   try {
@@ -1468,14 +1466,10 @@
                             else { customHosp = hosp; hosp = 'อื่นๆ'; } 
                         } 
                     } 
-                    processedData.hospital = hosp; processedData.customHospital = customHosp; 
-                    // อัปเดต State ทันทีเพื่อให้ UI เปลี่ยนเป็น "เข้าเรียนต่อ"
-                    setSelectedUserType('เข้าเรียนต่อ'); 
+                    processedData.hospital = hosp; processedData.customHospital = customHosp; setSelectedUserType('เข้าเรียนต่อ'); 
                 } else { 
-                    setSelectedUserType('เรียนใหม่'); 
-                    processedData.userType = 'เรียนใหม่'; 
+                    setSelectedUserType('เรียนใหม่'); processedData.userType = 'เรียนใหม่'; 
                 }
-                
                 globalStore.setState({ registrationData: Object.assign({ ...store.registrationData, licenseId: license, isPrefilled: !!existUser }, processedData) });
                 setTimeout(() => { setIsChecking(false); setHasVerified(true); }, 500);
               };
