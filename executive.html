@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AI Policy Intelligence - RJ Ailiverse</title>
+    
+    <!-- เรียกใช้ไฟล์ข้อมูลแยก (Static Data) -->
+    <script src="./data.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&display=swap');
+        body { font-family: 'Sarabun', sans-serif; background-color: #0f172a; margin: 0; color: #f8fafc; overflow-x: hidden; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background-color: rgba(255,255,255,0.2); border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background-color: rgba(255,255,255,0.4); }
+        
+        .pulse-slow { animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        .glow { animation: glow 2s ease-in-out infinite alternate; }
+        @keyframes glow {
+            0% { box-shadow: 0 0 5px rgba(59, 130, 246, 0.5); }
+            100% { box-shadow: 0 0 20px rgba(59, 130, 246, 0.8), 0 0 30px rgba(59, 130, 246, 0.6); }
+        }
+        .typewriter-text { overflow: hidden; white-space: pre-wrap; margin: 0; }
+    </style>
+
+    <script type="importmap">
+    {
+      "imports": {
+        "react": "https://esm.sh/react@18.2.0",
+        "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+        "react-dom": "https://esm.sh/react-dom@18.2.0",
+        "lucide-react": "https://esm.sh/lucide-react@0.294.0?external=react",
+        "firebase/app": "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js",
+        "firebase/auth": "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js",
+        "firebase/firestore": "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js"
+      }
+    }
+    </script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body class="bg-slate-900 text-slate-100">
+    <div id="executive-root"></div>
+
+    <script type="text/babel" data-type="module">
+        import React, { useState, useEffect, useRef } from 'react';
+        import { createRoot } from 'react-dom/client';
+        import * as LucideIcons from 'lucide-react';
+        import { initializeApp, getApps, getApp } from 'firebase/app';
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from 'firebase/auth';
+        import { getFirestore, collection, onSnapshot, doc } from 'firebase/firestore';
+
+        const ICONS = { Globe: LucideIcons.Globe, X: LucideIcons.X, MapPin: LucideIcons.MapPin, Cpu: LucideIcons.Cpu, PlayCircle: LucideIcons.PlayCircle, Mic: LucideIcons.Mic, Send: LucideIcons.Send, CheckCircle: LucideIcons.CheckCircle, ArrowLeft: LucideIcons.ArrowLeft, Activity: LucideIcons.Activity, Users: LucideIcons.Users, Video: LucideIcons.Video, Power: LucideIcons.Power };
+        function SafeIcon({ name, size = 24, className = "" }) { const IconComponent = ICONS[name] || LucideIcons.Activity; return <IconComponent size={size} className={className} />; }
+
+        let app, auth, db, appId = 'fah-elearning-prod';
+        try {
+            const fbP1 = "AIzaSyBs275"; const fbP2 = "NY99gdv1uZdAnb"; const fbP3 = "mx3UlWO8K4o5a0";
+            let fbConfig = (typeof __firebase_config !== 'undefined' && __firebase_config) 
+                ? JSON.parse(__firebase_config) : { apiKey: fbP1 + fbP2 + fbP3, authDomain: "e-learning-with-fah-ai.firebaseapp.com", projectId: "e-learning-with-fah-ai", storageBucket: "e-learning-with-fah-ai.firebasestorage.app", messagingSenderId: "418946105960", appId: "1:418946105960:web:728e28070790975df231dd" };
+            app = getApps().length === 0 ? initializeApp(fbConfig) : getApp();
+            auth = getAuth(app); db = getFirestore(app);
+            appId = typeof __app_id !== 'undefined' && __app_id ? String(__app_id).replace(/\//g, '-') : 'fah-elearning-prod';
+        } catch (error) { console.error("Firebase init error", error); }
+
+        function ExecutiveDashboard() {
+            const [users, setUsers] = useState([]);
+            const [appsScriptUrl, setAppsScriptUrl] = useState('');
+            const [isAuth, setIsAuth] = useState(false);
+            
+            // 🌟 NEW: State สำหรับควบคุมการเปิด/ปิดวิดีโอ Pop-up 🌟
+            const [isSystemStarted, setIsSystemStarted] = useState(false);
+            const [showAvatarVideo, setShowAvatarVideo] = useState(false);
+            const introTimerRef = useRef(null);
+
+            const [activeRegion, setActiveRegion] = useState(null);
+            const [execInput, setExecInput] = useState('');
+            const [isExecTyping, setIsExecTyping] = useState(false);
+            const [isExecListening, setIsExecListening] = useState(false);
+            const [execMessages, setExecMessages] = useState([]);
+            const [typedInsight, setTypedInsight] = useState("");
+            const [isPlaying, setIsPlaying] = useState(false);
+            const [isFetchingLive, setIsFetchingLive] = useState(false);
+            const [policySpeechText, setPolicySpeechText] = useState("");
+
+            const execRecRef = useRef(null);
+            const execEndRef = useRef(null);
+            const audioRef = useRef(null);
+
+            useEffect(() => {
+                if (!auth || !db) return;
+                const initAuth = async () => {
+                    try { if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) await signInWithCustomToken(auth, __initial_auth_token); else await signInAnonymously(auth); } catch (e) {}
+                };
+                initAuth();
+                const unsubscribe = onAuthStateChanged(auth, (user) => {
+                    setIsAuth(!!user);
+                    if (user) {
+                        onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'elearning_users'), (snapshot) => {
+                            const arr = []; snapshot.forEach(d => arr.push(d.data())); setUsers(arr);
+                        });
+                        onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_config', 'settings'), (docSnap) => {
+                            if (docSnap.exists()) setAppsScriptUrl(docSnap.data().appsScriptUrl || '');
+                        });
+                    }
+                });
+                return () => {
+                    unsubscribe();
+                    if(introTimerRef.current) clearTimeout(introTimerRef.current);
+                };
+            }, []);
+
+            const baseRegions = (window.BASE_REGIONS && window.BASE_REGIONS.length > 0) ? window.BASE_REGIONS : [
+                { id: 'R1', name: 'เขตสุขภาพที่ 1', desc: 'เชียงใหม่และภาคเหนือตอนบน', x: 28, y: 15 },
+                { id: 'R2', name: 'เขตสุขภาพที่ 2', desc: 'พิษณุโลกและภาคเหนือตอนล่าง', x: 34, y: 32 },
+                { id: 'R3', name: 'เขตสุขภาพที่ 3', desc: 'นครสวรรค์และภาคกลางตอนบน', x: 38, y: 44 },
+                { id: 'R4', name: 'เขตสุขภาพที่ 4', desc: 'สระบุรีและภาคกลางตอนบน', x: 44, y: 50 },
+                { id: 'R5', name: 'เขตสุขภาพที่ 5', desc: 'ราชบุรีและภาคตะวันตก', x: 32, y: 58 },
+                { id: 'R6', name: 'เขตสุขภาพที่ 6', desc: 'ชลบุรีและภาคตะวันออก', x: 58, y: 60 },
+                { id: 'R7', name: 'เขตสุขภาพที่ 7', desc: 'ขอนแก่นและอีสานตอนกลาง', x: 62, y: 38 },
+                { id: 'R8', name: 'เขตสุขภาพที่ 8', desc: 'อุดรธานีและอีสานตอนบน', x: 74, y: 26 },
+                { id: 'R9', name: 'เขตสุขภาพที่ 9', desc: 'นครราชสีมาและอีสานตอนล่าง', x: 62, y: 48 },
+                { id: 'R10', name: 'เขตสุขภาพที่ 10', desc: 'อุบลราชธานีและอีสานตอนล่าง', x: 82, y: 48 },
+                { id: 'R11', name: 'เขตสุขภาพที่ 11', desc: 'สุราษฎร์ธานีและภาคใต้ตอนบน', x: 28, y: 78 },
+                { id: 'R12', name: 'เขตสุขภาพที่ 12', desc: 'สงขลาและภาคใต้ตอนล่าง', x: 38, y: 92 },
+                { id: 'BKK', name: 'กรุงเทพมหานคร', desc: 'ศูนย์กลางการแพทย์และสาธารณสุข', x: 48, y: 56 }
+            ];
+            
+            const regionStats = {};
+            baseRegions.forEach(r => { regionStats[r.id] = { ...r, users: 0, learning: 0, lab: 0, passed: 0 }; });
+
+            users.forEach(u => {
+                let rId = null; const dept = u.department || '';
+                if (dept.startsWith('เขตสุขภาพที่ ')) rId = `R${dept.replace('เขตสุขภาพที่ ', '').trim()}`;
+                else if (['กรมการแพทย์', 'สำนักการแพทย์ กรุงเทพฯ', 'สำนักอนามัย กรุงเทพฯ', 'อื่นๆ'].includes(dept)) rId = 'BKK';
+                if (rId && regionStats[rId]) {
+                    regionStats[rId].users += 1;
+                    if (u.status === 'กำลังเรียน') regionStats[rId].learning += 1;
+                    if (u.skillLabHistory?.length > 0) regionStats[rId].lab += 1;
+                    if (u.status === 'ผ่าน') regionStats[rId].passed += 1;
+                }
+            });
+
+            const REGION_DATA = Object.values(regionStats);
+            const totalStats = REGION_DATA.reduce((acc, curr) => ({ users: acc.users + curr.users, learning: acc.learning + curr.learning, lab: acc.lab + curr.lab, passed: acc.passed + curr.passed }), { users: 0, learning: 0, lab: 0, passed: 0 });
+
+            const fetchAppsScript = async (payload) => {
+                const url = appsScriptUrl || 'https://script.google.com/macros/s/AKfycbwt9H-GVs2aijX_sgzjlpGP9314ereuA9ZECNs4Uc00VLz5rFcJm7aYmkduEMiFVKjA/exec';
+                try { const res = await fetch(url, { method: 'POST', body: JSON.stringify(payload) }); return await res.json(); } catch(e) { return { status: 'error', message: e.message }; }
+            };
+
+            const playTTS = async (text) => {
+                try {
+                    const res = await fetchAppsScript({ action: 'callGeminiTTS', text: text, voiceName: "Aoede" });
+                    if (res?.status === 'success' && res.inlineData) {
+                        const sampleRate = parseInt(res.inlineData.mimeType.match(/rate=(\d+)/)?.[1] ?? "24000", 10);
+                        const binaryString = window.atob(res.inlineData.data);
+                        const bytes = Uint8Array.from([...binaryString].map(c => c.charCodeAt(0)));
+                        const buffer = new ArrayBuffer(44 + bytes.length); const view = new DataView(buffer);
+                        const writeString = (v, offset, string) => { for (let i = 0; i < string.length; i++) v.setUint8(offset + i, string.charCodeAt(i)); };
+                        writeString(view, 0, 'RIFF'); view.setUint32(4, 36 + bytes.length, true); writeString(view, 8, 'WAVE'); writeString(view, 12, 'fmt '); view.setUint32(16, 16, true); view.setUint16(20, 1, true); view.setUint16(22, 1, true); view.setUint32(24, sampleRate, true); view.setUint32(28, sampleRate * 2, true); view.setUint16(32, 2, true); view.setUint16(34, 16, true); writeString(view, 36, 'data'); view.setUint32(40, bytes.length, true); new Uint8Array(buffer, 44).set(bytes);
+                        
+                        const audioUrl = URL.createObjectURL(new Blob([buffer], { type: 'audio/wav' }));
+                        if (audioRef.current) { audioRef.current.pause(); }
+                        audioRef.current = new Audio(audioUrl);
+                        audioRef.current.play().catch(e => console.error("Audio block:", e));
+                    }
+                } catch(e) { console.error("TTS Error:", e); }
+            };
+
+            useEffect(() => {
+                const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+                if (SR) {
+                    execRecRef.current = new SR();
+                    execRecRef.current.continuous = false;
+                    execRecRef.current.interimResults = true;
+                    execRecRef.current.lang = 'th-TH';
+                    execRecRef.current.onresult = (e) => { let transcript = ''; for (let i = e.resultIndex; i < e.results.length; ++i) transcript += e.results[i][0].transcript; setExecInput(transcript); };
+                    execRecRef.current.onend = () => setIsExecListening(false);
+                    execRecRef.current.onerror = () => setIsExecListening(false);
+                }
+            }, []);
+
+            const generateInitialReport = () => {
+                const activeRegions = [...REGION_DATA].filter(r => r.id !== 'BKK' && r.users > 0).sort((a,b) => b.users - a.users);
+                const maxReg = activeRegions.length > 0 ? activeRegions[0] : { name: 'รอข้อมูล', users: 0 };
+                const minReg = activeRegions.length > 1 ? activeRegions[activeRegions.length-1] : maxReg;
+                
+                const insightTpl = window.AI_INSIGHT_TEXT || "สรุปนโยบาย...";
+                const speechTpl = window.POLICY_SPEECH || "สวัสดีค่ะ...";
+                
+                const finalInsight = insightTpl.replace(/{{USERS}}/g, totalStats.users.toLocaleString()).replace(/{{PASSED}}/g, totalStats.passed.toLocaleString()).replace(/{{MAX_REG_NAME}}/g, maxReg.name).replace(/{{MAX_REG_USERS}}/g, maxReg.users).replace(/{{MIN_REG_NAME}}/g, minReg.name).replace(/{{MIN_REG_USERS}}/g, minReg.users);
+                const finalSpeech = speechTpl.replace(/{{USERS}}/g, totalStats.users).replace(/{{PASSED}}/g, totalStats.passed).replace(/{{MAX_REG_NAME}}/g, maxReg.name);
+
+                setPolicySpeechText(finalSpeech);
+                setExecMessages([{ id: 'init', role: 'ai', text: finalInsight }]);
+                setIsPlaying(true);
+                
+                let i = 0; setTypedInsight("");
+                const interval = setInterval(() => {
+                    setTypedInsight(finalInsight.substring(0, i)); i++;
+                    if (i > finalInsight.length) { clearInterval(interval); setIsPlaying(false); }
+                }, 15);
+            };
+
+            const handleStartSystem = () => {
+                setIsSystemStarted(true);
+                setShowAvatarVideo(true);
+                // ตั้งเวลาปิดวิดีโออัตโนมัติ (ปรับเหลือ 8 วินาที ตามที่กัปตันสั่งค่ะ)
+                introTimerRef.current = setTimeout(() => {
+                    closeAvatarVideo();
+                }, 8000); 
+            };
+
+            const closeAvatarVideo = () => {
+                setShowAvatarVideo(false);
+                if(introTimerRef.current) clearTimeout(introTimerRef.current);
+                // พอวิดีโอปิดปุ๊บ ให้ข้อความรายงานตัวหนังสือโผล่ขึ้นมาในแชททันที
+                if (execMessages.length === 0) {
+                    generateInitialReport();
+                }
+            };
+
+            const handleExecSubmit = async (e) => {
+                e?.preventDefault();
+                if (!execInput.trim() || isExecTyping) return;
+                const userQ = execInput.trim();
+                setExecInput(''); setIsExecListening(false); execRecRef.current?.stop(); setIsPlaying(false); 
+                setExecMessages(prev => [...prev, { id: Date.now(), role: 'user', text: userQ }]);
+                setIsExecTyping(true);
+                setTimeout(() => execEndRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
+
+                const prompt = `คุณคือ "Fah AI Executive Intelligence" ตอบคำถามผู้บริหารอย่างเป็นมืออาชีพ สั้น กระชับ มีวิสัยทัศน์ อ้างอิงวิกฤตผู้ป่วยรออวัยวะ 8,019 ราย และนโยบาย RJ Ailiverse (การฝึกเจรจาด้วย AI)\n\nคำถาม: ${userQ}`;
+                
+                const res = await fetchAppsScript({ action: 'callGemini', prompt: userQ, systemInstruction: prompt });
+                if (res?.status === 'success') {
+                    setExecMessages(prev => [...prev, { id: Date.now()+1, role: 'ai', text: res.text }]);
+                    playTTS(res.text.replace(/[*#]/g, ''));
+                } else {
+                    setExecMessages(prev => [...prev, { id: Date.now()+1, role: 'ai', text: "ระบบฐานข้อมูลนโยบายขัดข้องชั่วคราว" }]);
+                }
+                setIsExecTyping(false);
+                setTimeout(() => execEndRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
+            };
+
+            // 🛑 หน้าจอ Standby (ก่อนกดปุ่ม Start) 🛑
+            if (!isSystemStarted) {
+                return (
+                    <div className="min-h-screen w-full flex items-center justify-center bg-[url('https://res.cloudinary.com/djwclucoz/image/upload/v1783149499/Pngtree_global_connectivity_and_technical_networks_15770649_1_h9ggdv.jpg')] bg-cover bg-center relative">
+                        <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm"></div>
+                        <div className="relative z-10 flex flex-col items-center animate-in fade-in zoom-in duration-700">
+                            <div className="w-24 h-24 rounded-full bg-blue-500/10 border border-blue-500/30 flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(59,130,246,0.3)]">
+                                <SafeIcon name="ShieldCheck" size={48} className="text-blue-400" />
+                            </div>
+                            <h1 className="text-3xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-200 via-blue-400 to-cyan-300 mb-2 tracking-wide text-center">AI POLICY INTELLIGENCE</h1>
+                            <p className="text-slate-400 font-mono text-sm mb-12 tracking-[0.2em] text-center">NATIONAL HEALTHCARE COMMAND CENTER</p>
+                            
+                            <button onClick={handleStartSystem} className="group relative px-8 py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-full font-bold text-lg transition-all shadow-[0_0_20px_rgba(59,130,246,0.4)] hover:shadow-[0_0_40px_rgba(59,130,246,0.6)] flex items-center gap-3 overflow-hidden">
+                                <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]"></div>
+                                <SafeIcon name="Power" size={24} className="group-hover:scale-110 transition-transform" />
+                                <span>INITIALIZE SYSTEM</span>
+                            </button>
+                            <button onClick={() => window.location.href='./index.html'} className="mt-8 text-slate-500 hover:text-slate-300 text-sm font-medium transition-colors">กลับสู่หน้าหลัก</button>
+                        </div>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="min-h-screen w-full flex flex-col relative">
+                    
+                    {/* 🌟 หน้าต่าง Pop-up วิดีโอ Avatar 🌟 */}
+                    {showAvatarVideo && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/90 backdrop-blur-md p-4 animate-in fade-in duration-500">
+                            <div className="w-full max-w-sm md:max-w-md aspect-[9/16] relative rounded-3xl overflow-hidden shadow-[0_0_50px_rgba(59,130,246,0.3)] border border-slate-600/50 bg-black flex flex-col animate-in zoom-in-95 duration-500 delay-150">
+                                
+                                {/* 🔴 อัปเดตลิงก์ Vimeo ใหม่ตรงนี้ค่ะ */}
+                                <iframe 
+                                    src="https://player.vimeo.com/video/1207961016?autoplay=1&loop=0&muted=0" 
+                                    className="absolute inset-0 w-full h-full border-none" 
+                                    allow="autoplay; fullscreen" 
+                                    title="Fah Executive Intro"
+                                ></iframe>
+                                
+                                <div className="absolute top-4 left-0 w-full px-4 flex justify-between items-center pointer-events-none">
+                                    <div className="bg-slate-900/60 backdrop-blur px-3 py-1 rounded-full border border-slate-600/50 flex items-center gap-2">
+                                        <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
+                                        <span className="text-[10px] font-bold text-white tracking-widest">INCOMING TRANSMISSION</span>
+                                    </div>
+                                    <button onClick={closeAvatarVideo} className="w-8 h-8 rounded-full bg-black/50 hover:bg-rose-500/80 backdrop-blur border border-white/20 text-white flex items-center justify-center transition-colors pointer-events-auto">
+                                        <SafeIcon name="X" size={16} />
+                                    </button>
+                                </div>
+                                <div className="absolute bottom-6 w-full flex justify-center pointer-events-none">
+                                    <button onClick={closeAvatarVideo} className="px-6 py-2 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur border border-white/30 text-white text-xs font-bold transition-colors pointer-events-auto">
+                                        ข้าม (Skip)
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Header */}
+                    <div className="px-6 py-4 md:px-8 md:py-6 border-b border-slate-700/50 bg-slate-900/80 backdrop-blur-md flex justify-between items-center z-20 sticky top-0">
+                        <div className="flex items-center gap-4">
+                            <button onClick={() => window.location.href='./index.html'} className="w-10 h-10 rounded-full bg-slate-800 hover:bg-slate-700 flex items-center justify-center transition-colors border border-slate-700 shadow-sm"><SafeIcon name="ArrowLeft" size={20} className="text-slate-300" /></button>
+                            <div>
+                                <h1 className="text-xl md:text-3xl font-black flex items-center gap-3 drop-shadow-lg">
+                                    <SafeIcon name="Globe" className="text-yellow-400" size={28} />
+                                    <span className="bg-gradient-to-r from-yellow-200 via-yellow-400 to-yellow-600 text-transparent bg-clip-text">AI Policy Intelligence Dashboard</span>
+                                </h1>
+                                <p className="text-slate-400 font-bold mt-1 tracking-widest text-[10px] md:text-xs flex items-center gap-2">
+                                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_#10b981]"></span> NATIONAL HEALTHCARE METRICS
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Main Content */}
+                    <div className="flex-1 p-6 md:p-8 flex flex-col lg:flex-row gap-6 md:gap-8 relative z-10 h-full">
+                        {/* Left Panel: Chat & Exec Report (เอาวิดีโอออกแล้ว เพื่อคืนพื้นที่) */}
+                        <div className="w-full lg:w-1/3 flex flex-col gap-4 min-h-[600px] lg:h-[calc(100vh-120px)]">
+                            <div className="bg-slate-800/40 p-6 rounded-2xl border border-slate-700 shadow-inner backdrop-blur-sm shrink-0">
+                                <div className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-1">Target Users Nationwide</div>
+                                <div className="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-300">{totalStats.users.toLocaleString()}</div>
+                            </div>
+                            
+                            <div className="grid grid-cols-2 gap-4 shrink-0">
+                                <div className="bg-slate-800/40 p-4 rounded-2xl border border-slate-700/50 backdrop-blur-sm">
+                                   <div className="text-xs font-bold text-slate-400 mb-1">กำลังเรียน (Learning)</div>
+                                   <div className="text-2xl font-black text-amber-400">{totalStats.learning.toLocaleString()}</div>
+                                </div>
+                                <div className="bg-slate-800/40 p-4 rounded-2xl border border-slate-700/50 backdrop-blur-sm">
+                                   <div className="text-xs font-bold text-slate-400 mb-1">ฝึกเจรจา (Skill Lab)</div>
+                                   <div className="text-2xl font-black text-purple-400">{totalStats.lab.toLocaleString()}</div>
+                                </div>
+                            </div>
+
+                            <div className="bg-emerald-900/20 p-4 rounded-2xl border border-emerald-500/30 backdrop-blur-sm flex items-center justify-between shrink-0">
+                                <div className="flex items-center gap-2 text-emerald-400 font-bold"><SafeIcon name="CheckCircle" size={18}/> สอบผ่านแล้ว</div>
+                                <div className="text-2xl font-black text-emerald-400">{totalStats.passed.toLocaleString()}</div>
+                            </div>
+
+                            {/* Exec Chat */}
+                            <div className="flex-1 bg-black/40 border border-blue-500/20 rounded-2xl p-5 shadow-[0_0_15px_rgba(59,130,246,0.1)] flex flex-col relative overflow-hidden backdrop-blur-md min-h-[300px]">
+                                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-blue-500 to-transparent animate-pulse"></div>
+                                <div className="flex justify-between items-center mb-3 border-b border-slate-700/50 pb-2">
+                                    <h3 className="text-blue-400 text-sm font-bold flex items-center gap-2"><SafeIcon name="Cpu" size={18} /> Fah Executive Intelligence</h3>
+                                    {!isPlaying && execMessages.length <= 1 ? (
+                                        <button onClick={() => playTTS(policySpeechText)} className="bg-blue-600/20 hover:bg-blue-600/40 text-blue-300 border border-blue-500/30 text-[10px] px-3 py-1.5 rounded-full font-bold flex items-center gap-1 transition-colors">
+                                            <SafeIcon name="PlayCircle" size={12} /> ฟังรายงาน
+                                        </button>
+                                    ) : (
+                                        <span className="text-[9px] text-emerald-400 font-mono flex items-center gap-1 uppercase">
+                                            <span className={`w-1.5 h-1.5 ${isFetchingLive ? 'bg-amber-400' : 'bg-emerald-400'} rounded-full animate-pulse`}></span> {isFetchingLive ? 'FETCHING...' : 'SYNC ACTIVE'}
+                                        </span>
+                                    )}
+                                </div>
+                                
+                                <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 flex flex-col gap-3 pb-2">
+                                    {execMessages.map((msg, idx) => (
+                                        <div key={msg.id} className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
+                                            <div className={`p-3 rounded-xl max-w-[95%] text-xs md:text-sm leading-relaxed ${msg.role === 'user' ? 'bg-blue-600 text-white rounded-br-none shadow-md' : 'bg-slate-800/60 border border-slate-600/50 text-slate-200 rounded-bl-none font-mono shadow-inner'}`}>
+                                                {idx === 0 && (isPlaying || !typedInsight) ? (
+                                                    <span className={isPlaying ? "typewriter-text" : "whitespace-pre-line"}>{isPlaying ? typedInsight : msg.text}</span>
+                                                ) : (
+                                                    <span className="whitespace-pre-line">{msg.text}</span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {isExecTyping && (
+                                        <div className="flex items-start"><div className="p-3 rounded-xl bg-slate-800/60 border border-slate-600/50 text-blue-400 font-mono text-xs animate-pulse rounded-bl-none">Analyzing policy database...</div></div>
+                                    )}
+                                    <div ref={execEndRef} />
+                                </div>
+
+                                <div className="mt-2 pt-3 border-t border-slate-700/50 shrink-0">
+                                    <form onSubmit={handleExecSubmit} className="flex items-center gap-2 bg-slate-900/60 border border-slate-600/50 rounded-full p-1 pl-3 transition-colors focus-within:border-blue-500 shadow-inner">
+                                        <input type="text" value={execInput} onChange={e => setExecInput(e.target.value)} placeholder={isExecListening ? "กำลังฟังคำสั่ง..." : "พิมพ์เพื่อถามนโยบาย..."} className="flex-1 bg-transparent text-white placeholder-slate-400 px-1 outline-none text-xs font-sans" disabled={isExecTyping} />
+                                        <button type="button" onClick={() => { if(isExecListening) {execRecRef.current?.stop(); setIsExecListening(false);} else {setExecInput(''); execRecRef.current?.start(); setIsExecListening(true);} }} disabled={isExecTyping} className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors shrink-0 ${isExecListening ? 'bg-rose-500/80 text-white shadow-[0_0_10px_rgba(244,63,94,0.5)]' : 'bg-slate-700 hover:bg-slate-600 text-slate-300'}`}><SafeIcon name="Mic" size={14} /></button>
+                                        <button type="submit" disabled={!execInput.trim() || isExecTyping} className="w-8 h-8 rounded-full bg-blue-600 hover:bg-blue-50 text-white flex items-center justify-center disabled:opacity-50 transition-colors shadow-md shrink-0"><SafeIcon name="Send" size={14} /></button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Right Panel: Map */}
+                        <div className="w-full lg:w-2/3 relative bg-slate-800/30 border border-slate-700/50 rounded-3xl aspect-[4/3] sm:aspect-video lg:aspect-auto flex items-center justify-center overflow-hidden shadow-2xl group lg:h-[calc(100vh-120px)]">
+                            <div className="absolute inset-0 z-0 bg-slate-950/60 mix-blend-multiply"></div>
+                            <div className="absolute inset-0 z-0" style={{ backgroundImage: 'url("https://res.cloudinary.com/djwclucoz/image/upload/v1783149499/Pngtree_global_connectivity_and_technical_networks_15770649_1_h9ggdv.jpg")', backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat', opacity: 0.8, mixBlendMode: 'screen' }}></div>
+
+                            <div className="absolute bottom-6 right-8 pointer-events-none z-10 opacity-40">
+                                <span className="text-5xl md:text-7xl font-black text-white/30 uppercase tracking-[0.4em] select-none drop-shadow-sm">THAILAND</span>
+                            </div>
+
+                            <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-40 z-10" viewBox="0 0 100 100">
+                                {REGION_DATA.map(r => r.id !== 'BKK' && (
+                                    <line key={`line-${r.id}`} x1="48" y1="56" x2={r.x} y2={r.y} stroke={activeRegion?.id === r.id ? "#60a5fa" : "#3b82f6"} strokeWidth={activeRegion?.id === r.id ? "0.4" : "0.2"} className="transition-all duration-300" strokeDasharray="1 1.5" />
+                                ))}
+                            </svg>
+
+                            {REGION_DATA.map(r => (
+                                <div key={r.id} onMouseEnter={() => setActiveRegion(r)} onMouseLeave={() => setActiveRegion(null)} onTouchStart={() => setActiveRegion(r)} className={`absolute w-12 h-12 -ml-6 -mt-6 cursor-pointer z-20 flex items-center justify-center transition-all duration-300 ${activeRegion?.id === r.id ? 'scale-150 z-30' : 'hover:scale-125'}`} style={{ left: `${r.x}%`, top: `${r.y}%` }}>
+                                    <div className={`absolute w-full h-full rounded-full opacity-30 pulse-slow ${r.id === 'BKK' ? 'bg-emerald-500' : 'bg-blue-500'}`}></div>
+                                    <div className={`absolute w-8 h-8 rounded-full glow opacity-60 ${r.id === 'BKK' ? 'bg-emerald-400' : 'bg-blue-400'}`}></div>
+                                    <div className={`w-3.5 h-3.5 rounded-full shadow-[0_0_10px_rgba(255,255,255,0.8)] border-2 border-white relative z-10 transition-colors ${activeRegion?.id === r.id ? 'bg-yellow-400' : r.id === 'BKK' ? 'bg-emerald-500 w-5 h-5' : 'bg-blue-500'}`}></div>
+                                </div>
+                            ))}
+
+                            <div className={`absolute pointer-events-none z-50 transition-all duration-300 ease-out ${activeRegion ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`} style={{ left: activeRegion ? `max(10px, min(calc(${activeRegion.x}% + 25px), calc(100% - 220px)))` : '50%', top: activeRegion ? `max(10px, min(calc(${activeRegion.y}% - 70px), calc(100% - 160px)))` : '50%' }}>
+                                {activeRegion && (
+                                    <div className="bg-slate-900/95 backdrop-blur-xl border border-slate-600 rounded-2xl p-5 shadow-[0_15px_40px_rgba(0,0,0,0.8)] w-[220px]">
+                                        <div className="flex items-center gap-1.5 mb-2"><SafeIcon name="MapPin" size={16} className="text-blue-400"/><h4 className="font-bold text-sm text-white">{activeRegion.name}</h4></div>
+                                        <div className="text-[11px] text-slate-400 mb-4 line-clamp-2 leading-relaxed">{activeRegion.desc}</div>
+                                        <div className="space-y-2">
+                                            <div className="flex justify-between text-xs"><span className="text-slate-300 font-medium">บุคลากรทั้งหมด</span><span className="font-mono font-bold text-white">{activeRegion.users}</span></div>
+                                            <div className="flex justify-between text-xs"><span className="text-slate-300 font-medium">กำลังเรียน</span><span className="font-mono font-bold text-amber-400">{activeRegion.learning}</span></div>
+                                            <div className="flex justify-between text-xs"><span className="text-slate-300 font-medium">ประวัติ Skill Lab</span><span className="font-mono font-bold text-purple-400">{activeRegion.lab}</span></div>
+                                            <div className="flex justify-between text-xs pt-2 mt-1 border-t border-slate-700/50"><span className="text-emerald-400 font-bold">สอบผ่านเกณฑ์</span><span className="font-mono font-black text-emerald-400">{activeRegion.passed}</span></div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        const root = createRoot(document.getElementById('executive-root'));
+        root.render(<ExecutiveDashboard />);
+    </script>
+</body>
+</html>
