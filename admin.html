@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin - e-Learning RJ Ailiverse</title>
     
+    <!-- 🌟 เรียกใช้ไฟล์ข้อมูลแยก (Static Data) เพื่อรีดน้ำหนักโค้ด 🌟 -->
+    <script src="./data.js"></script>
+
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = { theme: { extend: { colors: { line: { 50: '#e5f8e5', 100: '#cbf1cb', 200: '#9ce49c', 300: '#6dd66d', 400: '#3ec93e', 500: '#00B900', 600: '#009400', 700: '#006f00', 800: '#004a00', 900: '#002500' } } } } }
@@ -57,73 +60,8 @@
         import { getFirestore, collection, doc, setDoc, onSnapshot, deleteDoc } from 'firebase/firestore';
 
         // ============================================================================
-        // ข้อมูลตั้งต้นที่ฝังไว้ในหน้า Admin แทนการเรียก data.js
+        // ข้อมูลถูกย้ายไปที่ data.js เรียบร้อยแล้วเพื่อความเบาของไฟล์
         // ============================================================================
-        window.INITIAL_LESSONS = [
-          { id: 1, title: "ยุทธศาสตร์และเป้าหมายการพัฒนาระบบบริการสุขภาพ (Service plan)", videoId: "1-sX4LnWRMSjoEQmWee-9GuiQ2XMvkSro", documentUrl: "https://drive.google.com/file/d/1FrJt9TCbOy5oewg_eMrRG8pW4dNzJHS9/view?usp=sharing" },
-          { id: 2, title: "แนวทางการประเมินผู้เสียชีวิตเพื่อบริจาคดวงตาและการประสานงานฯ", videoId: "15QOjyhd0hoxpSSO0tZ7Fj4qFaZByiAzT", documentUrl: "https://drive.google.com/file/d/1iJbKaj0VwcsH0AzdyUqrt2jsTjEyhfSg/view?usp=sharing" },
-          { id: 3, title: "จริยธรรม กฎหมายที่เกี่ยวข้องกับการรับบริจาคอวัยวะ และบทบาทของศูนย์ฯ", videoId: "1L5pFZh85OPDz7lWwJCBKlFDXxkTZSxt_", documentUrl: "https://drive.google.com/file/d/1PtfxrqDZrNpX_NDQBGyCqqfZsPnMRg6e/view?usp=sharing" },
-          { id: 4, title: "ความสำคัญของการบริจาคและปลูกถ่ายอวัยวะ และบทบาทของบุคลากรฯ", videoId: "14hnZ80UE0KvCmW2oHE2zBTx8uBCg4rIB", documentUrl: "https://drive.google.com/file/d/1HXXlSqONQ3eq7E1Os0C8OtbZcSGbG6a5/view?usp=sharing" },
-          { id: 5, title: "การประสานงานเมื่อมีผู้บริจาคอวัยวะสมองตาย และหลักเกณฑ์การจัดสรรอวัยวะ", videoId: "1wkE2CCaRgxlzHmho1ijK49SE028vNqcV", documentUrl: "https://drive.google.com/file/d/1w4xefABcn2GRTQevhpvYuybD2kLozlA6/view?usp=sharing" },
-          { id: 6, title: "การเตรียมผู้ป่วยเพื่อเข้ารับการปลูกถ่ายไต และการดูแลหลังปลูกถ่ายไต", videoId: "1pu1O3swHMtTzBXjF3rG_NzfIgjYfgnLm", documentUrl: "https://drive.google.com/file/d/1u_xSPv95dvxXw85QsSx7FYYsKonJbJjj/view?usp=sharing" },
-          { id: 7, title: "การจัดกิจกรรมส่งเสริมและประชาสัมพันธ์ชีวิตใหม่หลังการปลูกถ่ายอวัยวะ", videoId: "1Sc-2Z_MOD85kvWBduEEWbPiGxw1zeTec", documentUrl: "https://drive.google.com/file/d/1RSPtCHRe38si6P75CCA_85djfwJhUrdE/view?usp=sharing" },
-          { id: 8, title: "กลุ่มงานการพยาบาลรับบริจาค ปลูกถ่ายอวัยวะและเนื้อเยื่อ สธ.", videoId: "1vc4b07Ooas4cozJK5cnweIl2KeeKvHbk", documentUrl: "https://drive.google.com/file/d/1WUO677apoQJeJKboj0iOZmrTIybd4_hM/view?usp=sharing" },
-          { id: 9, title: "Identification of Potential Organ Donors and Assessment", videoId: "1TRLOGabpI66ZUEPybGyrpHTN5dNlYP-f", documentUrl: "https://drive.google.com/file/d/14-GXQS4-KHEUraOt8Ey2cGVkhxN12Ump/view?usp=sharing" },
-          { id: 10, title: "Organ Packaging and Transportation สำหรับ รพ Donor", videoId: "1POFnLm_G2BuXWgOojDRpotM5YhBxcCnk", documentUrl: "https://drive.google.com/file/d/1VQk-wMxYRbphaBDkCnOkapwgVdTGShbV/view?usp=sharing" },
-          { id: 11, title: "Family Approach", videoId: "1GpfjRpbDnilV22iL52ZyOyUcRs9MUVbu", documentUrl: "https://drive.google.com/file/d/1aRjlUNctesyliehy5KXLW7VwmGPW2R4h/view?usp=sharing" },
-          { id: 12, title: "Brain Death Diagnosis", videoId: "136Gl3ocDivGYU764t7t9Qvpn_iTJTfs4", documentUrl: "https://drive.google.com/file/d/1TMceKfI3azgRVRo-GtSDluTzq1lhe8-U/view?usp=sharing" },
-          { id: 13, title: "Donor Management", videoId: "1YPyTis-9VzJLPhUvwMp1IC_xs7TLIao0", documentUrl: "https://drive.google.com/file/d/1OeZIm6x3lg_-dFTUPgd9LiombnRrPrQh/view?usp=sharing" },
-          { id: 14, title: "Organ Procurement", videoId: "12lOd6KsekmV0PDbdLVr2wYsz-gNnovHK", documentUrl: "https://drive.google.com/file/d/1e-PwnXUCVScRLg5bmXRjOMSC0dIeDv5r/view?usp=sharing" },
-          { id: 15, title: "การปฏิบัติตัวหลังผ่าตัด", videoId: "1k2bsL3ZT7dG85c63fC7SPCAQlrkWVzHC", documentUrl: "" },
-          { id: 16, title: "ภาพรวมการปลูกถ่ายไต", videoId: "1U5W7QGZm4CQaKIwiwR3mE3FgSeKA3JxS", documentUrl: "" },
-          { id: 17, title: "การปฏิบัติตัวหลังปลูกถ่าย (ยา)", videoId: "1v1QN-Qq1zHRtEYyKt1iJ6XrSfSfy7zuM", documentUrl: "" },
-          { id: 18, title: "โภชนาการอาหาร", videoId: "1Ekf354d86SJ43JRkqAAEH9D-XB9725Dr", documentUrl: "" },
-          { id: 19, title: "ขั้นตอนการเข้ารับบริการคลินิกปลูกถ่ายไต", videoId: "1Om2A00CDS8seta7eiz47-gbXExzzU4RU", documentUrl: "" },
-          { id: 20, title: "ขั้นตอนการดูแลผู้ป่วยปลูกถ่ายไตในระยะต่างๆ", videoId: "15qb9D-gNqw-cEJoLozRY2DW1Dc6huB0e", documentUrl: "" }
-        ];
-
-        window.QUIZ_QUESTIONS_RAW = [
-          "เป้าหมายหลักของ Service Plan สาขาการรับบริจาคและปลูกถ่ายอวัยวะคือข้อใด?|ลดค่าใช้จ่ายในการดูแลผู้ป่วยวิกฤต|เพิ่มจำนวนผู้บริจาคอวัยวะสมองตายและผู้ได้รับการปลูกถ่ายอวัยวะให้เพียงพอ|ลดภาระงานของบุคลากรทางการแพทย์ในห้องICU|สร้างศูนย์ปลูกถ่ายอวัยวะในทุกชุมชน|1",
-          "การจัดเก็บดวงตา (Eye procurement) ควรดำเนินการให้แล้วเสร็จอย่างช้าที่สุดภายในกี่ชั่วโมงหลังผู้ป่วยเสียชีวิต?|ภายใน 2 ชั่วโมง|ภายใน 24-48 ชั่วโมง|ภายใน 3 วัน|ภายใน 6-8 ชั่วโมง (หากมีการประคบเย็นอาจยืดได้)|3",
-          "ประโยชน์สูงสุดของการปลูกถ่ายไตเมื่อเทียบกับการฟอกเลือด (Dialysis) คืออะไร?|ผู้ป่วยไม่ต้องทานยากดภูมิคุ้มกันอีกเลย|แพทย์ทำงานง่ายขึ้นโดยไม่ต้องตรวจติดตามผล|สามารถรับประทานอาหารได้ทุกชนิดโดยไม่มีข้อจำกัด|ผู้ป่วยมีคุณภาพชีวิตที่ดีขึ้น อัตราการรอดชีวิตสูง และลดภาระค่าใช้จ่ายระยะยาว|3",
-          "การบรรจุไตเพื่อขนส่ง (Kidney Packaging) ต้องรักษาอุณหภูมิให้อยู่ในช่วงใด?|แช่แข็งในน้ำแข็งแห้ง (-20 องศาเซลเซียส)|อุณหภูมิห้อง (25 องศาเซลเซียส)|2-4 องศาเซลเซียส (แช่ในน้ำแข็งเกล็ดที่กำลังละลาย)|แช่ในน้ำอุ่น (37 องศาเซลเซียส)|2",
-          "การทำ Decoupling หมายถึงการแยกเรื่องใดออกจากเรื่องใด?|แยกการทำงานของหัวใจออกจากปอด|แยกหมอออกจากพยาบาล|แยกการแจ้งข่าวสมองตาย ออกจากการเจรจาขอรับบริจาคอวัยวะ|แยกญาติผู้ชายออกจากญาติผู้หญิง|2",
-          "การทำ Apnea Test เป็นขั้นตอนสำคัญเพื่อพิสูจน์สิ่งใด?|เพื่อดูว่าหัวใจยังเต้นอยู่หรือไม่|เพื่อพิสูจน์ว่าศูนย์ควบคุมการหายใจที่ก้านสมองสูญเสียการทำงานอย่างถาวร|เพื่อกระตุ้นให้ผู้ป่วยฟื้นคืนสติ|เพื่อดูการทำงานของปอดก่อนบริจาค|1",
-          "ข้อใดคือเกณฑ์อายุขั้นต่ำในการแสดงความจำนงบริจาคอวัยวะได้ด้วยตนเองตามกฎหมายไทย?|15 ปีบริบูรณ์|18 ปีบริบูรณ์|20 ปีบริบูรณ์|ไม่มีข้อจำกัดหากได้รับความยินยอมจากผู้ปกครอง|1",
-          "อวัยวะใดต่อไปนี้ไม่สามารถปลูกถ่ายได้?|สมอง|หัวใจ|ปอด|ตับอ่อน|0",
-          "ข้อใดคือสาเหตุการเสียชีวิตที่พบได้บ่อยที่สุดในกลุ่มผู้บริจาคอวัยวะสมองตาย?|โรคมะเร็งระยะสุดท้าย|อุบัติเหตุทางศีรษะ (Traumatic Brain Injury)|โรคติดเชื้อในกระแสเลือด|โรคหัวใจล้มเหลวเฉียบพลัน|1",
-          "ในการเจรจาขอรับบริจาคอวัยวะ หากญาติมีความเชื่อว่า 'บริจาคแล้วชาติหน้าอวัยวะจะไม่ครบ' บุคลากรทางการแพทย์ควรตอบสนองอย่างไร?|อธิบายว่าตามหลักพุทธศาสนา การเสียสละร่างกายเป็นทานบารมีขั้นสูง|เพิกเฉยและเปลี่ยนไปคุยเรื่องอื่น|บอกว่าเป็นความเชื่อที่ผิดและไม่มีเหตุผล|ยุติการเจรจาทันที|0",
-          "ระยะเวลาทอง (Golden Period) ในการนำหัวใจที่ได้จากการจัดเก็บไปปลูกถ่ายให้ผู้รับคือเท่าใด?|ไม่เกิน 4 ชั่วโมง|ไม่เกิน 12 ชั่วโมง|ไม่เกิน 24 ชั่วโมง|ไม่เกิน 48 ชั่วโมง|0",
-          "ข้อใดไม่ใช่ข้อห้ามเด็ดขาด (Absolute Contraindication) ในการบริจาคอวัยวะ?|ติดเชื้อ HIV|มะเร็งแพร่กระจาย|ความดันโลหิตสูง|ไม่ทราบสาเหตุการเสียชีวิตที่แน่ชัด|2",
-          "การประเมินผู้ป่วยสมองตาย ต้องทำการทดสอบทางคลินิก (Clinical Test) อย่างน้อยกี่ครั้ง?|1 ครั้ง|2 ครั้ง ห่างกันอย่างน้อย 6 ชั่วโมง (สำหรับผู้ใหญ่)|3 ครั้ง|ไม่จำเป็นต้องทดสอบซ้ำหากทำ Apnea Test ผ่าน|1",
-          "ใครเป็นผู้มีอำนาจลงนามรับรองการตายด้วยภาวะสมองตายตามกฎหมาย?|พยาบาลวิชาชีพที่ดูแลผู้ป่วย|แพทย์ผู้ทำการรักษาและแพทย์ผู้เชี่ยวชาญรวม 3 ท่าน|ญาติสายตรงลำดับแรก|ผู้อำนวยการโรงพยาบาล|1",
-          "ศูนย์รับบริจาคอวัยวะสภากาชาดไทย (ODC) มีบทบาทหน้าที่ใด?|ผ่าตัดปลูกถ่ายอวัยวะให้ผู้ป่วยทุกคน|เป็นศูนย์กลางจัดสรรอวัยวะให้โรงพยาบาลเครือข่ายอย่างยุติธรรม|บังคับให้ผู้เสียชีวิตทุกคนต้องบริจาคอวัยวะ|เก็บรักษาอวัยวะไว้ใช้ในยามขาดแคลน|1",
-          "เนื้อเยื่อ (Tissue) ชนิดใดที่สามารถเก็บรักษาไว้ได้นานที่สุดหลังการจัดเก็บ?|ดวงตา|ลิ้นหัวใจ (หากผ่านกระบวนการแช่แข็ง)|ตับ|ปอด|1",
-          "ข้อใดอธิบายหลักการของ 'The Rule of Rescue' ในบริบทของการปลูกถ่ายอวัยวะได้ดีที่สุด?|การให้ความสำคัญกับการช่วยชีวิตผู้ป่วยที่วิกฤตที่สุดก่อน|การให้ความสำคัญกับผู้ป่วยที่รอคิวนานที่สุด|การให้ความสำคัญกับผู้ที่สามารถจ่ายค่ารักษาได้|การให้ความสำคัญกับผู้ที่มีโอกาสรอดชีวิตระยะยาวสูงสุด|0",
-          "ผู้ประสานงานการรับบริจาคอวัยวะ (Transplant Coordinator) ไม่มีหน้าที่ใด?|ดูแลผู้บริจาคอวัยวะสมองตาย|เจรจาขอรับบริจาคกับญาติผู้เสียชีวิต|ทำการผ่าตัดจัดเก็บอวัยวะ|ประสานงานระหว่างโรงพยาบาลผู้บริจาคและผู้รับ|2",
-          "การตรวจความเข้ากันได้ของเนื้อเยื่อ (HLA Typing) มีความสำคัญสูงสุดในการปลูกถ่ายอวัยวะใด?|หัวใจ|ตับ|ไต|ปอด|2",
-          "เมื่อพบผู้ป่วยเข้าข่ายภาวะสมองตาย (Potential Donor) ขั้นตอนแรกที่ต้องทำคืออะไร?|แจ้งศูนย์รับบริจาคอวัยวะสภากาชาดไทยทันที|รีบแจ้งญาติให้บริจาคอวัยวะ|ประเมินและรักษาสัญญาณชีพ (Donor Management) ให้คงที่|หยุดการให้ยาและสารน้ำทั้งหมดเพื่อรอสมองตายสมบูรณ์|2",
-          "ยาตัวใดมักถูกใช้เพื่อควบคุมภาวะเบาจืด (Diabetes Insipidus) ในผู้ป่วยสมองตาย?|Epinephrine|Desmopressin (DDAVP)|Insulin|Dopamine|1",
-          "ภาวะใดที่มักเกิดขึ้นและเป็นปัญหาสำคัญในการดูแลผู้ป่วยสมองตาย?|อุณหภูมิร่างกายสูงขึ้น (Hyperthermia)|ความดันโลหิตต่ำ (Hypotension)|ระดับน้ำตาลในเลือดต่ำ (Hypoglycemia)|อัตราการเต้นของหัวใจช้าลง (Bradycardia)|1",
-          "การเจรจาขอรับบริจาคอวัยวะด้วยหลัก B.A.L.I. ตัวอักษร 'L' หมายถึงอะไร?|Listen (รับฟังความรู้สึกญาติ)|Legal (การตรวจสอบเอกสารและข้อกฎหมาย)|Love (การแสดงความเห็นอกเห็นใจ)|Leave (การให้เวลาญาติในการตัดสินใจ)|1",
-          "ในกรณีที่ผู้เสียชีวิตมีบัตรแสดงความจำนงบริจาคอวัยวะ แต่ญาติคัดค้านอย่างรุนแรง ควรดำเนินการอย่างไร?|ดำเนินการผ่าตัดทันทีเพราะมีเอกสารยืนยัน|ยุติการจัดเก็บอวัยวะเพื่อหลีกเลี่ยงความขัดแย้งและผลกระทบทางจิตใจของญาติ|ฟ้องร้องญาติที่ขัดขวางกระบวนการทางกฎหมาย|แอบทำการผ่าตัดโดยไม่ให้ญาติทราบ|1",
-          "ข้อใดคือสัญญาณตอบสนองที่อาจพบได้ในผู้ป่วยสมองตาย ซึ่งเป็นเพียงรีเฟล็กซ์จากไขสันหลัง (Spinal Reflex) และมักทำให้ญาติเข้าใจผิด?|การลืมตาเมื่อเรียกชื่อ|การหายใจเฮือก (Gasping)|การเคลื่อนไหวของแขนขาเมื่อถูกกระตุ้น (Lazarus Sign)|การมีน้ำตาไหล|2",
-          "องค์กรใดทำหน้าที่รับบริจาคดวงตาในประเทศไทย?|ศูนย์รับบริจาคอวัยวะสภากาชาดไทย|ศูนย์ดวงตาสภากาชาดไทย|กระทรวงสาธารณสุข|ราชวิทยาลัยจักษุแพทย์แห่งประเทศไทย|1",
-          "การบริจาคอวัยวะแบบ Donation after Circulatory Death (DCD) คืออะไร?|การบริจาคอวัยวะขณะที่หัวใจยังเต้นอยู่|การบริจาคอวัยวะหลังจากหัวใจหยุดเต้นอย่างถาวรแล้ว|การบริจาคอวัยวะจากผู้บริจาคที่มีชีวิต|การบริจาคอวัยวะที่เน้นเฉพาะการบริจาคเนื้อเยื่อ|1",
-          "การประเมิน Glasgow Coma Scale (GCS) ในผู้ป่วยที่สงสัยภาวะสมองตาย จะต้องมีคะแนนเท่าใด?|GCS = 15|GCS < 8|GCS = 3|GCS = 0|2",
-          "ขั้นตอนสุดท้ายของกระบวนการบริจาคอวัยวะคือข้อใด?|การผ่าตัดจัดเก็บอวัยวะ|การส่งมอบอวัยวะให้ผู้รับ|การดูแลตกแต่งศพผู้บริจาคให้เรียบร้อยสมบูรณ์ที่สุด|การส่งจดหมายขอบคุณครอบครัวผู้บริจาค|2",
-          "สิ่งสำคัญที่สุดในการดูแลสภาพจิตใจของญาติผู้เสียชีวิต (Bereavement Care) คืออะไร?|การให้เงินช่วยเหลือเยียวยา|การให้ข้อมูลที่ตรงไปตรงมา ชัดเจน และแสดงความเห็นอกเห็นใจ|การโน้มน้าวให้บริจาคอวัยวะให้สำเร็จ|การปล่อยให้ญาติอยู่ตามลำพังโดยไม่รบกวน|1",
-          "ยาปฏิชีวนะ (Antibiotics) จะถูกให้ในผู้ป่วยสมองตายเพื่อวัตถุประสงค์ใด?|เพื่อกระตุ้นให้สมองฟื้นตัว|เพื่อป้องกันหรือรักษาการติดเชื้อที่อาจทำลายอวัยวะที่จะบริจาค|เพื่อรักษาสภาพผิวหนังของผู้ป่วย|เพื่อระงับความเจ็บปวด|1",
-          "ข้อใดไม่ใช่อวัยวะที่สามารถนำไปบริจาคได้จากผู้ป่วยสมองตาย?|ตับ|ลำไส้เล็ก|กระเพาะอาหาร|ไขกระดูก|3",
-          "ผู้ป่วยอายุ 70 ปี มีภาวะสมองตาย สามารถเป็นผู้บริจาคอวัยวะได้หรือไม่?|ไม่ได้ เพราะอายุเกินเกณฑ์|ได้ หากการทำงานของอวัยวะที่จะบริจาคยังอยู่ในเกณฑ์ดีและไม่มีข้อห้าม|ได้เฉพาะดวงตาเท่านั้น|ได้เฉพาะบริจาคเพื่อการศึกษา (เป็นอาจารย์ใหญ่)|1",
-          "การแจ้งข่าวร้าย (Breaking Bad News) ตามหลัก SPIKES Protocol ตัวอักษร 'S' ตัวแรกหมายถึงอะไร?|Setting (การเตรียมสถานที่และความพร้อม)|Strategy (การวางแผนการพูดคุย)|Sorrow (การแสดงความเสียใจ)|Support (การให้ความช่วยเหลือ)|0",
-          "การตรวจคลื่นไฟฟ้าสมอง (EEG) เพื่อยืนยันภาวะสมองตาย ในประเทศไทยมีความจำเป็นหรือไม่?|จำเป็นต้องทำในทุกราย|เป็นทางเลือกเสริม ไม่จำเป็นต้องทำหากผลตรวจทางคลินิกและ Apnea Test ชัดเจน|ทำเฉพาะในผู้ป่วยเด็กเท่านั้น|ทำเฉพาะในผู้ป่วยที่ได้รับยากดประสาท|1",
-          "หลังจากอวัยวะถูกนำออกจากร่างกายผู้บริจาค กระบวนการที่ต้องทำทันทีคืออะไร?|การนำไปปลูกถ่ายให้ผู้รับทันทีโดยไม่ต้องล้าง|การทำความสะอาดด้วยน้ำเปล่า|การล้างและแช่ด้วยน้ำยาถนอมอวัยวะ (Preservation Solution) ที่อุณหภูมิต่ำ|การนำไปแช่แข็งในช่องฟรีซ|2",
-          "ใครมีสิทธิ์ในการตัดสินใจสูงสุดเกี่ยวกับการจัดสรรอวัยวะให้ผู้ป่วยที่รอคอย?|แพทย์ผู้ทำการผ่าตัดจัดเก็บ|ผู้อำนวยการศูนย์รับบริจาคอวัยวะ|ระบบคอมพิวเตอร์ที่ใช้เกณฑ์จัดสรรอย่างเป็นธรรมของ ODC|ญาติผู้บริจาคอวัยวะ|2",
-          "หากญาติสอบถามว่า 'จะทราบได้อย่างไรว่าอวัยวะถูกนำไปให้ใคร' คำตอบที่เหมาะสมที่สุดคือข้อใด?|จะแจ้งชื่อและที่อยู่ของผู้รับให้ทราบอย่างละเอียด|ข้อมูลผู้บริจาคและผู้รับเป็นความลับตามจริยธรรมทางการแพทย์ แต่จะแจ้งภาพรวมให้ทราบว่านำไปช่วยใครได้บ้าง|ให้ญาติไปสืบหาข้อมูลเอาเอง|จะจัดให้ผู้บริจาคและผู้รับได้พบกันในอนาคต|1",
-          "การใช้เครื่องพยุงการทำงานของหัวใจและปอด (ECMO) ในผู้ป่วยสมองตาย มีประโยชน์อย่างไร?|เพื่อรักษาผู้ป่วยให้หายจากภาวะสมองตาย|เพื่อช่วยรักษาสภาพอวัยวะ (เช่น หัวใจ ปอด ตับ ไต) ให้มีเลือดไปเลี้ยงเพียงพอรอการจัดเก็บ|เพื่อให้ญาติรู้สึกว่าแพทย์ยังทำการรักษาอยู่|เพื่อใช้แทนการทำ Apnea test|1",
-          "จริยธรรมที่สำคัญที่สุดในกระบวนการบริจาคอวัยวะคืออะไร?|Autonomy (การเคารพสิทธิ์การตัดสินใจของผู้ป่วย/ญาติ)|Beneficence (การทำประโยชน์สูงสุด)|Non-maleficence (การไม่ทำอันตราย)|Justice (ความยุติธรรมในการจัดสรรอวัยวะ)|0"
-        ];
 
         const ICONS = {
           Users: LucideIcons.Users, Radio: LucideIcons.Radio, BookOpen: LucideIcons.BookOpen, 
@@ -243,12 +181,14 @@
 
             const syncFromGoogleSheet = async (isManual = false) => {
                 if (!systemConfig.masterCsvUrl) {
-                    if (isManual) showAlert('กรุณาระบุลิงก์ Google Sheets แบบ CSV ก่อน', 'error');
+                    if (isManual) showAlert('กรุณาระบุลิงก์ Google Sheets แบบ CSV ก่อน (ตั้งค่าที่แท็บ Auto-Sync)', 'error');
                     return;
                 }
                 if (isManual) showAlert('กำลังดึงข้อมูลสิทธิ์ผู้เรียนจากตาราง...', 'info');
                 try {
-                    const res = await fetch(systemConfig.masterCsvUrl);
+                    const noCacheUrl = systemConfig.masterCsvUrl + (systemConfig.masterCsvUrl.includes('?') ? '&' : '?') + 't=' + new Date().getTime();
+                    const res = await fetch(noCacheUrl, { cache: 'no-store' });
+                    
                     if (!res.ok) throw new Error('Cannot fetch CSV');
                     const text = await res.text();
                     const rows = text.split('\n').filter(r => r.trim());
@@ -259,38 +199,88 @@
 
                     let newCount = 0; let updateCount = 0;
                     for (let i = 1; i < rows.length; i++) {
-                        const cols = rows[i].split(',').map(c => c.trim().replace(/^"|"$/g, ''));
-                        if (cols.length >= 4 && cols[1]) {
-                            const name = cols[0]; const license = cols[1]; const hospital = cols[2]; const userType = cols[3];
-                            const existingUser = usersList.find(u => String(u.id) === String(license));
+                        const regex = /,(?=(?:(?:[^"]*"){2})*[^"]*$)/;
+                        const cols = rows[i].split(regex).map(c => c.trim().replace(/^"|"$/g, ''));
+                        
+                        if (cols.length >= 10 && cols[2]) {
+                            const name = cols[1] || ''; 
+                            const license = String(cols[2]).replace(/[^a-zA-Z0-9]/g, ''); 
+                            if (!license) continue;
+
+                            const phone = (cols[3] || '').replace(/[^0-9]/g, '');
+                            const email = cols[4] || '';
+                            const position = cols[5] || '';
+                            const department = cols[6] || '';
+                            const hospital = cols[7] || ''; 
+                            const province = cols[8] || '';
                             
-                            // 🌟 ตรวจจับสิทธิ์ Onsite เพื่อให้ข้ามการเรียนและทำข้อสอบได้เลย
+                            let rawUserType = (cols[9] || '').trim().toLowerCase();
+                            let userType = 'เรียนใหม่';
+                            if (rawUserType === 'onsite') userType = 'Onsite';
+                            else if (rawUserType === 'online') userType = 'Online';
+
+                            const existingUser = usersList.find(u => String(u.id) === license);
                             const isOnsite = userType === 'Onsite';
-                            let targetStudySecs = isOnsite ? 36000 : 0;
-                            let targetProgress = isOnsite ? 100 : 0;
-                            let targetSkillLab = isOnsite ? true : false;
+
+                            let targetPayload = {
+                                id: license, 
+                                name: name,
+                                license: license,
+                                phone: phone,
+                                email: email,
+                                position: position,
+                                department: department,
+                                hospital: hospital,
+                                province: province,
+                                userType: userType
+                            };
 
                             if (!existingUser) {
-                                const newUser = { id: license, name, license, hospital, userType: userType || 'เรียนใหม่', progress: targetProgress, studySeconds: targetStudySecs, status: 'กำลังเรียน', pretest: '-', posttest: '-', skillLabPassed: targetSkillLab, lastVideoId: 1, videoTimes: {} };
-                                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_users', license), newUser, { merge: true });
+                                targetPayload.status = 'กำลังเรียน';
+                                targetPayload.pretest = '-';
+                                targetPayload.posttest = '-';
+                                targetPayload.lastVideoId = 1;
+                                targetPayload.videoTimes = {};
+                                targetPayload.progress = isOnsite ? 100 : 0;
+                                targetPayload.studySeconds = isOnsite ? 36000 : 0;
+                                targetPayload.skillLabPassed = isOnsite;
+                                
+                                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_users', license), targetPayload, { merge: true });
                                 newCount++;
-                            } else if (existingUser.userType !== userType || existingUser.name !== name || existingUser.hospital !== hospital) {
-                                let updateData = { name, userType, hospital };
-                                // อัปเดตแพ็กเกจเวลา หากมีการปรับสิทธิ์เป็น Onsite ภายหลัง
-                                if (isOnsite && existingUser.userType !== 'Onsite') {
-                                    updateData.progress = 100;
-                                    updateData.studySeconds = 36000;
-                                    updateData.skillLabPassed = true;
+                            } else {
+                                if (isOnsite && ((existingUser.progress || 0) < 100 || !existingUser.skillLabPassed)) {
+                                    targetPayload.progress = 100;
+                                    targetPayload.studySeconds = 36000;
+                                    targetPayload.skillLabPassed = true;
                                 }
-                                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_users', license), updateData, { merge: true });
+                                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_users', license), targetPayload, { merge: true });
                                 updateCount++;
                             }
                         }
                     }
-                    if (isManual) showAlert(`ซิงค์ข้อมูลสำเร็จ! (เพิ่มใหม่ ${newCount} คน, อัปเดต ${updateCount} คน)`);
+                    if (isManual) showAlert(`ซิงค์ข้อมูลสำเร็จ! (เพิ่มใหม่ ${newCount} คน, อัปเดต/Auto-refill ${updateCount} คน)`);
                 } catch (e) {
                     if (isManual) showAlert('ดึงข้อมูลล้มเหลว กรุณาตรวจสอบลิงก์ CSV', 'error');
                     console.error("Sync Sheet Error:", e);
+                }
+            };
+
+            const handleForceRefillAll = async () => {
+                if(!window.confirm('ระบบจะค้นหาผู้เรียนที่มีสิทธิ์ Onsite ทั้งหมด และเติมเวลาเรียนเป็น 100% พร้อมผ่าน Skill Lab อัตโนมัติ ยืนยันหรือไม่?')) return;
+                let count = 0;
+                showAlert('กำลังประมวลผล Auto-Refill...', 'info');
+                try {
+                    for(const u of usersList) {
+                        const isUserOnsite = u.userType === 'Onsite' || String(u.userType).toLowerCase() === 'onsite';
+                        if (isUserOnsite && (u.progress < 100 || !u.skillLabPassed)) {
+                            await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_users', String(u.id)), { progress: 100, studySeconds: 36000, skillLabPassed: true, userType: 'Onsite' }, { merge: true });
+                            count++;
+                        }
+                    }
+                    showAlert(`ดำเนินการ Auto-Refill สำเร็จ ${count} รายการ`);
+                } catch(e) {
+                    showAlert('เกิดข้อผิดพลาดในการ Refill', 'error');
+                    console.error(e);
                 }
             };
 
@@ -325,7 +315,6 @@
             const updateUserStatus = async (userId, newStatus, newType) => {
                 try {
                     let updatePayload = { status: newStatus, userType: newType };
-                    // 🌟 Auto-refill: หากตั้งเป็นสิทธิ์ Onsite จะได้รับเวลาเรียน 10 ชม. + ผ่านห้องปฏิบัติการอัตโนมัติ
                     if (newType === 'Onsite') {
                         updatePayload.studySeconds = 36000;
                         updatePayload.progress = 100;
@@ -451,9 +440,15 @@
                                         <h2 className="text-2xl font-black text-slate-800 flex items-center gap-2"><SafeIcon name="Users" className="text-line-600" /> จัดการสิทธิ์ผู้เรียน</h2>
                                         <p className="text-slate-500 text-sm mt-1">ผู้เรียนทั้งหมดในระบบ: {usersList.length} ราย</p>
                                     </div>
-                                    <div className="flex gap-2 w-full md:w-auto">
-                                        <div className="bg-white px-4 py-2 rounded-lg border flex items-center gap-2 flex-1 md:w-64"><SafeIcon name="Search" className="text-slate-400 shrink-0" /><input type="text" placeholder="ค้นหาชื่อ หรือ ใบอนุญาต..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="outline-none text-sm w-full bg-transparent" /></div>
-                                        <button onClick={() => setShowManualForm(!showManualForm)} className="bg-line-500 text-white px-4 py-2 rounded-lg font-bold text-sm shadow-sm hover:bg-line-600 shrink-0 flex items-center gap-1"><SafeIcon name="Plus" size={16}/> เพิ่มมือ</button>
+                                    <div className="flex flex-wrap gap-2 w-full md:w-auto mt-4 md:mt-0">
+                                        <div className="bg-white px-4 py-2 rounded-lg border flex items-center gap-2 flex-1 md:w-64 min-w-[200px]"><SafeIcon name="Search" className="text-slate-400 shrink-0" /><input type="text" placeholder="ค้นหาชื่อ หรือ ใบอนุญาต..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="outline-none text-sm w-full bg-transparent" /></div>
+                                        
+                                        <button onClick={() => syncFromGoogleSheet(true)} className="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold text-sm shadow-sm hover:bg-blue-500 shrink-0 flex items-center gap-1"><SafeIcon name="RefreshCw" size={16}/> ดึงสิทธิ์จาก Sheet</button>
+                                        
+                                        <button onClick={handleForceRefillAll} className="bg-amber-500 text-white px-4 py-2 rounded-lg font-bold text-sm shadow-sm hover:bg-amber-400 shrink-0 flex items-center gap-1"><SafeIcon name="Activity" size={16}/> Auto-Refill Onsite</button>
+
+                                        <button onClick={() => setShowManualForm(!showManualForm)} className="bg-slate-800 text-white px-4 py-2 rounded-lg font-bold text-sm shadow-sm hover:bg-slate-700 shrink-0 flex items-center gap-1"><SafeIcon name="Plus" size={16}/> เพิ่มมือ</button>
+                                        
                                         <button onClick={handleExportCSV} className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg font-bold text-sm shadow-sm flex items-center gap-1"><SafeIcon name="Download" size={16}/> CSV</button>
                                     </div>
                                 </div>
