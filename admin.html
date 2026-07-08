@@ -260,8 +260,25 @@
                     let newCount = 0; let updateCount = 0;
                     for (let i = 1; i < rows.length; i++) {
                         const cols = rows[i].split(',').map(c => c.trim().replace(/^"|"$/g, ''));
-                        if (cols.length >= 4 && cols[1]) {
-                            const name = cols[0]; const license = cols[1]; const hospital = cols[2]; const userType = cols[3];
+                        
+                        // 🌟 อัปเดต Index คอลัมน์ให้ตรงกับ Google Sheets ของกัปตัน (ภาพล่าสุด 14.10.09) 🌟
+                        // B(1)=ชื่อ, C(2)=ใบอนุญาต, D(3)=เบอร์, E(4)=อีเมล, F(5)=ตำแหน่ง, G(6)=สังกัด, H(7)=รพ., I(8)=จังหวัด, J(9)=สิทธิ์
+                        if (cols.length >= 10 && cols[2]) {
+                            const name = cols[1]; 
+                            const license = cols[2]; 
+                            const phone = cols[3];
+                            const email = cols[4];
+                            const position = cols[5];
+                            const department = cols[6];
+                            const hospital = cols[7]; 
+                            const province = cols[8];
+                            
+                            // จัดการตัวพิมพ์เล็ก/ใหญ่ และช่องว่างของสิทธิ์
+                            let rawUserType = (cols[9] || '').trim().toLowerCase();
+                            let userType = 'เรียนใหม่';
+                            if (rawUserType === 'onsite') userType = 'Onsite';
+                            else if (rawUserType === 'online') userType = 'Online';
+
                             const existingUser = usersList.find(u => String(u.id) === String(license));
                             
                             // 🌟 ตรวจจับสิทธิ์ Onsite เพื่อให้ข้ามการเรียนและทำข้อสอบได้เลย
@@ -271,16 +288,21 @@
                             let targetSkillLab = isOnsite ? true : false;
 
                             if (!existingUser) {
-                                const newUser = { id: license, name, license, hospital, userType: userType || 'เรียนใหม่', progress: targetProgress, studySeconds: targetStudySecs, status: 'กำลังเรียน', pretest: '-', posttest: '-', skillLabPassed: targetSkillLab, lastVideoId: 1, videoTimes: {} };
+                                const newUser = { 
+                                    id: license, name, license, phone, email, position, department, hospital, province, 
+                                    userType: userType, progress: targetProgress, studySeconds: targetStudySecs, 
+                                    status: 'กำลังเรียน', pretest: '-', posttest: '-', skillLabPassed: targetSkillLab, 
+                                    lastVideoId: 1, videoTimes: {} 
+                                };
                                 await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_users', license), newUser, { merge: true });
                                 newCount++;
                             } else {
                                 let updateData = {};
                                 let needsUpdate = false;
 
-                                // เช็คว่ามีการเปลี่ยนชื่อ โรงพยาบาล หรือประเภทสิทธิ์หรือไม่
-                                if (existingUser.userType !== userType || existingUser.name !== name || existingUser.hospital !== hospital) {
-                                    updateData = { name, userType, hospital };
+                                // เช็คว่ามีการเปลี่ยนข้อมูลต่างๆ หรือไม่
+                                if (existingUser.userType !== userType || existingUser.name !== name || existingUser.hospital !== hospital || existingUser.phone !== phone) {
+                                    updateData = { name, userType, hospital, phone, email, position, department, province };
                                     needsUpdate = true;
                                 }
 
