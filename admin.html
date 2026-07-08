@@ -248,7 +248,10 @@
                 }
                 if (isManual) showAlert('กำลังดึงข้อมูลสิทธิ์ผู้เรียนจากตาราง...', 'info');
                 try {
-                    const res = await fetch(systemConfig.masterCsvUrl);
+                    // 🌟 สำคัญ: เติมรหัสเวลาต่อท้าย URL เพื่อป้องกันเบราว์เซอร์จำค่าเก่า (Cache Busting)
+                    const noCacheUrl = systemConfig.masterCsvUrl + (systemConfig.masterCsvUrl.includes('?') ? '&' : '?') + 't=' + new Date().getTime();
+                    const res = await fetch(noCacheUrl, { cache: 'no-store' });
+                    
                     if (!res.ok) throw new Error('Cannot fetch CSV');
                     const text = await res.text();
                     const rows = text.split('\n').filter(r => r.trim());
@@ -259,11 +262,9 @@
 
                     let newCount = 0; let updateCount = 0;
                     for (let i = 1; i < rows.length; i++) {
-                        // ใช้ Regex เพื่อแยกคอลัมน์ CSV อย่างแม่นยำ (ป้องกันบั๊กกรณีมีลูกน้ำในข้อมูล)
                         const regex = /,(?=(?:(?:[^"]*"){2})*[^"]*$)/;
                         const cols = rows[i].split(regex).map(c => c.trim().replace(/^"|"$/g, ''));
                         
-                        // 🌟 อัปเดต Index คอลัมน์ให้ตรงกับ Google Sheets ล่าสุด 🌟
                         // B(1)=ชื่อ, C(2)=ใบอนุญาต, D(3)=เบอร์, E(4)=อีเมล, F(5)=ตำแหน่ง, G(6)=สังกัด, H(7)=รพ., I(8)=จังหวัด, J(9)=สิทธิ์
                         if (cols.length >= 10 && cols[2]) {
                             const name = cols[1]; 
@@ -275,7 +276,6 @@
                             const hospital = cols[7]; 
                             const province = cols[8];
                             
-                            // จัดการตัวพิมพ์เล็ก/ใหญ่ และช่องว่างของสิทธิ์
                             let rawUserType = (cols[9] || '').trim().toLowerCase();
                             let userType = 'เรียนใหม่';
                             if (rawUserType === 'onsite') userType = 'Onsite';
@@ -284,7 +284,6 @@
                             const existingUser = usersList.find(u => String(u.id) === String(license));
                             const isOnsite = userType === 'Onsite';
 
-                            // 🌟 สร้างก้อนข้อมูลที่บังคับอัปเดตทุกฟิลด์เสมอ เพื่อให้ไปโชว์ใน index.html แน่นอน
                             let targetPayload = {
                                 name: name || '',
                                 license: license,
@@ -311,20 +310,18 @@
                                 await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_users', license), targetPayload, { merge: true });
                                 newCount++;
                             } else {
-                                // 🌟 ภารกิจ Auto-refill: ถ้าเป็น Onsite แต่หลอดเวลายังไม่เต็ม ให้เติมทันที
                                 if (isOnsite && ((existingUser.progress || 0) < 100 || !existingUser.skillLabPassed)) {
                                     targetPayload.progress = 100;
                                     targetPayload.studySeconds = 36000;
                                     targetPayload.skillLabPassed = true;
                                 }
-                                
-                                // บังคับเซฟอัปเดตทับข้อมูลเดิมเลย ข้อมูลจะได้ไม่ตกหล่น
+                                // บังคับเซฟอัปเดตทับข้อมูลเดิม
                                 await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_users', license), targetPayload, { merge: true });
                                 updateCount++;
                             }
                         }
                     }
-                    if (isManual) showAlert(`ซิงค์ข้อมูลสำเร็จ! (เพิ่มใหม่ ${newCount} คน, อัปเดต/Auto-refill ${updateCount} คน)`);
+                    if (isManual) showAlert(`ซิงค์ข้อมูลสำเร็จ! (ดึงสดจากเซิร์ฟเวอร์ เพิ่ม ${newCount}, อัปเดต ${updateCount})`);
                 } catch (e) {
                     if (isManual) showAlert('ดึงข้อมูลล้มเหลว กรุณาตรวจสอบลิงก์ CSV', 'error');
                     console.error("Sync Sheet Error:", e);
