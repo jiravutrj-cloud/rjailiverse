@@ -248,7 +248,6 @@
                 }
                 if (isManual) showAlert('กำลังดึงข้อมูลสิทธิ์ผู้เรียนจากตาราง...', 'info');
                 try {
-                    // 🌟 สำคัญ: เติมรหัสเวลาต่อท้าย URL เพื่อป้องกันเบราว์เซอร์จำค่าเก่า (Cache Busting)
                     const noCacheUrl = systemConfig.masterCsvUrl + (systemConfig.masterCsvUrl.includes('?') ? '&' : '?') + 't=' + new Date().getTime();
                     const res = await fetch(noCacheUrl, { cache: 'no-store' });
                     
@@ -265,39 +264,43 @@
                         const regex = /,(?=(?:(?:[^"]*"){2})*[^"]*$)/;
                         const cols = rows[i].split(regex).map(c => c.trim().replace(/^"|"$/g, ''));
                         
-                        // B(1)=ชื่อ, C(2)=ใบอนุญาต, D(3)=เบอร์, E(4)=อีเมล, F(5)=ตำแหน่ง, G(6)=สังกัด, H(7)=รพ., I(8)=จังหวัด, J(9)=สิทธิ์
+                        // อัปเดตตามโครงสร้างคอลัมน์ใหม่เป๊ะๆ
                         if (cols.length >= 10 && cols[2]) {
-                            const name = cols[1]; 
-                            const license = cols[2]; 
-                            const phone = cols[3];
-                            const email = cols[4];
-                            const position = cols[5];
-                            const department = cols[6];
-                            const hospital = cols[7]; 
-                            const province = cols[8];
+                            const name = cols[1] || ''; 
+                            // 🌟 ทำความสะอาดรหัสใบอนุญาตให้เหลือแต่ตัวเลข/ตัวอักษร ตัดช่องว่างทิ้งหมด
+                            const license = String(cols[2]).replace(/[^a-zA-Z0-9]/g, ''); 
+                            if (!license) continue;
+
+                            const phone = (cols[3] || '').replace(/[^0-9]/g, '');
+                            const email = cols[4] || '';
+                            const position = cols[5] || '';
+                            const department = cols[6] || '';
+                            const hospital = cols[7] || ''; 
+                            const province = cols[8] || '';
                             
                             let rawUserType = (cols[9] || '').trim().toLowerCase();
                             let userType = 'เรียนใหม่';
                             if (rawUserType === 'onsite') userType = 'Onsite';
                             else if (rawUserType === 'online') userType = 'Online';
 
-                            const existingUser = usersList.find(u => String(u.id) === String(license));
+                            const existingUser = usersList.find(u => String(u.id) === license);
                             const isOnsite = userType === 'Onsite';
 
                             let targetPayload = {
-                                name: name || '',
+                                id: license, // บังคับเซฟ ID ให้ตรงกับ License
+                                name: name,
                                 license: license,
-                                phone: phone || '',
-                                email: email || '',
-                                position: position || '',
-                                department: department || '',
-                                hospital: hospital || '',
-                                province: province || '',
+                                phone: phone,
+                                email: email,
+                                position: position,
+                                department: department,
+                                hospital: hospital,
+                                province: province,
                                 userType: userType
                             };
 
+                            // ถ้าเป็นคนใหม่
                             if (!existingUser) {
-                                targetPayload.id = license;
                                 targetPayload.status = 'กำลังเรียน';
                                 targetPayload.pretest = '-';
                                 targetPayload.posttest = '-';
@@ -310,39 +313,41 @@
                                 await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_users', license), targetPayload, { merge: true });
                                 newCount++;
                             } else {
+                                // ถ้าเป็นคนเก่า บังคับอัปเดตข้อมูลส่วนตัวใหม่ทั้งหมด
                                 if (isOnsite && ((existingUser.progress || 0) < 100 || !existingUser.skillLabPassed)) {
                                     targetPayload.progress = 100;
                                     targetPayload.studySeconds = 36000;
                                     targetPayload.skillLabPassed = true;
                                 }
-                                // บังคับเซฟอัปเดตทับข้อมูลเดิม
                                 await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_users', license), targetPayload, { merge: true });
                                 updateCount++;
                             }
                         }
                     }
-                    if (isManual) showAlert(`ซิงค์ข้อมูลสำเร็จ! (ดึงสดจากเซิร์ฟเวอร์ เพิ่ม ${newCount}, อัปเดต ${updateCount})`);
+                    if (isManual) showAlert(`ซิงค์ข้อมูลสำเร็จ! (เพิ่มใหม่ ${newCount} คน, อัปเดต/Auto-refill ${updateCount} คน)`);
                 } catch (e) {
                     if (isManual) showAlert('ดึงข้อมูลล้มเหลว กรุณาตรวจสอบลิงก์ CSV', 'error');
                     console.error("Sync Sheet Error:", e);
                 }
             };
 
-            // 🌟 ระบบบังคับเติมเวลาให้ Onsite ทั้งระบบทันที (Emergency Refill)
+            // 🌟 แก้ไขระบบบังคับเติมเวลาให้ครอบคลุม Onsite ทุกรูปแบบ
             const handleForceRefillAll = async () => {
                 if(!window.confirm('ระบบจะค้นหาผู้เรียนที่มีสิทธิ์ Onsite ทั้งหมด และเติมเวลาเรียนเป็น 100% พร้อมผ่าน Skill Lab อัตโนมัติ ยืนยันหรือไม่?')) return;
                 let count = 0;
                 showAlert('กำลังประมวลผล Auto-Refill...', 'info');
                 try {
                     for(const u of usersList) {
-                        if (u.userType === 'Onsite' && (u.progress < 100 || !u.skillLabPassed)) {
-                            await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_users', u.id), { progress: 100, studySeconds: 36000, skillLabPassed: true }, { merge: true });
+                        const isUserOnsite = u.userType === 'Onsite' || String(u.userType).toLowerCase() === 'onsite';
+                        if (isUserOnsite && (u.progress < 100 || !u.skillLabPassed)) {
+                            await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_users', String(u.id)), { progress: 100, studySeconds: 36000, skillLabPassed: true, userType: 'Onsite' }, { merge: true });
                             count++;
                         }
                     }
                     showAlert(`ดำเนินการ Auto-Refill สำเร็จ ${count} รายการ`);
                 } catch(e) {
                     showAlert('เกิดข้อผิดพลาดในการ Refill', 'error');
+                    console.error(e);
                 }
             };
 
