@@ -70,7 +70,7 @@
           XCircle: LucideIcons.XCircle, Save: LucideIcons.Save, UploadCloud: LucideIcons.UploadCloud,
           Trash2: LucideIcons.Trash2, Plus: LucideIcons.Plus, Download: LucideIcons.Download,
           RefreshCw: LucideIcons.RefreshCw, ShieldCheck: LucideIcons.ShieldCheck, Info: LucideIcons.Info, CheckSquare: LucideIcons.CheckSquare,
-          ArrowLeft: LucideIcons.ArrowLeft, MonitorPlay: LucideIcons.MonitorPlay, Lock: LucideIcons.Lock
+          ArrowLeft: LucideIcons.ArrowLeft, MonitorPlay: LucideIcons.MonitorPlay, Lock: LucideIcons.Lock, Globe: LucideIcons.Globe
         };
 
         function parseRawExams(raw) {
@@ -92,7 +92,7 @@
         }
 
         // ============================================================================
-        // การเชื่อมต่อ Firebase (แก้ไขให้เสถียร ไม่เกิดจอขาว)
+        // การเชื่อมต่อ Firebase
         // ============================================================================
         let app, auth, db, appId = 'fah-elearning-prod';
         try {
@@ -662,9 +662,23 @@
                              <div className="animate-in fade-in flex flex-col h-[85vh]">
                                  <div className="flex justify-between items-center mb-6">
                                      <h2 className="text-2xl font-black text-slate-800 flex items-center gap-2"><SafeIcon name="Activity" className="text-line-600" /> แดชบอร์ดสรุปผลภาพรวม</h2>
-                                     <input type="url" value={systemConfig.lookerStudioUrl || ''} onChange={e => setSystemConfig({...systemConfig, lookerStudioUrl: e.target.value})} onBlur={() => saveSettings({ lookerStudioUrl: systemConfig.lookerStudioUrl })} placeholder="ตั้งค่าลิงก์ Looker Studio Embed..." className="px-4 py-2 border rounded-lg outline-none text-sm w-72 focus:border-line-500 shadow-sm hidden md:block" />
                                  </div>
-                                 <div className="w-full flex-1 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden relative flex items-center justify-center">
+                                 
+                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 relative z-10">
+                                     <div onClick={() => window.open('./executive.html', '_blank')} className="bg-gradient-to-br from-blue-900 to-cyan-900 p-6 rounded-2xl border border-blue-500/30 shadow-[0_10px_30px_rgba(59,130,246,0.3)] cursor-pointer hover:scale-[1.02] transition-all flex flex-col items-center justify-center text-center group">
+                                         <div className="w-16 h-16 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform"><SafeIcon name="Globe" size={32} /></div>
+                                         <h3 className="text-xl font-black text-white mb-2">AI Policy Intelligence</h3>
+                                         <p className="text-sm text-blue-200">เปิดหน้าต่างแดชบอร์ดผู้บริหาร (Real-time Map & AI Chat)</p>
+                                     </div>
+                                     
+                                     <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col items-center justify-center text-center">
+                                         <div className="w-16 h-16 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mb-4"><SafeIcon name="Database" size={32} /></div>
+                                         <h3 className="text-xl font-bold text-slate-800 mb-2">Looker Studio (Legacy)</h3>
+                                         <input type="url" value={systemConfig.lookerStudioUrl || ''} onChange={e=>setSystemConfig({...systemConfig, lookerStudioUrl: e.target.value})} onBlur={() => saveSettings({ lookerStudioUrl: systemConfig.lookerStudioUrl })} placeholder="วางลิงก์ Looker Studio Embed..." className="w-full mt-2 p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none text-sm text-slate-700 text-center focus:border-line-500"/>
+                                     </div>
+                                 </div>
+
+                                 <div className="w-full flex-1 bg-slate-50 rounded-2xl border border-slate-200 shadow-inner overflow-hidden relative flex items-center justify-center">
                                      {systemConfig.lookerStudioUrl ? (
                                          <iframe src={systemConfig.lookerStudioUrl} className="absolute inset-0 w-full h-full border-none"></iframe>
                                      ) : (
