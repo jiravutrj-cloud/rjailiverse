@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>AI Policy Intelligence - RJ Ailiverse</title>
     
-    <!-- เรียกใช้ไฟล์ข้อมูลแยก (Static Data) -->
     <script src="./data.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     
@@ -52,8 +51,10 @@
         import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from 'firebase/auth';
         import { getFirestore, collection, onSnapshot, doc } from 'firebase/firestore';
 
-        const ICONS = { Globe: LucideIcons.Globe, X: LucideIcons.X, MapPin: LucideIcons.MapPin, Cpu: LucideIcons.Cpu, PlayCircle: LucideIcons.PlayCircle, Mic: LucideIcons.Mic, Send: LucideIcons.Send, CheckCircle: LucideIcons.CheckCircle, ArrowLeft: LucideIcons.ArrowLeft, Activity: LucideIcons.Activity, Users: LucideIcons.Users, Video: LucideIcons.Video, Power: LucideIcons.Power, ShieldCheck: LucideIcons.ShieldCheck };
+        // 🌟 เพิ่มไอคอน Star เข้ามา 🌟
+        const { Globe, X, MapPin, Cpu, PlayCircle, Mic, Send, CheckCircle, ArrowLeft, Activity, Users, Video, Power, ShieldCheck, Star } = LucideIcons;
         function SafeIcon({ name, size = 24, className = "" }) { const IconComponent = ICONS[name] || LucideIcons.Activity; return <IconComponent size={size} className={className} />; }
+        const ICONS = { Globe, X, MapPin, Cpu, PlayCircle, Mic, Send, CheckCircle, ArrowLeft, Activity, Users, Video, Power, ShieldCheck, Star };
 
         let app, auth, db, appId = 'fah-elearning-prod';
         try {
@@ -70,7 +71,6 @@
             const [appsScriptUrl, setAppsScriptUrl] = useState('');
             const [isAuth, setIsAuth] = useState(false);
             
-            // 🌟 ลบ showAvatarVideo ออกไปแล้วตามคำสั่งกัปตัน 🌟
             const [isSystemStarted, setIsSystemStarted] = useState(false);
 
             const [activeRegion, setActiveRegion] = useState(null);
@@ -126,6 +126,10 @@
             const regionStats = {};
             baseRegions.forEach(r => { regionStats[r.id] = { ...r, users: 0, learning: 0, lab: 0, passed: 0 }; });
 
+            // 🌟 คำนวณ KPI ด้านความพึงพอใจ 🌟
+            let totalSatScore = 0;
+            let satRatingCount = 0;
+
             users.forEach(u => {
                 let rId = null; const dept = u.department || '';
                 if (dept.startsWith('เขตสุขภาพที่ ')) rId = `R${dept.replace('เขตสุขภาพที่ ', '').trim()}`;
@@ -136,10 +140,17 @@
                     if (u.skillLabHistory?.length > 0) regionStats[rId].lab += 1;
                     if (u.status === 'ผ่าน') regionStats[rId].passed += 1;
                 }
+                // เก็บแต้มดาว
+                if (u.satisfactionScore) {
+                    totalSatScore += u.satisfactionScore;
+                    satRatingCount++;
+                }
             });
 
             const REGION_DATA = Object.values(regionStats);
             const totalStats = REGION_DATA.reduce((acc, curr) => ({ users: acc.users + curr.users, learning: acc.learning + curr.learning, lab: acc.lab + curr.lab, passed: acc.passed + curr.passed }), { users: 0, learning: 0, lab: 0, passed: 0 });
+            
+            const avgSatisfaction = satRatingCount > 0 ? (totalSatScore / satRatingCount).toFixed(1) : "0.0";
 
             const fetchAppsScript = async (payload) => {
                 const url = appsScriptUrl || 'https://script.google.com/macros/s/AKfycbwt9H-GVs2aijX_sgzjlpGP9314ereuA9ZECNs4Uc00VLz5rFcJm7aYmkduEMiFVKjA/exec';
@@ -202,7 +213,6 @@
 
             const handleStartSystem = () => {
                 setIsSystemStarted(true);
-                // 🌟 พอกดปุ่มปุ๊บ ให้วิ่งเข้าสู่การแสดงรายงานทันที ไม่มีวิดีโอมาคั่นแล้วค่ะ 🌟
                 generateInitialReport(); 
             };
 
@@ -228,7 +238,6 @@
                 setTimeout(() => execEndRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
             };
 
-            // 🛑 หน้าจอ Standby (ก่อนกดปุ่ม Start) 🛑
             if (!isSystemStarted) {
                 return (
                     <div className="min-h-screen w-full flex items-center justify-center bg-[url('https://res.cloudinary.com/djwclucoz/image/upload/v1783149499/Pngtree_global_connectivity_and_technical_networks_15770649_1_h9ggdv.jpg')] bg-cover bg-center relative">
@@ -288,10 +297,20 @@
                                    <div className="text-2xl font-black text-purple-400">{totalStats.lab.toLocaleString()}</div>
                                 </div>
                             </div>
-
-                            <div className="bg-emerald-900/20 p-4 rounded-2xl border border-emerald-500/30 backdrop-blur-sm flex items-center justify-between shrink-0">
-                                <div className="flex items-center gap-2 text-emerald-400 font-bold"><SafeIcon name="CheckCircle" size={18}/> สอบผ่านแล้ว</div>
-                                <div className="text-2xl font-black text-emerald-400">{totalStats.passed.toLocaleString()}</div>
+                            
+                            {/* 🌟 New KPI: Customer Satisfaction (CSAT) 🌟 */}
+                            <div className="grid grid-cols-2 gap-4 shrink-0">
+                                <div className="bg-emerald-900/20 p-4 rounded-2xl border border-emerald-500/30 backdrop-blur-sm flex flex-col justify-between">
+                                    <div className="flex items-center gap-2 text-emerald-400 font-bold text-sm mb-1"><SafeIcon name="CheckCircle" size={16}/> สอบผ่านแล้ว</div>
+                                    <div className="text-2xl font-black text-emerald-400">{totalStats.passed.toLocaleString()}</div>
+                                </div>
+                                <div className="bg-amber-900/20 p-4 rounded-2xl border border-amber-500/30 backdrop-blur-sm flex flex-col justify-between">
+                                    <div className="flex items-center gap-2 text-amber-400 font-bold text-sm mb-1"><SafeIcon name="Star" size={16}/> ความพึงพอใจ</div>
+                                    <div className="flex items-end gap-1">
+                                        <div className="text-2xl font-black text-amber-400">{avgSatisfaction}</div>
+                                        <div className="text-xs font-bold text-amber-400/60 mb-1">/ 5.0</div>
+                                    </div>
+                                </div>
                             </div>
 
                             {/* Exec Chat */}
