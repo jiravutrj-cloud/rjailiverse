@@ -124,7 +124,8 @@
             for (let i = 0; i < 3; i++) {
                 try {
                     const res = await fetchAppsScript({ action: 'callGeminiTTS', text: text, voiceName: voiceName });
-                    if (res.status === 'success' && res.inlineData) return res;
+                    // แก้ไขบั๊กข้อมูลซ้อนทับ: ส่งคืน inlineData ที่อยู่ชั้นในสุดออกไปตรงๆ
+                    if (res.status === 'success' && res.inlineData) return res.inlineData; 
                     throw new Error(res.message || 'TTS Error');
                 } catch (e) { if (i < 2) await new Promise(r => setTimeout(r, 2000)); else throw e; }
             }
@@ -262,7 +263,12 @@
                     const audio = new Audio(pcm16ToWav(inlineData.data, sampleRate)); 
                     audioRef.current = audio; audio.onended = () => { if (onEndCallback) onEndCallback(); }; audio.onerror = () => { showMsg('ระบบเสียงเล่นไม่ได้', 'error'); if (onEndCallback) onEndCallback(); }; 
                     audio.play().catch(e => { console.error("Audio Play Error:", e); showMsg('กรุณาแตะหน้าจอเพื่ออนุญาตเล่นเสียง', 'error'); if (onEndCallback) onEndCallback(); }); 
-                } catch (error) { if (speechId === currentSpeechIdRef.current) { showMsg(`เสียงขัดข้อง: ${error.message}`, 'error'); if (onEndCallback) onEndCallback(); } }
+                } catch (error) { 
+                    if (speechId === currentSpeechIdRef.current) { 
+                        showMsg(`เสียงขัดข้อง: ${error.message}`, 'error'); 
+                        if (onEndCallback) onEndCallback(); 
+                    } 
+                }
             };
 
             const handleVimeoMessage = useCallback((event) => {
@@ -323,6 +329,15 @@
                 
                 try {
                     let rawResponse = await callGeminiAPI(userMsg, roleplayPrompt, imageToSend); 
+                    
+                    // 🚨 ดักจับ Error ขั้นเด็ดขาด หากระบบหลังบ้านส่งข้อความแจ้งเตือนความผิดพลาดมา
+                    if (rawResponse.startsWith('[ระบบขัดข้อง]')) {
+                        setMessages(prev => [...prev, { id: Date.now(), sender: 'ai', text: rawResponse, isVoiceOnly: false, speakerName: 'ฟ้า' }]);
+                        showMsg(rawResponse, 'error');
+                        setIsTyping(false);
+                        return; // หยุดการทำงาน ไม่ต้องดึงเสียงต่อ
+                    }
+                    
                     let spk = 'FAH'; let visualSpeaker = 'FAH'; let cleanText = rawResponse; const checkStr = cleanText.substring(0, 150).toLowerCase();
                     
                     if (checkStr.match(/\[\s*(เมฆ|น้องชาย|mek|brother)\s*\]|(^|\s)(เมฆ|น้องชาย|mek|brother)\s*:/)) { spk = 'BROTHER'; visualSpeaker = 'BROTHER'; } 
@@ -341,8 +356,13 @@
                     const displayChatText = (roleplayPhase === 'negotiating') ? `(${speakerName}) ${cleanText}` : cleanText;
                     
                     setMessages(prev => [...prev, { id: msgId, sender: 'ai', text: displayChatText, isVoiceOnly, speakerName }]); setIsTyping(false); 
-                    speakThai(cleanText, () => setMessages(prev => prev.map(m => m.id === msgId ? { ...m, isVoiceOnly: false, isHidden: roleplayPhase === 'negotiating' } : m)), spk);
-                } catch (err) { setIsTyping(false); setMessages(prev => [...prev, { id: Date.now(), sender: 'ai', text: `ข้อผิดพลาด (${err.message})`, isVoiceOnly: false, speakerName: 'ฟ้า' }]); }
+                    
+                    // ปลดล็อกการซ่อนแชท (ลบ isHidden ออก เพื่อให้ข้อความโชว์ควบคู่กับเสียงเสมอ)
+                    speakThai(cleanText, () => setMessages(prev => prev.map(m => m.id === msgId ? { ...m, isVoiceOnly: false } : m)), spk);
+                } catch (err) { 
+                    setIsTyping(false); 
+                    setMessages(prev => [...prev, { id: Date.now(), sender: 'ai', text: `ข้อผิดพลาด (${err.message})`, isVoiceOnly: false, speakerName: 'ฟ้า' }]); 
+                }
             };
 
             const endScenarioAndEvaluate = async () => {
@@ -354,6 +374,15 @@
                 
                 try {
                     const aiResponse = await callGeminiAPI("ประเมินการเจรจาหน่อย", evalPrompt); 
+                    
+                    // 🚨 ดักจับ Error
+                    if (aiResponse.startsWith('[ระบบขัดข้อง]')) {
+                        setMessages(prev => [...prev, { id: Date.now(), sender: 'ai', text: aiResponse, isVoiceOnly: false, speakerName: 'ฟ้า' }]);
+                        showMsg(aiResponse, 'error');
+                        setIsTyping(false);
+                        return; 
+                    }
+                    
                     const isPass = aiResponse.includes('[PASS]'); 
                     const empathyMatch = aiResponse.match(/\[EMPATHY:\s*(\d+)\]/i);
                     const empathyScore = empathyMatch ? parseInt(empathyMatch[1]) : (isPass ? 80 : 40);
