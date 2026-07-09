@@ -213,10 +213,20 @@
                             const hospital = cols[6] || ''; 
                             const province = cols[7] || '';
                             
-                            let rawUserType = (cols[8] || '').trim().toLowerCase();
+                            // 🚀 อัปเกรดระบบกรองสิทธิ์ (Smart Fallback) ทะลวง Dirty Data
                             let userType = 'เรียนใหม่';
-                            if (rawUserType === 'onsite') userType = 'Onsite';
-                            else if (rawUserType === 'online') userType = 'Online';
+                            let rawUserType = String(cols[8] || '').trim().toLowerCase();
+                            
+                            if (rawUserType.includes('onsite')) {
+                                userType = 'Onsite';
+                            } else if (rawUserType.includes('online')) {
+                                userType = 'Online';
+                            } else {
+                                // ไม้ตายสุดท้าย: หากคอลัมน์ 8 หาไม่เจอ ให้กวาดข้อความทั้งบรรทัดเพื่อดักจับสิทธิ์
+                                const fullRowText = rows[i].toLowerCase();
+                                if (fullRowText.includes('onsite')) userType = 'Onsite';
+                                else if (fullRowText.includes('online')) userType = 'Online';
+                            }
 
                             const phone = (cols[16] || '').replace(/[^0-9]/g, '');
 
