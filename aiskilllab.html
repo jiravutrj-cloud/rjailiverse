@@ -244,17 +244,23 @@
             // ==========================================
             // TTS & VIMEO INTEGRATION
             // ==========================================
-            const speakThai = async (text, onEndCallback = null, speaker = 'FAH') => {
+            const speakThai = async (text, onEndCallback = null, speaker = 'FAH', isSystemVoice = false) => {
                 stopAudio(); currentSpeechIdRef.current += 1; const speechId = currentSpeechIdRef.current; 
                 // ใช้เสียง Aoede เป็นค่าเริ่มต้นสำหรับน้องฟ้าเสมอตามคำสั่งของกัปตัน
                 let targetVoice = "Aoede"; 
-                let cleanSpeakText = text.replace(/\[.*?\]/g, '').replace(/\*.*?\*/g, '').replace(/#.*?#/g, '').replace(/^(ฟ้า|เมฆ|พี่เอก|เอก|น้องชาย|ลูกสาว|แฟน|แฟนของฟ้า|Fah|Mek|Brother|Sister|Boyfriend|AI)\s*:\s*/i, '').trim();
+                // เพิ่มการลบข้อความในวงเล็บ (...) ออกจากการอ่านออกเสียง
+                let cleanSpeakText = text.replace(/\[.*?\]/g, '').replace(/\(.*?\)/g, '').replace(/\*.*?\*/g, '').replace(/#.*?#/g, '').replace(/^(ฟ้า|เมฆ|พี่เอก|เอก|น้องชาย|ลูกสาว|แฟน|แฟนของฟ้า|Fah|Mek|Brother|Sister|Boyfriend|AI)\s*:\s*/i, '').trim();
                 let emotionPrompt = "";
                 if (isListening) { recognitionRef.current?.stop(); setIsListening(false); }
                 
-                if (speaker === 'BROTHER') { targetVoice = "Charon"; emotionPrompt = `[พูดด้วยเสียงผู้ชายวัยรุ่น 18 ปี กำลังอารมณ์เสียและเศร้าเสียใจ]: ${cleanSpeakText}`; } 
-                else if (speaker === 'BOYFRIEND') { targetVoice = "Charon"; emotionPrompt = `[พูดด้วยเสียงผู้ชายวัยผู้ใหญ่ นุ่มนวล อบอุ่น ใจเย็น สุภาพ และคอยให้กำลังใจ]: ${cleanSpeakText}`; } 
-                else { targetVoice = "Aoede"; emotionPrompt = `[พูดด้วยเสียงผู้หญิงวัยรุ่น 22 ปี กำลังร้องไห้และสับสน]: ${cleanSpeakText}`; }
+                if (isSystemVoice) {
+                    targetVoice = "Aoede";
+                    emotionPrompt = `[พูดด้วยเสียงผู้ประกาศหญิง สุภาพ ชัดเจน นุ่มนวล เป็นทางการ ไม่แสดงอารมณ์เศร้า]: ${cleanSpeakText}`;
+                } else {
+                    if (speaker === 'BROTHER') { targetVoice = "Charon"; emotionPrompt = `[พูดด้วยเสียงผู้ชายวัยรุ่น 18 ปี กำลังอารมณ์เสียและเศร้าเสียใจ]: ${cleanSpeakText}`; } 
+                    else if (speaker === 'BOYFRIEND') { targetVoice = "Charon"; emotionPrompt = `[พูดด้วยเสียงผู้ชายวัยผู้ใหญ่ นุ่มนวล อบอุ่น ใจเย็น สุภาพ และคอยให้กำลังใจ]: ${cleanSpeakText}`; } 
+                    else { targetVoice = "Aoede"; emotionPrompt = `[พูดด้วยเสียงผู้หญิงวัยรุ่น 22 ปี กำลังร้องไห้และสับสน]: ${cleanSpeakText}`; }
+                }
 
                 try {
                     const inlineData = await callGeminiTTS(emotionPrompt, targetVoice); 
@@ -291,7 +297,7 @@
                 setRoleplayPhase('giving_context'); setCurrentEmotion('SAD'); setCurrentSpeaker('FAH');
                 const contextMsgId = Date.now(); 
                 setMessages(prev => [...prev, { id: contextMsgId, sender: 'ai', text: contextText, isVoiceOnly: false, speakerName: 'ฟ้า', isContext: true }]);
-                speakThai(contextText, () => setRoleplayPhase('negotiating'), 'FAH');
+                speakThai(contextText, () => setRoleplayPhase('negotiating'), 'FAH', true);
             };
 
             // ==========================================
@@ -310,7 +316,7 @@
                 speakThai(introMsg, () => { 
                     setMessages(prev => prev.map(m => m.id === introMsgId ? { ...m, isVoiceOnly: false } : m)); 
                     setRoleplayPhase('playing_scenario'); 
-                }, 'FAH');
+                }, 'FAH', true);
             };
 
             const handleSendChat = async (e, quickActionText = null) => {
@@ -348,7 +354,9 @@
                     for (const em of emotionsList) { if (new RegExp(`\\[\\s*${em}\\s*\\]`, 'i').test(checkStr)) { foundEmotion = em; break; } }
                     
                     setCurrentSpeaker(visualSpeaker); setCurrentEmotion(foundEmotion);
-                    cleanText = cleanText.replace(/\[.*?\]/g, '').replace(/^(ฟ้า|เมฆ|พี่เอก|เอก|น้องชาย|ลูกสาว|แฟน|แฟนของฟ้า|Fah|Mek|Brother|Sister|Boyfriend)\s*:\s*/i, '').replace(/[*#]/g, '').trim();
+                    
+                    // อัปเดตการคลีนข้อความ: สั่งลบข้อความในวงเล็บ (แอคติ้งเวที) ออกจากหน้าจอแชท
+                    cleanText = cleanText.replace(/\[.*?\]/g, '').replace(/\(.*?\)/g, '').replace(/^(ฟ้า|เมฆ|พี่เอก|เอก|น้องชาย|ลูกสาว|แฟน|แฟนของฟ้า|Fah|Mek|Brother|Sister|Boyfriend)\s*:\s*/i, '').replace(/[*#]/g, '').trim();
                     
                     const isVoiceOnly = roleplayPhase === 'negotiating'; 
                     const speakerName = spk === 'BROTHER' ? 'เมฆ' : spk === 'BOYFRIEND' ? 'พี่เอก' : 'ฟ้า'; 
@@ -356,13 +364,8 @@
                     const displayChatText = (roleplayPhase === 'negotiating') ? `(${speakerName}) ${cleanText}` : cleanText;
                     
                     setMessages(prev => [...prev, { id: msgId, sender: 'ai', text: displayChatText, isVoiceOnly, speakerName }]); setIsTyping(false); 
-                    
-                    // ปลดล็อกการซ่อนแชท (ลบ isHidden ออก เพื่อให้ข้อความโชว์ควบคู่กับเสียงเสมอ)
-                    speakThai(cleanText, () => setMessages(prev => prev.map(m => m.id === msgId ? { ...m, isVoiceOnly: false } : m)), spk);
-                } catch (err) { 
-                    setIsTyping(false); 
-                    setMessages(prev => [...prev, { id: Date.now(), sender: 'ai', text: `ข้อผิดพลาด (${err.message})`, isVoiceOnly: false, speakerName: 'ฟ้า' }]); 
-                }
+                    speakThai(cleanText, () => setMessages(prev => prev.map(m => m.id === msgId ? { ...m, isVoiceOnly: false, isHidden: roleplayPhase === 'negotiating' } : m)), spk, false);
+                } catch (err) { setIsTyping(false); setMessages(prev => [...prev, { id: Date.now(), sender: 'ai', text: `ข้อผิดพลาด (${err.message})`, isVoiceOnly: false, speakerName: 'ฟ้า' }]); }
             };
 
             const endScenarioAndEvaluate = async () => {
@@ -401,7 +404,7 @@
                     } catch(e) {}
                     
                     showMsg(`บันทึกผลเรียบร้อย (Empathy Score: ${empathyScore})`, 'success'); 
-                    speakThai(cleanResponse.replace(/[*#]/g, ''), null, 'FAH');
+                    speakThai(cleanResponse.replace(/[*#]/g, '').replace(/\(.*?\)/g, ''), null, 'FAH', true);
                 } catch (e) { setMessages(prev => [...prev, { id: Date.now(), sender: 'ai', text: `ข้อผิดพลาด: ${e.message}`, isVoiceOnly: false }]); }
                 setIsTyping(false);
             };
