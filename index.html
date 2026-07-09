@@ -186,7 +186,7 @@
         };
 
         const globalStore = createGlobalStore({
-          currentScreen: 'landing', // 🌟 หน้าแรกสุดเป็น Landing (โลโก้) 🌟
+          currentScreen: 'landing', // หน้าแรกเป็น Landing (โลโก้)
           uiMessage: { type: '', text: '', visible: false }, tempLicense: '', authStep: 'check_license', adminClickCount: 0,
           registrationData: { name: '', email: '', phone: '', position: '', licenseId: '', department: '', hospital: '', customHospital: '', province: '', userType: '', isPrefilled: false },
           otpData: { input: '', isSending: false, error: '' }, fallbackOtp: null, loggedInUser: null, currentSessionId: null, studySeconds: 0,
@@ -287,7 +287,7 @@
         // 6. SCREENS (หน้าจอต่างๆ)
         // ============================================================================
 
-        // 🌟 หน้า 1: Landing Screen (โลโก้สร้างความน่าเชื่อถือ) 🌟
+        // 🌟 หน้า Landing: โลโก้อย่างเดียว (สร้าง Authority) 🌟
         function LandingScreen({ store, actions }) {
           return (
             <div className="flex min-h-screen w-full relative overflow-hidden items-center justify-center bg-transparent z-50">
@@ -301,11 +301,16 @@
                        </GradientButton>
                    </div>
                </div>
+               
+               {/* ปุ่มลับ Admin */}
+               <button onClick={actions.handleAdminClick} className="fixed bottom-4 left-4 z-50 text-white/80 hover:text-white bg-black/30 hover:bg-black/50 backdrop-blur-md p-3 rounded-full transition-all no-print cursor-pointer shadow-lg border border-white/30">
+                   <SafeIcon name="Settings" size={24} />
+               </button>
             </div>
           );
         }
 
-        // 🌟 หน้า 2: Intro Screen (วิดีโอแนะนำตัว + ปุ่ม AI Policy Report สีทอง) 🌟
+        // 🌟 หน้า Intro: วิดีโอห้องผ่าตัด + ปุ่มผู้บริหารสีทอง 🌟
         function IntroScreen({ store, actions }) {
           useEffect(() => { 
             const handleMessage = (event) => { 
@@ -342,9 +347,11 @@
                             <div className="pt-4 w-full relative z-10 flex flex-col gap-3 md:gap-4 animate-in slide-in-from-bottom-4 fade-in no-print">
                               <GradientButton onClick={() => { actions.nav('auth_wizard'); }} className="w-full py-4 px-4 text-base md:text-lg rounded-2xl !shadow-[0_10px_25px_rgba(0,185,0,0.3)] border border-line-400">เข้าสู่ระบบ e-Learning <SafeIcon name="ArrowRight" size={20} /></GradientButton>
                               
-                              <button onClick={() => window.open('./executive.html', '_blank')} className="w-full py-3.5 px-4 bg-slate-900/80 hover:bg-black/90 backdrop-blur-xl border border-yellow-500/30 hover:border-yellow-400/60 rounded-2xl text-[13px] md:text-sm font-bold transition-all shadow-[0_10px_30px_rgba(0,0,0,0.5)] hover:shadow-[0_0_20px_rgba(250,204,21,0.25)] flex items-center justify-center gap-2 group mt-2">
-                                 <SafeIcon name="Globe" size={18} className="text-yellow-500 group-hover:scale-110 transition-transform drop-shadow-[0_0_5px_rgba(250,204,21,0.5)]" />
-                                 <span className="bg-gradient-to-r from-yellow-200 via-yellow-400 to-yellow-600 text-transparent bg-clip-text tracking-wide drop-shadow-md">AI Policy Report (สำหรับผู้บริหาร)</span>
+                              {/* 🌟 ปุ่มผู้บริหาร (AI Policy Report) สีทองหรูหรา 🌟 */}
+                              <button onClick={() => window.open('./executive.html', '_blank')} className="w-full py-3.5 px-4 bg-slate-900/80 hover:bg-black/90 backdrop-blur-2xl border border-yellow-500/50 rounded-2xl text-[13px] md:text-sm font-bold transition-all shadow-[0_10px_30px_rgba(0,0,0,0.4)] flex items-center justify-center gap-2 group mt-2 relative overflow-hidden">
+                                 <div className="absolute inset-0 bg-gradient-to-r from-yellow-600/10 via-yellow-400/20 to-yellow-600/10 group-hover:via-yellow-400/30 transition-all"></div>
+                                 <SafeIcon name="Globe" size={18} className="text-yellow-400 drop-shadow-[0_0_8px_rgba(250,204,21,0.8)] group-hover:scale-110 transition-transform relative z-10" />
+                                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 via-yellow-400 to-yellow-600 drop-shadow-sm relative z-10">AI Policy Report (สำหรับผู้บริหาร)</span>
                               </button>
                             </div>
                          </div>
@@ -355,7 +362,7 @@
           );
         }
 
-        // 🌟 หน้า 3: เช็คสิทธิ์ล็อกอิน และ รับ OTP (แก้บั๊กค้างแล้ว 100%) 🌟
+        // 🌟 หน้าเช็คสิทธิ์ล็อกอิน และ รับ OTP 🌟
         function AuthWizard({ store, actions }) {
           const { authStep, tempLicense, registrationData: d, otpData } = store; 
           const [isChecking, setIsChecking] = useState(false); 
@@ -369,35 +376,64 @@
           const renderForm = () => {
             if (authStep === 'check_license') {
               
-              // 🚀 โลจิกดึงสิทธิ์ผู้ใช้แบบปลอดภัยที่สุด (Fail-safe Mechanism) 🚀
+              // 🚀 1. ดึงสิทธิ์จาก Firestore โดยตรง (แก้บั๊กค้างให้สมบูรณ์แบบ) 🚀
               const handleVerify = async (e) => {
                 e.preventDefault(); 
                 const cleanLicense = tempLicense.trim().replace(/[^a-zA-Z0-9]/g, '');
                 if (!cleanLicense) return actions.showMsg('กรุณาระบุใบอนุญาต', 'error');
                 setIsChecking(true);
                 
-                // ใช้ setTimeout เล็กน้อยเพื่อให้ระบบดึง Cache ฐานข้อมูลได้อย่างเสถียร
-                setTimeout(() => {
-                    // ค้นหาใน Cache (dbUsers) ที่โหลดรอไว้แล้ว (รับประกันไม่มีวันค้าง)
-                    let existUser = store.dbUsers.find(u => String(u.id) === cleanLicense || String(u.license) === cleanLicense);
+                try {
+                    // ดึงข้อมูลสิทธิ์ผู้ใช้จากตู้เซฟ Firestore (โดยมี timeout ป้องกันการค้าง)
+                    let existUser = null;
+                    try {
+                        const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'elearning_users', cleanLicense);
+                        const docSnap = await getDoc(docRef);
+                        if (docSnap.exists()) {
+                            existUser = docSnap.data();
+                        }
+                    } catch(dbErr) {
+                        console.warn("Firestore fetch error, checking cache fallback");
+                    }
                     
-                    const prefill = { 
-                      ...store.registrationData, 
-                      licenseId: cleanLicense, 
-                      name: existUser?.name || '', 
-                      email: existUser?.email || '', 
-                      phone: existUser?.phone || '', 
-                      position: existUser?.position || '',
-                      department: existUser?.department || '', 
-                      hospital: existUser?.hospital || '', 
-                      province: existUser?.province || '', 
-                      userType: existUser?.userType || 'เรียนใหม่', 
-                      isPrefilled: !!existUser 
-                    }; 
-                    globalStore.setState({ registrationData: prefill }); 
+                    // หาก DB ล่ม หรือหาไม่เจอ ให้เช็คจาก Cache ใน State (Fallback)
+                    if (!existUser) {
+                        existUser = store.dbUsers.find(u => String(u.id) === cleanLicense || String(u.license) === cleanLicense);
+                    }
+                    
+                    if (existUser) {
+                        // เจอชื่อพยาบาลคนนี้แล้ว! ทำ Auto-refill ทันที
+                        const prefill = { 
+                          ...store.registrationData, 
+                          licenseId: cleanLicense, 
+                          name: existUser.name || '', 
+                          email: existUser.email || '', 
+                          phone: existUser.phone || '', 
+                          position: existUser.position || '',
+                          department: existUser.department || '', 
+                          hospital: existUser.hospital || '', 
+                          province: existUser.province || '', 
+                          userType: existUser.userType || 'เรียนใหม่', 
+                          isPrefilled: true 
+                        }; 
+                        globalStore.setState({ registrationData: prefill }); 
+                    } else {
+                        // ผู้เรียนใหม่แกะกล่อง 100% (ไม่มีในระบบ) ทะลุไปกรอกข้อมูลใหม่ได้เลย
+                        const prefill = { 
+                          ...store.registrationData, 
+                          licenseId: cleanLicense, 
+                          isPrefilled: false 
+                        }; 
+                        globalStore.setState({ registrationData: prefill }); 
+                    }
+                    
                     setIsChecking(false); 
-                    actions.nav('register');
-                }, 400);
+                    globalStore.setState({ authStep: 'register' }); // สไลด์ไปหน้ากรอกข้อมูล
+                } catch(err) {
+                    setIsChecking(false);
+                    actions.showMsg('ระบบขัดข้อง กรุณาลองใหม่', 'error');
+                    console.error("Auth Verify Error:", err);
+                }
               };
               
               return (
@@ -461,6 +497,8 @@
             }
             
             if (authStep === 'verify_otp') {
+              
+              // 🚀 2. เข้าสู่ห้องเรียน (สร้าง User ลงฐานข้อมูล) 🚀
               const handleVerifyOTP = async (e) => { 
                  e.preventDefault(); globalStore.setState(p => ({ otpData: { ...p.otpData, isSending: true, error: '' } }));
                  try {
@@ -916,6 +954,13 @@
                        <span className="drop-shadow-sm">{store.uiMessage.text}</span>
                    </div>
                </div>
+               
+               {/* 🌟 ปุ่มลับ Admin โชว์เฉพาะหน้า Landing 🌟 */}
+               {['landing'].includes(store.currentScreen) && (
+                   <button onClick={actions.handleAdminClick} className="fixed bottom-4 left-4 z-50 text-white/80 hover:text-white bg-black/30 hover:bg-black/50 backdrop-blur-md p-3 rounded-full transition-all no-print cursor-pointer shadow-lg border border-white/30">
+                       <SafeIcon name="Settings" size={24} />
+                   </button>
+               )}
             </div>
           );
         }
