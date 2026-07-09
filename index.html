@@ -50,7 +50,7 @@
         import { getAuth, signInAnonymously } from 'firebase/auth';
         import { getFirestore, doc, setDoc, getDoc } from 'firebase/firestore';
 
-        const { User, Mail, ShieldCheck, LogOut, ArrowRight, BookOpen, CheckCircle2, PlayCircle, Download, Award, Loader2, Pencil, X, Save } = LucideIcons;
+        const { User, Mail, ShieldCheck, LogOut, ArrowRight, BookOpen, CheckCircle2, Bot, PlayCircle, Download, Award, Loader2, Pencil, X, Save, Star } = LucideIcons;
 
         // ==========================================
         // FIREBASE SETUP
@@ -78,15 +78,19 @@
             const [email, setEmail] = useState('');
             const [name, setName] = useState('');
             const [otp, setOtp] = useState('');
-            const [step, setStep] = useState('email'); // email -> otp
+            const [step, setStep] = useState('email');
             const [isSubmitting, setIsSubmitting] = useState(false);
             
             // Edit Profile States
             const [isEditing, setIsEditing] = useState(false);
             const [editForm, setEditForm] = useState({ name: '', hospital: '', department: '', province: '' });
             
-            // Cert State
+            // Cert & Survey States
             const [isGeneratingCert, setIsGeneratingCert] = useState(false);
+            const [showSurvey, setShowSurvey] = useState(false);
+            const [surveyRating, setSurveyRating] = useState(0);
+            const [hoverRating, setHoverRating] = useState(0);
+            const [surveyFeedback, setSurveyFeedback] = useState('');
 
             useEffect(() => {
                 const saved = localStorage.getItem('elearning_app_state');
@@ -125,7 +129,6 @@
                 try {
                     const res = await fetch(appsScriptUrl, { method: 'POST', body: JSON.stringify({ action: 'verifyOTP', email, otp }) }).then(r => r.json());
                     if (res.status === 'success') {
-                        // ดึงข้อมูลเก่าจาก Firebase หรือสร้างใหม่
                         let userData = { id: email.replace(/[^a-zA-Z0-9]/g, '_'), email, name, role: 'user', lastLogin: new Date().toISOString() };
                         try {
                             await signInAnonymously(auth);
@@ -163,8 +166,13 @@
                 setIsSubmitting(false);
             };
 
-            const handleGenerateCertificate = async () => {
-                if (!confirm("ระบบจะออกใบประกาศด้วยชื่อและสังกัดปัจจุบันของคุณ ยืนยันใช่ไหมครับ? (หากต้องการแก้ไขข้อมูล ให้กดปุ่มดินสอเพื่อแก้ไขก่อน)")) return;
+            const handleInitiateCertificate = () => {
+                if (!confirm("ระบบจะออกใบประกาศด้วยชื่อปัจจุบันของคุณ ยืนยันใช่ไหมครับ? (หากต้องการแก้ไขข้อมูล ให้กดปุ่มดินสอเพื่อแก้ไขก่อน)")) return;
+                setShowSurvey(true);
+            };
+
+            const handleGenerateCertificateAndSubmitSurvey = async () => {
+                if (surveyRating === 0) return alert("กรุณาให้คะแนนความพึงพอใจอย่างน้อย 1 ดาว เพื่อเป็นกำลังใจให้ทีมงานครับ ⭐️");
                 
                 setIsGeneratingCert(true);
                 try {
@@ -174,11 +182,19 @@
                     }).then(r => r.json());
                     
                     if (res.status === 'success') {
-                        const updatedUser = { ...user, certificateUrl: res.pdfUrl, certificateDate: new Date().toISOString() };
+                        const updatedUser = { 
+                            ...user, 
+                            certificateUrl: res.pdfUrl, 
+                            certificateDate: new Date().toISOString(),
+                            satisfactionScore: surveyRating,
+                            satisfactionFeedback: surveyFeedback
+                        };
                         await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_users', user.id), updatedUser, { merge: true });
                         setUser(updatedUser);
                         updateLocalStorage(updatedUser);
-                        alert("🎉 สร้างใบประกาศสำเร็จแล้ว! ระบบได้ส่งไฟล์ PDF เข้าอีเมลของคุณ และคุณสามารถดาวน์โหลดจากปุ่มด้านล่างนี้ได้เลยครับ");
+                        
+                        setShowSurvey(false);
+                        alert("🎉 สร้างใบประกาศสำเร็จแล้ว! ระบบได้ส่งไฟล์ PDF เข้าอีเมล และบันทึกคะแนนความพึงพอใจของคุณเรียบร้อยแล้วครับ");
                     } else {
                         alert("ข้อผิดพลาด: " + res.message);
                     }
@@ -199,11 +215,55 @@
                         <div className="cloud-layer layer-3"></div>
                     </div>
                     
+                    {/* Modal ป๊อปอัปความพึงพอใจ */}
+                    {showSurvey && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
+                            <div className="bg-white rounded-3xl p-6 md:p-8 w-full max-w-md shadow-2xl relative animate-in zoom-in-95">
+                                <button onClick={() => !isGeneratingCert && setShowSurvey(false)} className="absolute top-4 right-4 text-slate-400 hover:text-rose-500"><X size={24}/></button>
+                                
+                                <div className="text-center mb-6">
+                                    <div className="w-16 h-16 bg-amber-100 rounded-full mx-auto flex items-center justify-center mb-4"><Star className="text-amber-500 w-8 h-8 fill-amber-500" /></div>
+                                    <h3 className="text-xl font-black text-slate-800">ยินดีด้วยที่คุณเรียนจบ! 🎓</h3>
+                                    <p className="text-slate-500 text-sm mt-2">ก่อนรับใบประกาศ โปรดประเมินความพึงพอใจ<br/>ที่มีต่อระบบ e-Learning & AI Skill Lab ของเรา</p>
+                                </div>
+
+                                <div className="flex justify-center gap-2 mb-6">
+                                    {[1, 2, 3, 4, 5].map((star) => (
+                                        <button 
+                                            key={star} 
+                                            disabled={isGeneratingCert}
+                                            onMouseEnter={() => setHoverRating(star)} 
+                                            onMouseLeave={() => setHoverRating(0)}
+                                            onClick={() => setSurveyRating(star)}
+                                            className="transition-transform hover:scale-110 active:scale-95"
+                                        >
+                                            <Star size={40} className={`${(hoverRating || surveyRating) >= star ? 'text-amber-400 fill-amber-400' : 'text-slate-200'} transition-colors`} />
+                                        </button>
+                                    ))}
+                                </div>
+                                <div className="text-center text-amber-600 font-bold mb-6 h-6">{surveyRating > 0 ? ["ปรับปรุงด่วน", "พอใช้", "ดี", "ดีมาก", "ยอดเยี่ยมที่สุด!"][surveyRating-1] : ""}</div>
+
+                                <div className="mb-6">
+                                    <label className="block text-sm font-bold text-slate-700 mb-2">ข้อเสนอแนะเพิ่มเติม (ไม่บังคับ)</label>
+                                    <textarea 
+                                        disabled={isGeneratingCert}
+                                        value={surveyFeedback} 
+                                        onChange={e => setSurveyFeedback(e.target.value)} 
+                                        placeholder="ความรู้สึกของคุณ หรือสิ่งที่อยากให้เราพัฒนาต่อ..." 
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all resize-none text-sm" 
+                                        rows="3"
+                                    ></textarea>
+                                </div>
+
+                                <button onClick={handleGenerateCertificateAndSubmitSurvey} disabled={isGeneratingCert || surveyRating === 0} className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-3.5 rounded-xl transition-all shadow-lg flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                                    {isGeneratingCert ? <><Loader2 className="animate-spin" size={20}/> กำลังสร้างใบประกาศ...</> : <><Award size={20}/> ยืนยันและรับประกาศนียบัตร</>}
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
                     <div className="relative z-10 w-full max-w-md mx-auto animate-in fade-in zoom-in-95 duration-500">
                         {!user ? (
-                            // ==========================================
-                            // LOGIN SCREEN
-                            // ==========================================
                             <div className="glass-card p-8">
                                 <div className="text-center mb-8">
                                     <div className="w-20 h-20 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl mx-auto flex items-center justify-center mb-4 shadow-lg shadow-blue-500/30">
@@ -252,9 +312,6 @@
                                 )}
                             </div>
                         ) : (
-                            // ==========================================
-                            // DASHBOARD SCREEN
-                            // ==========================================
                             <div className="glass-card p-6 md:p-8">
                                 <div className="text-center mb-6">
                                     <div className="w-20 h-20 bg-slate-100 rounded-full mx-auto flex items-center justify-center mb-4 border-4 border-white shadow-md">
@@ -269,7 +326,6 @@
                                     </button>
                                 </div>
                                 
-                                {/* Edit Form Dropdown */}
                                 {isEditing && (
                                     <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 mb-6 animate-in slide-in-from-top-2 shadow-inner">
                                         <div className="flex justify-between items-center mb-3">
@@ -315,12 +371,12 @@
                                     </a>
                                     
                                     {!user.certificateUrl ? (
-                                        <button onClick={handleGenerateCertificate} disabled={isGeneratingCert} className="w-full group bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold rounded-2xl p-4 flex items-center justify-between transition-all shadow-lg shadow-orange-500/20 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed">
+                                        <button onClick={handleInitiateCertificate} className="w-full group bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold rounded-2xl p-4 flex items-center justify-between transition-all shadow-lg shadow-orange-500/20 active:scale-[0.98]">
                                             <div className="flex items-center gap-3">
                                                 <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-white"><Award className="w-5 h-5"/></div>
-                                                <div className="text-left"><div className="text-sm font-black">รับประกาศนียบัตร</div><div className="text-[10px] text-white/80 font-medium">ออกเอกสารอัตโนมัติทันที</div></div>
+                                                <div className="text-left"><div className="text-sm font-black">รับประกาศนียบัตร</div><div className="text-[10px] text-white/80 font-medium">ทำแบบประเมิน & รับเอกสารอัตโนมัติ</div></div>
                                             </div>
-                                            {isGeneratingCert ? <Loader2 className="animate-spin w-5 h-5"/> : <Download className="w-5 h-5" />}
+                                            <Download className="w-5 h-5" />
                                         </button>
                                     ) : (
                                         <a href={user.certificateUrl} target="_blank" className="w-full group bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-bold rounded-2xl p-4 flex items-center justify-between transition-all shadow-lg shadow-emerald-500/20 active:scale-[0.98]">
