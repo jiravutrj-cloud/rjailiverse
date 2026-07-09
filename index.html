@@ -2,26 +2,24 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>e-Learning - RJ Ailiverse</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - e-Learning RJ Ailiverse</title>
     
+    <!-- 🌟 เรียกใช้ไฟล์ข้อมูลแยก (Static Data) เพื่อรีดน้ำหนักโค้ด 🌟 -->
     <script src="./data.js"></script>
+
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = { theme: { extend: { colors: { line: { 50: '#e5f8e5', 100: '#cbf1cb', 200: '#9ce49c', 300: '#6dd66d', 400: '#3ec93e', 500: '#00B900', 600: '#009400', 700: '#006f00', 800: '#004a00', 900: '#002500' } } } } }
+    </script>
     
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&display=swap');
-        body { font-family: 'Sarabun', sans-serif; margin: 0; overflow-x: hidden; background-color: #0f172a; color: white; }
-        
-        /* Background & Clouds (Shared with Skill Lab) */
-        .sky-bg { position: fixed; inset: 0; z-index: 0; background: linear-gradient(to bottom, #0f172a 0%, #1e40af 30%, #38bdf8 60%, #fcd34d 100%); }
-        .clouds-wrapper { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 2; pointer-events: none; opacity: 0.85; }
-        .cloud-layer { position: absolute; bottom: 0; left: 0; width: 200%; height: 100%; background-repeat: repeat-x; background-size: auto 100%; animation: drift linear infinite; }
-        .layer-1 { opacity: 0.9; background-image: url('https://raw.githubusercontent.com/danielstuart14/CSS_FOG_ANIMATION/master/fog1.png'); animation-duration: 150s; }
-        .layer-2 { opacity: 0.6; background-image: url('https://raw.githubusercontent.com/danielstuart14/CSS_FOG_ANIMATION/master/fog2.png'); animation-duration: 200s; transform: scale(1.1); }
-        .layer-3 { opacity: 0.4; background-image: url('https://raw.githubusercontent.com/danielstuart14/CSS_FOG_ANIMATION/master/fog1.png'); animation-duration: 250s; transform: scale(1.2); }
-        @keyframes drift { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
-
-        .glass-card { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.3); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1); border-radius: 1.5rem; }
+        body { font-family: 'Sarabun', sans-serif; background-color: #f1f5f9; color: #1e293b; margin: 0; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background-color: #94a3b8; }
     </style>
 
     <script type="importmap">
@@ -40,367 +38,673 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 </head>
 <body>
-    <div id="root"></div>
+    <div id="admin-root"></div>
 
     <script type="text/babel" data-type="module">
-        import React, { useState, useEffect } from 'react';
+        // 🛡️ ป้องกันจอขาว (Global Error Handler)
+        window.onerror = function(message, source, lineno, colno, error) {
+            document.body.innerHTML = `
+                <div style="min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; color:#1e293b; font-family:sans-serif; padding:20px; text-align:center;">
+                    <h2 style="font-size:24px; font-weight:bold; margin-bottom:10px; color:#ef4444;">พบข้อผิดพลาดในโค้ด (Syntax Error)</h2>
+                    <p style="color:#64748b; max-width:600px; line-height:1.5; background:#f8fafc; padding:15px; border-radius:8px; border:1px solid #e2e8f0;">${message}</p>
+                </div>
+            `;
+            return true;
+        };
+
+        import React, { useState, useEffect, useRef } from 'react';
         import { createRoot } from 'react-dom/client';
         import * as LucideIcons from 'lucide-react';
         import { initializeApp, getApps, getApp } from 'firebase/app';
-        import { getAuth, signInAnonymously } from 'firebase/auth';
-        import { getFirestore, doc, setDoc, getDoc } from 'firebase/firestore';
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from 'firebase/auth';
+        import { getFirestore, collection, doc, setDoc, onSnapshot, deleteDoc } from 'firebase/firestore';
 
-        const { User, Mail, ShieldCheck, LogOut, ArrowRight, BookOpen, CheckCircle2, Bot, PlayCircle, Download, Award, Loader2, Pencil, X, Save, Star } = LucideIcons;
+        // ============================================================================
+        // ข้อมูลถูกย้ายไปที่ data.js เรียบร้อยแล้วเพื่อความเบาของไฟล์
+        // ============================================================================
 
-        // ==========================================
-        // FIREBASE SETUP
-        // ==========================================
+        const ICONS = {
+          Users: LucideIcons.Users, Radio: LucideIcons.Radio, BookOpen: LucideIcons.BookOpen, 
+          Database: LucideIcons.Database, Activity: LucideIcons.Activity, LogOut: LucideIcons.LogOut,
+          Search: LucideIcons.Search, Edit: LucideIcons.Edit, CheckCircle: LucideIcons.CheckCircle,
+          XCircle: LucideIcons.XCircle, Save: LucideIcons.Save, UploadCloud: LucideIcons.UploadCloud,
+          Trash2: LucideIcons.Trash2, Plus: LucideIcons.Plus, Download: LucideIcons.Download,
+          RefreshCw: LucideIcons.RefreshCw, ShieldCheck: LucideIcons.ShieldCheck, Info: LucideIcons.Info, CheckSquare: LucideIcons.CheckSquare,
+          ArrowLeft: LucideIcons.ArrowLeft, MonitorPlay: LucideIcons.MonitorPlay, Lock: LucideIcons.Lock, Globe: LucideIcons.Globe
+        };
+
+        function parseRawExams(raw) {
+            if (!raw || !Array.isArray(raw)) return [];
+            return raw.map((str, idx) => {
+                const parts = str.split('|').map(s => s.trim());
+                return {
+                    id: idx + 1,
+                    question: parts[0] ? parts[0].replace(/^[0-9]+\.\s*/, '') : '',
+                    options: parts.slice(1, parts.length - 1),
+                    answer: parseInt((parts[parts.length - 1] || '0').replace(/[^0-9]/g, ''), 10) || 0
+                };
+            });
+        }
+
+        function SafeIcon({ name, size = 20, className = "" }) {
+          const IconComponent = ICONS[name] || ICONS['Activity'];
+          return <IconComponent size={size} className={className} />;
+        }
+
+        // ============================================================================
+        // การเชื่อมต่อ Firebase
+        // ============================================================================
         let app, auth, db, appId = 'fah-elearning-prod';
         try {
           const fbP1 = "AIzaSyBs275"; const fbP2 = "NY99gdv1uZdAnb"; const fbP3 = "mx3UlWO8K4o5a0";
           let fbConfig = (typeof __firebase_config !== 'undefined' && __firebase_config) 
             ? JSON.parse(__firebase_config) : { apiKey: fbP1 + fbP2 + fbP3, authDomain: "e-learning-with-fah-ai.firebaseapp.com", projectId: "e-learning-with-fah-ai", storageBucket: "e-learning-with-fah-ai.firebasestorage.app", messagingSenderId: "418946105960", appId: "1:418946105960:web:728e28070790975df231dd" };
+          
           app = getApps().length === 0 ? initializeApp(fbConfig) : getApp();
-          auth = getAuth(app); db = getFirestore(app);
+          auth = getAuth(app);
+          db = getFirestore(app);
           appId = typeof __app_id !== 'undefined' && __app_id ? String(__app_id).replace(/\//g, '-') : 'fah-elearning-prod';
-        } catch (error) { console.warn("Firebase init error", error); }
+        } catch (error) { console.error("Firebase init error", error); }
 
-        const appsScriptUrl = 'https://script.google.com/macros/s/AKfycbwt9H-GVs2aijX_sgzjlpGP9314ereuA9ZECNs4Uc00VLz5rFcJm7aYmkduEMiFVKjA/exec';
-
-        // ==========================================
-        // MAIN APP COMPONENT
-        // ==========================================
-        function MainApp() {
+        function AdminApp() {
             const [user, setUser] = useState(null);
-            const [loading, setLoading] = useState(true);
+            const [isAuth, setIsAuth] = useState(false);
+            const [password, setPassword] = useState('');
+            const [activeTab, setActiveTab] = useState('users');
+            const [usersList, setUsersList] = useState([]);
+            const [contentConfig, setContentConfig] = useState({ 
+                lessons: window.INITIAL_LESSONS || [],
+                questionSets: window.QUIZ_QUESTIONS_RAW ? [parseRawExams(window.QUIZ_QUESTIONS_RAW)] : [[]]
+            });
+            const [liveConfig, setLiveConfig] = useState({ status: 'offline', topic: '', url: '', documentUrl: '' });
+            const [systemConfig, setSystemConfig] = useState({ appsScriptUrl: '', certScriptUrl: '', lookerStudioUrl: '', masterCsvUrl: '', autoSyncFromSheet: false });
+            const [alertMsg, setAlertMsg] = useState({ show: false, text: '', type: 'success' });
             
-            // Login States
-            const [email, setEmail] = useState('');
-            const [name, setName] = useState('');
-            const [otp, setOtp] = useState('');
-            const [step, setStep] = useState('email');
-            const [isSubmitting, setIsSubmitting] = useState(false);
-            
-            // Edit Profile States
-            const [isEditing, setIsEditing] = useState(false);
-            const [editForm, setEditForm] = useState({ name: '', hospital: '', department: '', province: '' });
-            
-            // Cert & Survey States
-            const [isGeneratingCert, setIsGeneratingCert] = useState(false);
-            const [showSurvey, setShowSurvey] = useState(false);
-            const [surveyRating, setSurveyRating] = useState(0);
-            const [hoverRating, setHoverRating] = useState(0);
-            const [surveyFeedback, setSurveyFeedback] = useState('');
+            const [searchTerm, setSearchTerm] = useState('');
+            const [showManualForm, setShowManualForm] = useState(false);
+            const [manualForm, setManualForm] = useState({ name: '', license: '', userType: 'เรียนใหม่', hospital: 'รพ.ราชวิถี' });
+
+            const showAlert = (text, type = 'success') => {
+                setAlertMsg({ show: true, text, type });
+                setTimeout(() => setAlertMsg({ show: false, text: '', type }), 4000);
+            };
 
             useEffect(() => {
-                const saved = localStorage.getItem('elearning_app_state');
-                if (saved) {
-                    const parsed = JSON.parse(saved);
-                    if (parsed.loggedInUser) {
-                        setUser(parsed.loggedInUser);
-                        signInAnonymously(auth).catch(e => console.warn("Auth error", e));
+                if (!auth || !db) return;
+                const initAuth = async () => {
+                    try {
+                        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                            await signInWithCustomToken(auth, __initial_auth_token);
+                        } else {
+                            await signInAnonymously(auth);
+                        }
+                    } catch (err) {
+                        console.error("Auth init error:", err);
                     }
-                }
-                setLoading(false);
+                };
+                initAuth();
+                const unsubscribe = onAuthStateChanged(auth, setUser);
+                return () => unsubscribe();
             }, []);
 
-            const updateLocalStorage = (userData) => {
-                const lState = JSON.parse(localStorage.getItem('elearning_app_state') || '{}');
-                lState.loggedInUser = userData;
-                localStorage.setItem('elearning_app_state', JSON.stringify(lState));
-            };
-
-            const handleRequestOTP = async (e) => {
-                e.preventDefault();
-                if (!email || !name) return alert("กรุณากรอกอีเมลและชื่อ-นามสกุลให้ครบถ้วน");
-                setIsSubmitting(true);
-                try {
-                    const res = await fetch(appsScriptUrl, { method: 'POST', body: JSON.stringify({ action: 'requestOTP', email, name }) }).then(r => r.json());
-                    if (res.status === 'success') setStep('otp');
-                    else alert(res.message);
-                } catch(err) { alert("เกิดข้อผิดพลาดในการส่ง OTP"); }
-                setIsSubmitting(false);
-            };
-
-            const handleVerifyOTP = async (e) => {
-                e.preventDefault();
-                if (!otp) return alert("กรุณากรอกรหัส OTP");
-                setIsSubmitting(true);
-                try {
-                    const res = await fetch(appsScriptUrl, { method: 'POST', body: JSON.stringify({ action: 'verifyOTP', email, otp }) }).then(r => r.json());
-                    if (res.status === 'success') {
-                        let userData = { id: email.replace(/[^a-zA-Z0-9]/g, '_'), email, name, role: 'user', lastLogin: new Date().toISOString() };
-                        try {
-                            await signInAnonymously(auth);
-                            const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'elearning_users', userData.id);
-                            const docSnap = await getDoc(docRef);
-                            if (docSnap.exists()) userData = { ...docSnap.data(), lastLogin: new Date().toISOString() };
-                            await setDoc(docRef, userData, { merge: true });
-                        } catch(fbErr) { console.warn("Firebase sync err", fbErr); }
-                        
-                        setUser(userData);
-                        updateLocalStorage(userData);
-                    } else alert(res.message);
-                } catch(err) { alert("เกิดข้อผิดพลาดในการยืนยัน OTP"); }
-                setIsSubmitting(false);
-            };
-
-            const handleLogout = () => {
-                localStorage.removeItem('elearning_app_state');
-                setUser(null);
-                setStep('email'); setOtp('');
-            };
-
-            const handleSaveProfile = async () => {
-                if (!editForm.name.trim()) return alert("ชื่อ-นามสกุล ห้ามเว้นว่างครับ");
-                setIsSubmitting(true);
-                try {
-                    const updatedUser = { ...user, ...editForm };
-                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_users', user.id), updatedUser, { merge: true });
-                    setUser(updatedUser);
-                    updateLocalStorage(updatedUser);
-                    setIsEditing(false);
-                } catch (e) {
-                    alert("เกิดข้อผิดพลาดในการบันทึกข้อมูล: " + e.message);
-                }
-                setIsSubmitting(false);
-            };
-
-            const handleInitiateCertificate = () => {
-                if (!confirm("ระบบจะออกใบประกาศด้วยชื่อปัจจุบันของคุณ ยืนยันใช่ไหมครับ? (หากต้องการแก้ไขข้อมูล ให้กดปุ่มดินสอเพื่อแก้ไขก่อน)")) return;
-                setShowSurvey(true);
-            };
-
-            const handleGenerateCertificateAndSubmitSurvey = async () => {
-                if (surveyRating === 0) return alert("กรุณาให้คะแนนความพึงพอใจอย่างน้อย 1 ดาว เพื่อเป็นกำลังใจให้ทีมงานครับ ⭐️");
+            useEffect(() => {
+                if (!user || !db) return;
                 
-                setIsGeneratingCert(true);
-                try {
-                    const res = await fetch(appsScriptUrl, { 
-                        method: 'POST', 
-                        body: JSON.stringify({ action: 'submitCertificate', user: user }) 
-                    }).then(r => r.json());
-                    
-                    if (res.status === 'success') {
-                        const updatedUser = { 
-                            ...user, 
-                            certificateUrl: res.pdfUrl, 
-                            certificateDate: new Date().toISOString(),
-                            satisfactionScore: surveyRating,
-                            satisfactionFeedback: surveyFeedback
-                        };
-                        await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_users', user.id), updatedUser, { merge: true });
-                        setUser(updatedUser);
-                        updateLocalStorage(updatedUser);
-                        
-                        setShowSurvey(false);
-                        alert("🎉 สร้างใบประกาศสำเร็จแล้ว! ระบบได้ส่งไฟล์ PDF เข้าอีเมล และบันทึกคะแนนความพึงพอใจของคุณเรียบร้อยแล้วครับ");
-                    } else {
-                        alert("ข้อผิดพลาด: " + res.message);
+                const unsubUsers = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'elearning_users'), (snapshot) => {
+                    const arr = []; snapshot.forEach(doc => arr.push({ id: doc.id, ...doc.data() })); setUsersList(arr);
+                }, (err) => console.error("Users sync error:", err));
+
+                const unsubSettings = onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_config', 'settings'), (docSnap) => {
+                    if (docSnap.exists()) {
+                        const data = docSnap.data();
+                        if (data.liveConfig) setLiveConfig(data.liveConfig);
+                        setSystemConfig(prev => ({ ...prev, ...data }));
                     }
-                } catch(e) {
-                    alert("เกิดข้อผิดพลาดในการเชื่อมต่อระบบออกใบประกาศ");
+                }, (err) => console.error("Settings sync error:", err));
+
+                const unsubContent = onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_config', 'content'), (docSnap) => {
+                    if (docSnap.exists() && docSnap.data()) {
+                        const data = docSnap.data();
+                        setContentConfig(prev => ({
+                            lessons: data.lessons || prev.lessons,
+                            questionSets: data.questionSets || prev.questionSets
+                        }));
+                    }
+                }, (err) => console.error("Content sync error:", err));
+                
+                return () => {
+                    unsubUsers();
+                    unsubSettings();
+                    unsubContent();
+                };
+            }, [user]);
+
+            const syncFromGoogleSheet = async (isManual = false) => {
+                if (!systemConfig.masterCsvUrl) {
+                    if (isManual) showAlert('กรุณาระบุลิงก์ Google Sheets แบบ CSV ก่อน (ตั้งค่าที่แท็บ Auto-Sync)', 'error');
+                    return;
                 }
-                setIsGeneratingCert(false);
+                if (isManual) showAlert('กำลังดึงข้อมูลสิทธิ์ผู้เรียนจากตาราง...', 'info');
+                try {
+                    const noCacheUrl = systemConfig.masterCsvUrl + (systemConfig.masterCsvUrl.includes('?') ? '&' : '?') + 't=' + new Date().getTime();
+                    const res = await fetch(noCacheUrl, { cache: 'no-store' });
+                    
+                    if (!res.ok) throw new Error('Cannot fetch CSV');
+                    const text = await res.text();
+                    const rows = text.split('\n').filter(r => r.trim());
+                    if (rows.length <= 1) {
+                        if (isManual) showAlert('ไม่พบข้อมูลผู้เรียนในตาราง', 'error');
+                        return;
+                    }
+
+                    let newCount = 0; let updateCount = 0;
+                    for (let i = 1; i < rows.length; i++) {
+                        const regex = /,(?=(?:(?:[^"]*"){2})*[^"]*$)/;
+                        const cols = rows[i].split(regex).map(c => c.trim().replace(/^"|"$/g, ''));
+                        
+                        if (cols.length >= 3 && cols[2]) {
+                            const name = cols[1] || ''; 
+                            const license = String(cols[2]).replace(/[^a-zA-Z0-9]/g, ''); 
+                            if (!license) continue;
+
+                            const email = cols[3] || '';
+                            const position = cols[4] || '';
+                            const department = cols[5] || '';
+                            const hospital = cols[6] || ''; 
+                            const province = cols[7] || '';
+                            
+                            // 🚀 อัปเกรดระบบกรองสิทธิ์ (Smart Fallback) ทะลวง Dirty Data
+                            let userType = 'เรียนใหม่';
+                            let rawUserType = String(cols[8] || '').trim().toLowerCase();
+                            
+                            if (rawUserType.includes('onsite')) {
+                                userType = 'Onsite';
+                            } else if (rawUserType.includes('online')) {
+                                userType = 'Online';
+                            } else {
+                                // ไม้ตายสุดท้าย: หากคอลัมน์ 8 หาไม่เจอ ให้กวาดข้อความทั้งบรรทัดเพื่อดักจับสิทธิ์
+                                const fullRowText = rows[i].toLowerCase();
+                                if (fullRowText.includes('onsite')) userType = 'Onsite';
+                                else if (fullRowText.includes('online')) userType = 'Online';
+                            }
+
+                            const phone = (cols[16] || '').replace(/[^0-9]/g, '');
+
+                            const existingUser = usersList.find(u => String(u.id) === license);
+                            const isOnsite = userType === 'Onsite';
+
+                            let targetPayload = {
+                                id: license, 
+                                name: name,
+                                license: license,
+                                phone: phone,
+                                email: email,
+                                position: position,
+                                department: department,
+                                hospital: hospital,
+                                province: province,
+                                userType: userType
+                            };
+
+                            if (!existingUser) {
+                                targetPayload.status = 'กำลังเรียน';
+                                targetPayload.pretest = '-';
+                                targetPayload.posttest = '-';
+                                targetPayload.lastVideoId = 1;
+                                targetPayload.videoTimes = {};
+                                targetPayload.progress = isOnsite ? 100 : 0;
+                                targetPayload.studySeconds = isOnsite ? 36000 : 0;
+                                targetPayload.skillLabPassed = isOnsite;
+                                
+                                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_users', license), targetPayload, { merge: true });
+                                newCount++;
+                            } else {
+                                if (isOnsite && ((existingUser.progress || 0) < 100 || !existingUser.skillLabPassed)) {
+                                    targetPayload.progress = 100;
+                                    targetPayload.studySeconds = 36000;
+                                    targetPayload.skillLabPassed = true;
+                                }
+                                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_users', license), targetPayload, { merge: true });
+                                updateCount++;
+                            }
+                        }
+                    }
+                    if (isManual) showAlert(`ซิงค์ข้อมูลสำเร็จ! (เพิ่มใหม่ ${newCount} คน, อัปเดต/Auto-refill ${updateCount} คน)`);
+                } catch (e) {
+                    if (isManual) showAlert('ดึงข้อมูลล้มเหลว กรุณาตรวจสอบลิงก์ CSV', 'error');
+                    console.error("Sync Sheet Error:", e);
+                }
             };
 
-            if (loading) return <div className="min-h-screen sky-bg flex items-center justify-center"><Loader2 className="w-12 h-12 text-white animate-spin" /></div>;
+            const handleForceRefillAll = async () => {
+                if(!window.confirm('ระบบจะค้นหาผู้เรียนที่มีสิทธิ์ Onsite ทั้งหมด และเติมเวลาเรียนเป็น 100% พร้อมผ่าน Skill Lab อัตโนมัติ ยืนยันหรือไม่?')) return;
+                let count = 0;
+                showAlert('กำลังประมวลผล Auto-Refill...', 'info');
+                try {
+                    for(const u of usersList) {
+                        const isUserOnsite = u.userType === 'Onsite' || String(u.userType).toLowerCase() === 'onsite';
+                        if (isUserOnsite && (u.progress < 100 || !u.skillLabPassed)) {
+                            await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_users', String(u.id)), { progress: 100, studySeconds: 36000, skillLabPassed: true, userType: 'Onsite' }, { merge: true });
+                            count++;
+                        }
+                    }
+                    showAlert(`ดำเนินการ Auto-Refill สำเร็จ ${count} รายการ`);
+                } catch(e) {
+                    showAlert('เกิดข้อผิดพลาดในการ Refill', 'error');
+                    console.error(e);
+                }
+            };
+
+            useEffect(() => {
+                if (isAuth && systemConfig.autoSyncFromSheet && systemConfig.masterCsvUrl) {
+                    const interval = setInterval(() => syncFromGoogleSheet(false), 30000);
+                    return () => clearInterval(interval);
+                }
+            }, [isAuth, systemConfig.autoSyncFromSheet, systemConfig.masterCsvUrl, usersList]);
+
+            const handleLogin = (e) => { e.preventDefault(); if (password === 'admin2026') setIsAuth(true); else showAlert('รหัสผ่านไม่ถูกต้อง', 'error'); };
+
+            const saveSettings = async (settingsToUpdate) => {
+                try {
+                    const newSettings = { ...systemConfig, ...settingsToUpdate };
+                    setSystemConfig(newSettings);
+                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_config', 'settings'), newSettings, { merge: true });
+                    showAlert('บันทึกการตั้งค่าเรียบร้อย');
+                } catch (e) { showAlert('เกิดข้อผิดพลาด', 'error'); }
+            };
+
+            const saveLiveConfig = async () => {
+                try {
+                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_config', 'settings'), { liveConfig }, { merge: true });
+                    showAlert('อัปเดตและเผยแพร่สถานะ Live สำเร็จ');
+                } catch (e) { 
+                    showAlert('เกิดข้อผิดพลาดในการบันทึก Live', 'error'); 
+                    console.error("Save Live Error:", e);
+                }
+            };
+
+            const updateUserStatus = async (userId, newStatus, newType) => {
+                try {
+                    let updatePayload = { status: newStatus, userType: newType };
+                    if (newType === 'Onsite') {
+                        updatePayload.studySeconds = 36000;
+                        updatePayload.progress = 100;
+                        updatePayload.skillLabPassed = true;
+                    }
+                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_users', userId), updatePayload, { merge: true });
+                    showAlert('อัปเดตสิทธิ์สำเร็จ');
+                } catch (e) { showAlert('เกิดข้อผิดพลาด', 'error'); }
+            };
+
+            const deleteUser = async (userId) => {
+                if (window.confirm('ยืนยันการลบสิทธิ์ผู้ใช้งานนี้ออกจากระบบ? (ข้อมูลการเรียนจะถูกลบถาวร)')) {
+                    try {
+                        await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_users', userId));
+                        showAlert('ลบผู้เรียนออกจากระบบเรียบร้อย');
+                    } catch (e) { showAlert('ลบข้อมูลไม่สำเร็จ', 'error'); }
+                }
+            };
+
+            const handleAddManualUser = async (e) => {
+                e.preventDefault();
+                const uid = manualForm.license || Date.now().toString();
+                const isOnsite = manualForm.userType === 'Onsite';
+                const newUser = { 
+                    id: uid, 
+                    ...manualForm, 
+                    progress: isOnsite ? 100 : 0, 
+                    studySeconds: isOnsite ? 36000 : 0, 
+                    status: 'กำลังเรียน', 
+                    pretest: '-', 
+                    posttest: '-', 
+                    skillLabPassed: isOnsite, 
+                    lastVideoId: 1, 
+                    videoTimes: {} 
+                };
+                try {
+                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_users', uid), newUser, { merge: true });
+                    setShowManualForm(false);
+                    showAlert('เพิ่มผู้เรียนใหม่สำเร็จ');
+                } catch (e) { showAlert('เพิ่มข้อมูลไม่สำเร็จ', 'error'); }
+            };
+
+            const saveContentConfig = async () => {
+                try {
+                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_config', 'content'), contentConfig, { merge: true });
+                    showAlert('อัปเดตและเผยแพร่เนื้อหาเรียบร้อยแล้ว');
+                } catch (e) {
+                    showAlert('เกิดข้อผิดพลาดในการบันทึกเนื้อหา', 'error');
+                }
+            };
+
+            const filteredUsers = usersList.filter(u => u.name?.toLowerCase().includes(searchTerm.toLowerCase()) || u.license?.includes(searchTerm));
+
+            if (!isAuth) {
+                return (
+                    <div className="min-h-screen flex items-center justify-center bg-slate-900">
+                        <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md text-center">
+                            <div className="w-16 h-16 bg-line-100 text-line-600 rounded-full flex items-center justify-center mx-auto mb-6"><SafeIcon name="Lock" size={32} /></div>
+                            <h2 className="text-2xl font-black text-slate-800 mb-2">RJ Ailiverse Backend</h2>
+                            <p className="text-slate-500 mb-8 text-sm">ระบบจัดการข้อมูลส่วนกลาง (Admin Only)</p>
+                            <form onSubmit={handleLogin} className="flex flex-col gap-4">
+                                <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="ระบุรหัสผ่านแอดมิน" className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-line-500 outline-none text-center tracking-widest text-lg" />
+                                <button type="submit" className="w-full bg-line-500 text-white font-bold py-3 rounded-xl hover:bg-line-600 transition-colors">เข้าสู่ระบบหลังบ้าน</button>
+                                <button type="button" onClick={() => window.location.href = './index.html'} className="text-sm text-slate-500 hover:text-slate-800 mt-2">กลับสู่หน้าจอผู้เรียน</button>
+                            </form>
+                        </div>
+                        {alertMsg.show && <div className={`fixed top-4 px-6 py-3 rounded-full font-bold shadow-lg animate-in fade-in slide-in-from-top-4 ${alertMsg.type === 'error' ? 'bg-rose-100 border border-rose-400 text-rose-700' : 'bg-emerald-100 border border-emerald-400 text-emerald-800'}`}>{alertMsg.text}</div>}
+                    </div>
+                );
+            }
+
+            const handleExportCSV = () => {
+                const headers = ["ชื่อ-สกุล", "อีเมล", "เบอร์โทร", "ใบประกอบวิชาชีพ", "ตำแหน่ง", "หน่วยงาน", "สถานะ", "Pretest", "Posttest", "ความคืบหน้า (%)", "คะแนนเจรจาเฉลี่ย"];
+                const csvData = usersList.map(u => {
+                    const avgScore = u.skillLabHistory?.length > 0 ? Math.round(u.skillLabHistory.reduce((sum, r) => sum + (r.score || 0), 0) / u.skillLabHistory.length) : 0;
+                    return [u.name, u.email, u.phone, u.licenseId, u.position, u.hospital, u.status, u.pretest, u.posttest, u.progress, avgScore];
+                });
+                const csvContent = [headers, ...csvData].map(e => e.join(",")).join("\n");
+                const blob = new Blob(["\ufeff" + csvContent], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement("a");
+                const url = URL.createObjectURL(blob);
+                link.setAttribute("href", url);
+                link.setAttribute("download", `rjailiverse_users_${new Date().toISOString().split('T')[0]}.csv`);
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            };
 
             return (
-                <div className="min-h-screen w-full relative overflow-hidden font-sans antialiased text-slate-800 flex items-center justify-center p-4">
-                    <div className="sky-bg"></div>
-                    <div className="clouds-wrapper">
-                        <div className="cloud-layer layer-1"></div>
-                        <div className="cloud-layer layer-2"></div>
-                        <div className="cloud-layer layer-3"></div>
-                    </div>
-                    
-                    {/* Modal ป๊อปอัปความพึงพอใจ */}
-                    {showSurvey && (
-                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
-                            <div className="bg-white rounded-3xl p-6 md:p-8 w-full max-w-md shadow-2xl relative animate-in zoom-in-95">
-                                <button onClick={() => !isGeneratingCert && setShowSurvey(false)} className="absolute top-4 right-4 text-slate-400 hover:text-rose-500"><X size={24}/></button>
-                                
-                                <div className="text-center mb-6">
-                                    <div className="w-16 h-16 bg-amber-100 rounded-full mx-auto flex items-center justify-center mb-4"><Star className="text-amber-500 w-8 h-8 fill-amber-500" /></div>
-                                    <h3 className="text-xl font-black text-slate-800">ยินดีด้วยที่คุณเรียนจบ! 🎓</h3>
-                                    <p className="text-slate-500 text-sm mt-2">ก่อนรับใบประกาศ โปรดประเมินความพึงพอใจ<br/>ที่มีต่อระบบ e-Learning & AI Skill Lab ของเรา</p>
-                                </div>
-
-                                <div className="flex justify-center gap-2 mb-6">
-                                    {[1, 2, 3, 4, 5].map((star) => (
-                                        <button 
-                                            key={star} 
-                                            disabled={isGeneratingCert}
-                                            onMouseEnter={() => setHoverRating(star)} 
-                                            onMouseLeave={() => setHoverRating(0)}
-                                            onClick={() => setSurveyRating(star)}
-                                            className="transition-transform hover:scale-110 active:scale-95"
-                                        >
-                                            <Star size={40} className={`${(hoverRating || surveyRating) >= star ? 'text-amber-400 fill-amber-400' : 'text-slate-200'} transition-colors`} />
-                                        </button>
-                                    ))}
-                                </div>
-                                <div className="text-center text-amber-600 font-bold mb-6 h-6">{surveyRating > 0 ? ["ปรับปรุงด่วน", "พอใช้", "ดี", "ดีมาก", "ยอดเยี่ยมที่สุด!"][surveyRating-1] : ""}</div>
-
-                                <div className="mb-6">
-                                    <label className="block text-sm font-bold text-slate-700 mb-2">ข้อเสนอแนะเพิ่มเติม (ไม่บังคับ)</label>
-                                    <textarea 
-                                        disabled={isGeneratingCert}
-                                        value={surveyFeedback} 
-                                        onChange={e => setSurveyFeedback(e.target.value)} 
-                                        placeholder="ความรู้สึกของคุณ หรือสิ่งที่อยากให้เราพัฒนาต่อ..." 
-                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all resize-none text-sm" 
-                                        rows="3"
-                                    ></textarea>
-                                </div>
-
-                                <button onClick={handleGenerateCertificateAndSubmitSurvey} disabled={isGeneratingCert || surveyRating === 0} className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-3.5 rounded-xl transition-all shadow-lg flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
-                                    {isGeneratingCert ? <><Loader2 className="animate-spin" size={20}/> กำลังสร้างใบประกาศ...</> : <><Award size={20}/> ยืนยันและรับประกาศนียบัตร</>}
-                                </button>
-                            </div>
+                <div className="flex h-screen bg-slate-100 overflow-hidden">
+                    {/* Sidebar */}
+                    <div className="w-64 bg-white border-r border-slate-200 flex flex-col shadow-sm z-20 shrink-0 hidden md:flex">
+                        <div className="p-6 border-b border-slate-100 text-center">
+                            <h1 className="text-xl font-black text-line-600">Admin Panel</h1>
+                            <p className="text-xs font-bold text-slate-400 mt-1 uppercase tracking-widest">RJ Ailiverse</p>
                         </div>
-                    )}
+                        <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
+                            {[{id: 'users', label: 'จัดการสิทธิ์ผู้เรียน', icon: 'Users'}, {id: 'data', label: 'Auto-Sync & ระบบคิว', icon: 'Database'}, {id: 'live', label: 'ระบบถ่ายทอดสด', icon: 'Radio'}, {id: 'content', label: 'แก้ไขบทเรียน', icon: 'BookOpen'}, {id: 'quiz', label: 'จัดการข้อสอบ', icon: 'CheckSquare'}, {id: 'analytics', label: 'Dashboard', icon: 'Activity'}].map(t => (
+                                <button key={t.id} onClick={() => setActiveTab(t.id)} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-colors ${activeTab === t.id ? 'bg-line-50 text-line-700' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'}`}><SafeIcon name={t.icon} /> {t.label}</button>
+                            ))}
+                        </nav>
+                        <div className="p-4 border-t border-slate-100">
+                            <button onClick={() => window.location.href = './index.html'} className="w-full flex items-center justify-center gap-2 py-3 text-sm font-bold text-slate-500 hover:bg-slate-50 rounded-xl transition-colors"><SafeIcon name="LogOut" size={16}/> สลับไปหน้าผู้เรียน</button>
+                        </div>
+                    </div>
 
-                    <div className="relative z-10 w-full max-w-md mx-auto animate-in fade-in zoom-in-95 duration-500">
-                        {!user ? (
-                            <div className="glass-card p-8">
-                                <div className="text-center mb-8">
-                                    <div className="w-20 h-20 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl mx-auto flex items-center justify-center mb-4 shadow-lg shadow-blue-500/30">
-                                        <BookOpen className="text-white w-10 h-10" />
+                    {/* Main Content Area */}
+                    <div className="flex-1 overflow-y-auto custom-scrollbar p-4 md:p-8 relative">
+                        {alertMsg.show && <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-50 px-6 py-3 rounded-full font-bold shadow-lg animate-in fade-in slide-in-from-top-4 flex items-center gap-2 ${alertMsg.type === 'error' ? 'bg-rose-100 border border-rose-400 text-rose-800' : 'bg-emerald-100 border border-emerald-400 text-emerald-800'}`}><SafeIcon name={alertMsg.type === 'error' ? 'XCircle' : 'CheckCircle'} /> {alertMsg.text}</div>}
+                        
+                        {/* Mobile Tabs */}
+                        <div className="md:hidden flex gap-2 overflow-x-auto mb-6 custom-scrollbar pb-2">
+                             {[{id: 'users', label: 'ผู้ใช้'}, {id: 'live', label: 'Live สด'}, {id: 'content', label: 'บทเรียน'}, {id: 'quiz', label: 'ข้อสอบ'}].map(t => (
+                                <button key={t.id} onClick={() => setActiveTab(t.id)} className={`px-4 py-2 rounded-xl font-bold text-sm whitespace-nowrap ${activeTab === t.id ? 'bg-line-500 text-white' : 'bg-white text-slate-600'}`}>{t.label}</button>
+                            ))}
+                        </div>
+
+                        {/* 1. จัดการสิทธิ์ผู้เรียน (User Management) */}
+                        {activeTab === 'users' && (
+                            <div className="animate-in fade-in flex flex-col h-full">
+                                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                                    <div>
+                                        <h2 className="text-2xl font-black text-slate-800 flex items-center gap-2"><SafeIcon name="Users" className="text-line-600" /> จัดการสิทธิ์ผู้เรียน</h2>
+                                        <p className="text-slate-500 text-sm mt-1">ผู้เรียนทั้งหมดในระบบ: {usersList.length} ราย</p>
                                     </div>
-                                    <h1 className="text-2xl font-black text-slate-800">เข้าสู่ระบบ e-Learning</h1>
-                                    <p className="text-slate-500 mt-2">ศูนย์ความเป็นเลิศทางการแพทย์ด้านปลูกถ่ายอวัยวะ โรงพยาบาลราชวิถี</p>
+                                    <div className="flex flex-wrap gap-2 w-full md:w-auto mt-4 md:mt-0">
+                                        <div className="bg-white px-4 py-2 rounded-lg border flex items-center gap-2 flex-1 md:w-64 min-w-[200px]"><SafeIcon name="Search" className="text-slate-400 shrink-0" /><input type="text" placeholder="ค้นหาชื่อ หรือ ใบอนุญาต..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="outline-none text-sm w-full bg-transparent" /></div>
+                                        
+                                        <button onClick={() => syncFromGoogleSheet(true)} className="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold text-sm shadow-sm hover:bg-blue-500 shrink-0 flex items-center gap-1"><SafeIcon name="RefreshCw" size={16}/> ดึงสิทธิ์จาก Sheet</button>
+                                        
+                                        <button onClick={handleForceRefillAll} className="bg-amber-500 text-white px-4 py-2 rounded-lg font-bold text-sm shadow-sm hover:bg-amber-400 shrink-0 flex items-center gap-1"><SafeIcon name="Activity" size={16}/> Auto-Refill Onsite</button>
+
+                                        <button onClick={() => setShowManualForm(!showManualForm)} className="bg-slate-800 text-white px-4 py-2 rounded-lg font-bold text-sm shadow-sm hover:bg-slate-700 shrink-0 flex items-center gap-1"><SafeIcon name="Plus" size={16}/> เพิ่มมือ</button>
+                                        
+                                        <button onClick={handleExportCSV} className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg font-bold text-sm shadow-sm flex items-center gap-1"><SafeIcon name="Download" size={16}/> CSV</button>
+                                    </div>
                                 </div>
 
-                                {step === 'email' ? (
-                                    <form onSubmit={handleRequestOTP} className="space-y-4">
-                                        <div>
-                                            <label className="block text-sm font-bold text-slate-700 mb-1">อีเมลของคุณ</label>
-                                            <div className="relative">
-                                                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
-                                                <input type="email" required value={email} onChange={e=>setEmail(e.target.value)} className="w-full bg-white/50 border border-slate-200 rounded-xl py-3 pl-10 pr-4 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-medium" placeholder="your@email.com" />
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-bold text-slate-700 mb-1">ชื่อ - นามสกุล (สำหรับออกใบประกาศ)</label>
-                                            <div className="relative">
-                                                <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
-                                                <input type="text" required value={name} onChange={e=>setName(e.target.value)} className="w-full bg-white/50 border border-slate-200 rounded-xl py-3 pl-10 pr-4 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-medium" placeholder="นพ. / พญ. / พย.ม." />
-                                            </div>
-                                        </div>
-                                        <button type="submit" disabled={isSubmitting} className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold rounded-xl py-3.5 shadow-lg shadow-blue-500/30 transition-all active:scale-[0.98] flex items-center justify-center gap-2 mt-6">
-                                            {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin"/> : <><ShieldCheck className="w-5 h-5" /> ขอรับรหัส OTP</>}
-                                        </button>
-                                    </form>
-                                ) : (
-                                    <form onSubmit={handleVerifyOTP} className="space-y-4 animate-in slide-in-from-right-4">
-                                        <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 text-sm text-blue-800 text-center mb-6">
-                                            ระบบได้ส่งรหัส OTP 6 หลัก ไปที่ <b>{email}</b> แล้ว<br/>(กรุณาตรวจสอบในกล่องจดหมายขยะ หากไม่พบ)
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-bold text-slate-700 mb-1 text-center">กรอกรหัส OTP 6 หลัก</label>
-                                            <input type="text" required maxLength="6" value={otp} onChange={e=>setOtp(e.target.value.replace(/\D/g,''))} className="w-full bg-white/80 border border-slate-300 rounded-xl py-4 px-4 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all font-mono text-center text-3xl tracking-[0.5em] font-black" placeholder="------" />
-                                        </div>
-                                        <div className="flex gap-2 mt-6">
-                                            <button type="button" onClick={()=>setStep('email')} disabled={isSubmitting} className="flex-1 bg-slate-100 text-slate-600 hover:bg-slate-200 font-bold rounded-xl py-3.5 transition-all">กลับ</button>
-                                            <button type="submit" disabled={isSubmitting} className="flex-[2] bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold rounded-xl py-3.5 shadow-lg shadow-indigo-500/30 transition-all active:scale-[0.98] flex items-center justify-center gap-2">
-                                                {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin"/> : <><ArrowRight className="w-5 h-5" /> ยืนยัน OTP</>}
-                                            </button>
-                                        </div>
+                                {showManualForm && (
+                                    <form onSubmit={handleAddManualUser} className="mb-6 p-6 bg-white rounded-2xl shadow-sm border border-slate-200 grid grid-cols-1 md:grid-cols-5 gap-4 items-end animate-in fade-in slide-in-from-top-4">
+                                        <div><label className="block text-xs font-bold text-slate-500 mb-1">ชื่อ-สกุล</label><input required value={manualForm.name} onChange={e => setManualForm({...manualForm, name: e.target.value})} className="w-full px-3 py-2 border rounded-lg outline-none focus:border-line-500 text-sm" /></div>
+                                        <div><label className="block text-xs font-bold text-slate-500 mb-1">ใบอนุญาต (ID)</label><input required value={manualForm.license} onChange={e => setManualForm({...manualForm, license: e.target.value})} className="w-full px-3 py-2 border rounded-lg outline-none focus:border-line-500 text-sm" /></div>
+                                        <div><label className="block text-xs font-bold text-slate-500 mb-1">โรงพยาบาล</label><input required value={manualForm.hospital} onChange={e => setManualForm({...manualForm, hospital: e.target.value})} className="w-full px-3 py-2 border rounded-lg outline-none focus:border-line-500 text-sm" /></div>
+                                        <div><label className="block text-xs font-bold text-slate-500 mb-1">สิทธิ์ (Type)</label><select value={manualForm.userType} onChange={e => setManualForm({...manualForm, userType: e.target.value})} className="w-full px-3 py-2 border rounded-lg outline-none focus:border-line-500 text-sm bg-white"><option>เรียนใหม่</option><option>Onsite</option><option>Online</option></select></div>
+                                        <button type="submit" className="w-full bg-slate-800 text-white font-bold py-2 rounded-lg shadow-sm hover:bg-slate-700">บันทึก</button>
                                     </form>
                                 )}
-                            </div>
-                        ) : (
-                            <div className="glass-card p-6 md:p-8">
-                                <div className="text-center mb-6">
-                                    <div className="w-20 h-20 bg-slate-100 rounded-full mx-auto flex items-center justify-center mb-4 border-4 border-white shadow-md">
-                                        <User className="text-slate-400 w-10 h-10" />
-                                    </div>
-                                    
-                                    <h2 className="text-2xl font-black text-slate-800 flex items-center justify-center gap-2 group relative">
-                                        {user.name}
-                                    </h2>
-                                    <button onClick={() => { setEditForm({ name: user.name || '', hospital: user.hospital || '', department: user.department || '', province: user.province || '' }); setIsEditing(!isEditing); }} className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-1.5 rounded-full font-bold inline-flex items-center gap-1 mt-2 border border-slate-200 transition-colors">
-                                        <Pencil size={12}/> แก้ไขข้อมูล
-                                    </button>
-                                </div>
-                                
-                                {isEditing && (
-                                    <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 mb-6 animate-in slide-in-from-top-2 shadow-inner">
-                                        <div className="flex justify-between items-center mb-3">
-                                            <h3 className="font-bold text-sm text-slate-700 flex items-center gap-1"><Pencil size={14}/> อัปเดตข้อมูลส่วนตัว</h3>
-                                            <button onClick={()=>setIsEditing(false)} className="text-slate-400 hover:text-rose-500"><X size={16}/></button>
-                                        </div>
-                                        <div className="space-y-3">
-                                            <input value={editForm.name} onChange={e=>setEditForm({...editForm, name: e.target.value})} placeholder="ชื่อ-นามสกุล (ใส่นำหน้าให้ครบ)" className="w-full text-sm p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none" />
-                                            <input value={editForm.hospital} onChange={e=>setEditForm({...editForm, hospital: e.target.value})} placeholder="โรงพยาบาล" className="w-full text-sm p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none" />
-                                            <input value={editForm.department} onChange={e=>setEditForm({...editForm, department: e.target.value})} placeholder="แผนก / สังกัด" className="w-full text-sm p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none" />
-                                            <input value={editForm.province} onChange={e=>setEditForm({...editForm, province: e.target.value})} placeholder="จังหวัด" className="w-full text-sm p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none" />
-                                            <button onClick={handleSaveProfile} disabled={isSubmitting} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl flex items-center justify-center gap-2 shadow-md disabled:opacity-50">
-                                                {isSubmitting ? <Loader2 size={16} className="animate-spin"/> : <Save size={16}/>} บันทึกข้อมูล
-                                            </button>
-                                        </div>
-                                    </div>
-                                )}
 
-                                <div className="grid grid-cols-2 gap-4 mb-6">
-                                    <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl p-4 border border-green-100 shadow-sm">
-                                        <div className="text-xs font-bold text-green-600 mb-1 flex items-center gap-1"><CheckCircle2 className="w-4 h-4"/> ความคืบหน้า</div>
-                                        <div className="text-2xl font-black text-green-700 mb-2">100%</div>
-                                        <div className="w-full bg-green-200 rounded-full h-2 mb-2"><div className="bg-green-500 h-2 rounded-full w-full"></div></div>
-                                        <div className="text-[10px] text-green-600/80 font-medium">เวลาเรียนครบเกณฑ์</div>
-                                    </div>
-                                    
-                                    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-4 border border-blue-100 shadow-sm flex flex-col justify-between">
-                                        <div>
-                                            <div className="text-xs font-bold text-blue-600 mb-1 flex items-center gap-1 justify-between">Pretest <span className="bg-blue-200 text-blue-800 px-2 py-0.5 rounded-full">9/40</span></div>
-                                            <div className="text-xs font-bold text-indigo-600 flex items-center gap-1 justify-between mt-2">Posttest <span className="bg-indigo-200 text-indigo-800 px-2 py-0.5 rounded-full">33/40</span></div>
-                                        </div>
-                                        <div className="text-[10px] text-blue-600/80 font-medium text-center mt-2 border-t border-blue-200/50 pt-2">สอบผ่านเกณฑ์</div>
+                                <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex-1 relative">
+                                    <div className="absolute inset-0 overflow-auto custom-scrollbar">
+                                        <table className="w-full text-left text-sm whitespace-nowrap min-w-[800px]">
+                                            <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider sticky top-0 z-10 shadow-sm">
+                                                <tr><th className="p-4">ชื่อผู้เรียน</th><th className="p-4">ใบอนุญาต</th><th className="p-4">ประเภทสิทธิ์</th><th className="p-4">ความคืบหน้า</th><th className="p-4">สถานะการเรียน</th><th className="p-4 text-center">เพิกถอนสิทธิ์</th></tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-slate-100">
+                                                {filteredUsers.length > 0 ? filteredUsers.map(u => (
+                                                    <tr key={u.id} className="hover:bg-slate-50 transition-colors">
+                                                        <td className="p-4 font-bold text-slate-800">{u.name}</td>
+                                                        <td className="p-4 text-slate-600 font-mono text-xs">{u.license || u.id}</td>
+                                                        <td className="p-4">
+                                                            <select value={u.userType || 'เรียนใหม่'} onChange={(e) => updateUserStatus(u.id, u.status, e.target.value)} className="bg-white border border-slate-300 rounded px-2 py-1 text-xs font-bold outline-none shadow-sm focus:border-line-500">
+                                                                <option value="เรียนใหม่">เรียนใหม่</option><option value="Online">Online</option><option value="Onsite">Onsite</option>
+                                                            </select>
+                                                        </td>
+                                                        <td className="p-4"><div className="flex items-center gap-2"><div className="w-16 h-1.5 bg-slate-200 rounded-full overflow-hidden"><div className="bg-line-500 h-full" style={{width: `${u.progress}%`}}></div></div><span className="text-xs text-slate-500 font-bold">{u.progress}%</span></div></td>
+                                                        <td className="p-4">
+                                                            <select value={u.status || 'กำลังเรียน'} onChange={(e) => updateUserStatus(u.id, e.target.value, u.userType)} className={`border rounded px-2 py-1 text-xs font-bold outline-none shadow-sm ${u.status === 'ผ่าน' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
+                                                                <option value="กำลังเรียน">กำลังเรียน</option><option value="ผ่าน">สอบผ่าน (บังคับ)</option><option value="ไม่ผ่าน">ไม่ผ่าน</option>
+                                                            </select>
+                                                        </td>
+                                                        <td className="p-4 text-center"><button onClick={() => deleteUser(u.id)} className="text-slate-400 hover:text-rose-600 hover:bg-rose-50 p-2 rounded-lg transition-colors" title="ลบผู้ใช้งาน"><SafeIcon name="Trash2" size={18} /></button></td>
+                                                    </tr>
+                                                )) : (
+                                                    <tr><td colSpan="6" className="p-12 text-center text-slate-400 font-medium">ไม่พบข้อมูลผู้เรียน</td></tr>
+                                                )}
+                                            </tbody>
+                                        </table>
                                     </div>
                                 </div>
-                                
-                                <div className="space-y-3 mb-8">
-                                    <a href="./aiskilllab.html" className="w-full group bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-2xl p-4 flex items-center justify-between transition-all shadow-lg shadow-slate-800/20 active:scale-[0.98]">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-amber-400 group-hover:scale-110 transition-transform"><Bot className="w-5 h-5"/></div>
-                                            <div className="text-left"><div className="text-sm font-black">AI Skill Lab</div><div className="text-[10px] text-white/60 font-medium">ห้องฝึกทักษะเจรจาเสมือนจริง</div></div>
-                                        </div>
-                                        <PlayCircle className="text-white/40 group-hover:text-amber-400 transition-colors" />
-                                    </a>
-                                    
-                                    {!user.certificateUrl ? (
-                                        <button onClick={handleInitiateCertificate} className="w-full group bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold rounded-2xl p-4 flex items-center justify-between transition-all shadow-lg shadow-orange-500/20 active:scale-[0.98]">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-white"><Award className="w-5 h-5"/></div>
-                                                <div className="text-left"><div className="text-sm font-black">รับประกาศนียบัตร</div><div className="text-[10px] text-white/80 font-medium">ทำแบบประเมิน & รับเอกสารอัตโนมัติ</div></div>
-                                            </div>
-                                            <Download className="w-5 h-5" />
-                                        </button>
-                                    ) : (
-                                        <a href={user.certificateUrl} target="_blank" className="w-full group bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-bold rounded-2xl p-4 flex items-center justify-between transition-all shadow-lg shadow-emerald-500/20 active:scale-[0.98]">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-white"><CheckCircle2 className="w-5 h-5"/></div>
-                                                <div className="text-left"><div className="text-sm font-black">ดาวน์โหลดประกาศนียบัตร</div><div className="text-[10px] text-white/90 font-medium">สร้างเมื่อ {new Date(user.certificateDate).toLocaleDateString('th-TH')}</div></div>
-                                            </div>
-                                            <Download className="w-5 h-5" />
-                                        </a>
-                                    )}
-                                </div>
-                                
-                                <button onClick={handleLogout} className="w-full bg-white hover:bg-slate-50 text-slate-600 font-bold rounded-xl py-3 border border-slate-200 transition-all flex items-center justify-center gap-2 text-sm shadow-sm">
-                                    <LogOut className="w-4 h-4" /> ออกจากระบบ
-                                </button>
                             </div>
+                        )}
+
+                        {/* 2. ระบบดึงข้อมูลอัตโนมัติ (Data Auto-Sync) */}
+                        {activeTab === 'data' && (
+                            <div className="animate-in fade-in max-w-4xl">
+                                <h2 className="text-2xl font-black text-slate-800 mb-2 flex items-center gap-2"><SafeIcon name="Database" className="text-line-600" /> ระบบเชื่อมโยงข้อมูล & Auto-Sync</h2>
+                                <p className="text-slate-500 text-sm mb-6">ตั้งค่าให้ระบบดึงรายชื่อและสิทธิ์นักเรียนจาก Google Sheets เข้ามาให้อัตโนมัติ</p>
+                                
+                                <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-200 space-y-6">
+                                    <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl flex gap-3 text-blue-800 text-sm">
+                                        <SafeIcon name="Info" className="shrink-0 mt-0.5" />
+                                        <div><b>วิธีใช้งาน:</b> ให้ไปที่ Google Sheets ของคุณ เลือก ไฟล์ (File) &gt; แชร์ (Share) &gt; เผยแพร่ทางเว็บ (Publish to web) &gt; เปลี่ยนจาก 'หน้าเว็บ' เป็น 'ค่าที่คั่นด้วยจุลภาค (CSV)' แล้วนำลิงก์ที่ได้มาวางในช่องด้านล่าง (คอลัมน์ในตารางต้องเรียงตามนี้: ชื่อ, ใบอนุญาต, โรงพยาบาล, สิทธิ์)</div>
+                                    </div>
+                                    
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">ลิงก์ Google Sheets (รูปแบบ CSV)</label>
+                                        <input type="url" value={systemConfig.masterCsvUrl || ''} onChange={e => setSystemConfig({...systemConfig, masterCsvUrl: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-slate-300 outline-none focus:border-line-500 font-mono text-sm" placeholder="https://docs.google.com/spreadsheets/d/.../pub?output=csv" />
+                                    </div>
+                                    
+                                    <div className="flex flex-col sm:flex-row items-center gap-4 pt-2">
+                                        <div className="flex-1 w-full bg-slate-50 p-4 rounded-xl border border-slate-200 flex items-center justify-between">
+                                            <div>
+                                                <div className="font-bold text-slate-800 text-sm">อัปเดตสิทธิ์อัตโนมัติ (Auto-Sync)</div>
+                                                <div className="text-xs text-slate-500 mt-0.5">ระบบจะดึงข้อมูลใหม่ทุกๆ 30 วินาที เมื่อเปิดหน้านี้ไว้</div>
+                                            </div>
+                                            <label className="relative inline-flex items-center cursor-pointer">
+                                                <input type="checkbox" className="sr-only peer" checked={systemConfig.autoSyncFromSheet} onChange={e => saveSettings({ autoSyncFromSheet: e.target.checked })} />
+                                                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-line-500"></div>
+                                            </label>
+                                        </div>
+                                        <button onClick={() => syncFromGoogleSheet(true)} className="w-full sm:w-auto bg-line-50 text-line-600 hover:bg-line-100 border border-line-200 font-bold py-4 px-6 rounded-xl transition-colors flex items-center justify-center gap-2 whitespace-nowrap"><SafeIcon name="RefreshCw" size={18} /> ดึงข้อมูลเดี๋ยวนี้</button>
+                                    </div>
+                                    
+                                    <div className="border-t border-slate-100 pt-6 mt-6">
+                                        <button onClick={() => saveSettings(systemConfig)} className="w-full bg-slate-800 text-white hover:bg-slate-700 font-bold py-3.5 rounded-xl transition-colors shadow-sm">บันทึกลิงก์และตั้งค่าส่วนกลาง</button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* 3. ระบบ Live และเอกสาร (Live Stream & Docs) */}
+                        {activeTab === 'live' && (
+                            <div className="animate-in fade-in max-w-3xl">
+                                <h2 className="text-2xl font-black text-slate-800 mb-6 flex items-center gap-2"><SafeIcon name="Radio" className="text-rose-500" /> ระบบควบคุม Live สด และเอกสาร</h2>
+                                <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-200 space-y-6">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">สถานะการถ่ายทอด</label>
+                                            <div className="flex gap-2">
+                                                <button onClick={() => setLiveConfig({...liveConfig, status: 'live'})} className={`flex-1 py-2.5 rounded-lg font-bold border transition-colors ${liveConfig.status === 'live' ? 'bg-rose-100 text-rose-700 border-rose-300' : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100'}`}>🔴 LIVE</button>
+                                                <button onClick={() => setLiveConfig({...liveConfig, status: 'offline'})} className={`flex-1 py-2.5 rounded-lg font-bold border transition-colors ${liveConfig.status === 'offline' ? 'bg-slate-800 text-white border-slate-800' : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100'}`}>ปิด (Offline)</button>
+                                            </div>
+                                        </div>
+                                        <div><label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">หัวข้อการบรรยาย</label><input type="text" value={liveConfig.topic} onChange={e => setLiveConfig({...liveConfig, topic: e.target.value})} className="w-full px-4 py-2.5 rounded-lg border border-slate-300 outline-none focus:border-line-500" placeholder="เช่น บรรยายพิเศษนโยบายชาติ..." /></div>
+                                    </div>
+                                    <div><label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Embed URL (ลิงก์วิดีโอจาก Canva/Vimeo/Youtube)</label><input type="text" value={liveConfig.url} onChange={e => setLiveConfig({...liveConfig, url: e.target.value})} className="w-full px-4 py-2.5 rounded-lg border border-slate-300 outline-none focus:border-line-500 font-mono text-sm" placeholder="https://www.canva.com/..." /></div>
+                                    <div className="pt-4 border-t border-slate-100"><label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 flex items-center gap-2"><SafeIcon name="UploadCloud" size={16} className="text-line-500"/> ลิงก์เอกสารประกอบ Live (Google Drive / PDF)</label><input type="text" value={liveConfig.documentUrl || ''} onChange={e => setLiveConfig({...liveConfig, documentUrl: e.target.value})} className="w-full px-4 py-2.5 rounded-lg border border-slate-300 outline-none focus:border-line-500 font-mono text-sm" placeholder="วางลิงก์เอกสารให้ผู้เรียนดาวน์โหลด..." /></div>
+                                    <button onClick={saveLiveConfig} className="w-full bg-line-500 hover:bg-line-600 text-white font-bold py-3.5 rounded-xl transition-colors shadow-md flex items-center justify-center gap-2"><SafeIcon name="Save" size={20} /> เผยแพร่สถานะ Live ให้นักเรียนเห็น</button>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* 4. จัดการเนื้อหา (Content Editor) */}
+                        {activeTab === 'content' && (
+                            <div className="animate-in fade-in max-w-5xl">
+                                <div className="flex justify-between items-center mb-6">
+                                    <h2 className="text-2xl font-black text-slate-800 flex items-center gap-2"><SafeIcon name="BookOpen" className="text-line-600" /> แก้ไขรายวิชา</h2>
+                                    <button onClick={saveContentConfig} className="bg-line-500 text-white px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-sm hover:bg-line-600 transition-colors"><SafeIcon name="UploadCloud" size={18}/> เผยแพร่ขึ้น Cloud</button>
+                                </div>
+                                <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                                    <div className="space-y-4 max-h-[65vh] overflow-y-auto pr-2 custom-scrollbar">
+                                        {contentConfig.lessons.map(l => (
+                                            <div key={l.id} className="p-4 bg-slate-50 border border-slate-200 rounded-xl flex flex-col md:flex-row gap-4 items-start md:items-center">
+                                                <div className="w-10 h-10 bg-slate-200 rounded-full flex items-center justify-center font-black text-slate-500 shrink-0">{l.id}</div>
+                                                <div className="flex-1 w-full space-y-2">
+                                                    <input type="text" value={l.title} onChange={e => setContentConfig(p => ({ ...p, lessons: p.lessons.map(x => x.id === l.id ? { ...x, title: e.target.value } : x) }))} className="w-full text-sm font-bold p-2 border rounded-lg outline-none focus:border-line-500" placeholder="ชื่อบทเรียน" />
+                                                    <input type="text" value={l.videoId} onChange={e => setContentConfig(p => ({ ...p, lessons: p.lessons.map(x => x.id === l.id ? { ...x, videoId: e.target.value } : x) }))} className="w-full text-xs font-mono p-2 border rounded-lg outline-none focus:border-line-500 text-slate-500" placeholder="Google Drive Video ID" />
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* 5. จัดการข้อสอบ */}
+                        {activeTab === 'quiz' && (
+                            <div className="animate-in fade-in max-w-5xl">
+                                <div className="flex justify-between items-center mb-6">
+                                    <h2 className="text-2xl font-black text-slate-800 flex items-center gap-2"><SafeIcon name="CheckSquare" className="text-line-600" /> จัดการข้อสอบ (Pretest / Posttest)</h2>
+                                    <button onClick={saveContentConfig} className="bg-line-500 text-white px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-sm hover:bg-line-600 transition-colors"><SafeIcon name="UploadCloud" size={18}/> เผยแพร่ข้อสอบขึ้น Cloud</button>
+                                </div>
+                                
+                                <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col h-[70vh]">
+                                    <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-6">
+                                        {(contentConfig.questionSets[0] || []).map((q, qIndex) => (
+                                            <div key={q.id || qIndex} className="p-5 bg-slate-50 border border-slate-200 rounded-xl relative">
+                                                <button onClick={() => {
+                                                    const newQuiz = [...contentConfig.questionSets[0]];
+                                                    newQuiz.splice(qIndex, 1);
+                                                    setContentConfig(p => ({ ...p, questionSets: [newQuiz] }));
+                                                }} className="absolute top-4 right-4 text-rose-400 hover:text-rose-600 hover:bg-rose-50 p-2 rounded-lg transition-colors" title="ลบข้อนี้"><SafeIcon name="Trash2" size={18}/></button>
+                                                
+                                                <div className="mb-4 pr-12">
+                                                    <label className="block text-xs font-bold text-slate-500 mb-1">ข้อที่ {qIndex + 1} (คำถาม)</label>
+                                                    <textarea value={q.question} onChange={e => {
+                                                        const newQuiz = [...contentConfig.questionSets[0]];
+                                                        newQuiz[qIndex] = { ...newQuiz[qIndex], question: e.target.value };
+                                                        setContentConfig(p => ({ ...p, questionSets: [newQuiz] }));
+                                                    }} className="w-full text-sm font-bold p-3 border rounded-lg outline-none focus:border-line-500 min-h-[80px]" placeholder="ระบุคำถาม..." />
+                                                </div>
+                                                
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                    {q.options.map((opt, optIndex) => (
+                                                        <div key={optIndex} className="flex items-center gap-2">
+                                                            <input type="radio" name={`correct-${qIndex}`} checked={q.answer === optIndex} onChange={() => {
+                                                                const newQuiz = [...contentConfig.questionSets[0]];
+                                                                newQuiz[qIndex] = { ...newQuiz[qIndex], answer: optIndex };
+                                                                setContentConfig(p => ({ ...p, questionSets: [newQuiz] }));
+                                                            }} className="w-4 h-4 text-line-600 cursor-pointer" title="เลือกเป็นคำตอบที่ถูกต้อง" />
+                                                            <input type="text" value={opt} onChange={e => {
+                                                                const newQuiz = [...contentConfig.questionSets[0]];
+                                                                const newOptions = [...newQuiz[qIndex].options];
+                                                                newOptions[optIndex] = e.target.value;
+                                                                newQuiz[qIndex] = { ...newQuiz[qIndex], options: newOptions };
+                                                                setContentConfig(p => ({ ...p, questionSets: [newQuiz] }));
+                                                            }} className={`w-full text-sm p-2 border rounded-lg outline-none focus:border-line-500 ${q.answer === optIndex ? 'border-line-500 bg-line-50 font-bold text-line-800' : 'text-slate-700'}`} placeholder={`ตัวเลือกที่ ${optIndex + 1}`} />
+                                                            <button onClick={() => {
+                                                                const newQuiz = [...contentConfig.questionSets[0]];
+                                                                const newOptions = [...newQuiz[qIndex].options];
+                                                                newOptions.splice(optIndex, 1);
+                                                                if (newQuiz[qIndex].answer === optIndex) newQuiz[qIndex].answer = 0;
+                                                                else if (newQuiz[qIndex].answer > optIndex) newQuiz[qIndex].answer -= 1;
+                                                                newQuiz[qIndex] = { ...newQuiz[qIndex], options: newOptions };
+                                                                setContentConfig(p => ({ ...p, questionSets: [newQuiz] }));
+                                                            }} className="text-slate-400 hover:text-rose-500 p-1"><SafeIcon name="XCircle" size={16}/></button>
+                                                        </div>
+                                                    ))}
+                                                    <button onClick={() => {
+                                                        const newQuiz = [...contentConfig.questionSets[0]];
+                                                        newQuiz[qIndex] = { ...newQuiz[qIndex], options: [...newQuiz[qIndex].options, "ตัวเลือกใหม่"] };
+                                                        setContentConfig(p => ({ ...p, questionSets: [newQuiz] }));
+                                                    }} className="text-xs font-bold text-line-600 hover:bg-line-50 py-2 rounded-lg border border-dashed border-line-300 flex items-center justify-center gap-1"><SafeIcon name="Plus" size={14}/> เพิ่มตัวเลือก</button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <div className="pt-4 mt-4 border-t border-slate-100 flex justify-center shrink-0">
+                                        <button onClick={() => {
+                                            const newQuiz = [...(contentConfig.questionSets[0] || [])];
+                                            newQuiz.push({ id: Date.now(), question: "คำถามใหม่...", options: ["ก.", "ข.", "ค.", "ง."], answer: 0 });
+                                            setContentConfig(p => ({ ...p, questionSets: [newQuiz] }));
+                                            setTimeout(() => {
+                                                const container = document.querySelector('.custom-scrollbar');
+                                                if(container) container.scrollTop = container.scrollHeight;
+                                            }, 100);
+                                        }} className="bg-slate-800 text-white px-6 py-2.5 rounded-xl font-bold text-sm shadow-sm hover:bg-slate-700 flex items-center gap-2"><SafeIcon name="Plus" size={16}/> เพิ่มข้อสอบใหม่</button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* 6. Analytics Dashboard */}
+                        {activeTab === 'analytics' && (
+                             <div className="animate-in fade-in flex flex-col h-[85vh]">
+                                 <div className="flex justify-between items-center mb-6">
+                                     <h2 className="text-2xl font-black text-slate-800 flex items-center gap-2"><SafeIcon name="Activity" className="text-line-600" /> แดชบอร์ดสรุปผลภาพรวม</h2>
+                                 </div>
+                                 
+                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 relative z-10">
+                                     <div onClick={() => window.open('./executive.html', '_blank')} className="bg-gradient-to-br from-blue-900 to-cyan-900 p-6 rounded-2xl border border-blue-500/30 shadow-[0_10px_30px_rgba(59,130,246,0.3)] cursor-pointer hover:scale-[1.02] transition-all flex flex-col items-center justify-center text-center group">
+                                         <div className="w-16 h-16 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform"><SafeIcon name="Globe" size={32} /></div>
+                                         <h3 className="text-xl font-black text-white mb-2">AI Policy Intelligence</h3>
+                                         <p className="text-sm text-blue-200">เปิดหน้าต่างแดชบอร์ดผู้บริหาร (Real-time Map & AI Chat)</p>
+                                     </div>
+                                     
+                                     <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col items-center justify-center text-center">
+                                         <div className="w-16 h-16 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mb-4"><SafeIcon name="Database" size={32} /></div>
+                                         <h3 className="text-xl font-bold text-slate-800 mb-2">Looker Studio (Legacy)</h3>
+                                         <input type="url" value={systemConfig.lookerStudioUrl || ''} onChange={e=>setSystemConfig({...systemConfig, lookerStudioUrl: e.target.value})} onBlur={() => saveSettings({ lookerStudioUrl: systemConfig.lookerStudioUrl })} placeholder="วางลิงก์ Looker Studio Embed..." className="w-full mt-2 p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none text-sm text-slate-700 text-center focus:border-line-500"/>
+                                     </div>
+                                 </div>
+
+                                 <div className="w-full flex-1 bg-slate-50 rounded-2xl border border-slate-200 shadow-inner overflow-hidden relative flex items-center justify-center">
+                                     {systemConfig.lookerStudioUrl ? (
+                                         <iframe src={systemConfig.lookerStudioUrl} className="absolute inset-0 w-full h-full border-none"></iframe>
+                                     ) : (
+                                         <div className="text-center text-slate-400"><SafeIcon name="Activity" size={48} className="mx-auto mb-2 opacity-50" /><p className="font-bold">ยังไม่ได้ตั้งค่าลิงก์ Looker Studio</p></div>
+                                     )}
+                                 </div>
+                             </div>
                         )}
                     </div>
                 </div>
             );
         }
 
-        const root = createRoot(document.getElementById('root'));
-        root.render(<MainApp />);
+        const root = createRoot(document.getElementById('admin-root'));
+        root.render(<AdminApp />);
     </script>
 </body>
 </html>
