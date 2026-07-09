@@ -174,6 +174,7 @@
             const [currentEmotion, setCurrentEmotion] = useState('NEUTRAL');
             const [currentSpeaker, setCurrentSpeaker] = useState('FAH');
             const [scenarioLang, setScenarioLang] = useState('th');
+            const [currentScenarioPrompt, setCurrentScenarioPrompt] = useState('');
 
             const audioContextRef = useRef(null); const analyserRef = useRef(null); const microphoneRef = useRef(null); const vadSilenceTimerRef = useRef(null); const isSpeakingRef = useRef(false); const latestTranscriptRef = useRef('');
             const recognitionRef = useRef(null); const messagesEndRef = useRef(null); const audioRef = useRef(null); const currentSpeechIdRef = useRef(0);
@@ -181,6 +182,14 @@
             const showMsg = (text, type = 'success') => {
                 setUiMessage({ show: true, text, type });
                 setTimeout(() => setUiMessage({ show: false, text: '', type }), 3500);
+            };
+
+            const safeRedirect = (url) => {
+                try {
+                    window.location.href = url;
+                } catch (e) {
+                    console.warn("Redirect blocked in this environment (Canvas/Iframe):", url);
+                }
             };
 
             // ตรวจสอบการล็อกอินจาก LocalStorage
@@ -193,12 +202,12 @@
                             setUser(parsed.loggedInUser);
                             signInAnonymously(auth).catch(e => console.warn(e)); // Ensure firebase auth
                         } else {
-                            window.location.href = './index.html'; // เด้งกลับถ้าไม่ได้ล็อกอิน
+                            safeRedirect('./index.html');
                         }
                     } else {
-                        window.location.href = './index.html';
+                        safeRedirect('./index.html');
                     }
-                } catch (e) { window.location.href = './index.html'; }
+                } catch (e) { safeRedirect('./index.html'); }
             }, []);
 
             // Scroll to bottom
@@ -236,6 +245,7 @@
             // ==========================================
             const speakThai = async (text, onEndCallback = null, speaker = 'FAH') => {
                 stopAudio(); currentSpeechIdRef.current += 1; const speechId = currentSpeechIdRef.current; 
+                // ใช้เสียง Aoede เป็นค่าเริ่มต้นสำหรับน้องฟ้าเสมอตามคำสั่งของกัปตัน
                 let targetVoice = "Aoede"; 
                 let cleanSpeakText = text.replace(/\[.*?\]/g, '').replace(/\*.*?\*/g, '').replace(/#.*?#/g, '').replace(/^(ฟ้า|เมฆ|พี่เอก|เอก|น้องชาย|ลูกสาว|แฟน|แฟนของฟ้า|Fah|Mek|Brother|Sister|Boyfriend|AI)\s*:\s*/i, '').trim();
                 let emotionPrompt = "";
@@ -379,11 +389,19 @@
             const stressLevel = selectedScenario ? (emotionStressMap[currentEmotion] || 20) : 0;
             const stressColor = stressLevel > 70 ? 'bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.8)]' : stressLevel > 40 ? 'bg-amber-400 shadow-[0_0_10px_rgba(251,191,36,0.8)]' : 'bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.8)]';
 
-            let videoToPlay = CHARACTER_VIDEOS['FAH']['NEUTRAL'];
-            if (currentSpeaker === 'BROTHER') videoToPlay = CHARACTER_VIDEOS['BROTHER']?.[currentEmotion] || CHARACTER_VIDEOS['BROTHER']['NEUTRAL'];
-            else videoToPlay = CHARACTER_VIDEOS['FAH']?.[currentEmotion] || CHARACTER_VIDEOS['FAH']['NEUTRAL'];
+            let videoToPlay = CHARACTER_VIDEOS?.['FAH']?.['NEUTRAL'] || "";
+            if (currentSpeaker === 'BROTHER') videoToPlay = CHARACTER_VIDEOS?.['BROTHER']?.[currentEmotion] || CHARACTER_VIDEOS?.['BROTHER']?.['NEUTRAL'] || "";
+            else videoToPlay = CHARACTER_VIDEOS?.['FAH']?.[currentEmotion] || CHARACTER_VIDEOS?.['FAH']?.['NEUTRAL'] || "";
 
-            if (!user) return <div className="min-h-screen flex items-center justify-center"><div className="w-12 h-12 border-4 border-orange-500 border-t-transparent rounded-full animate-spin"></div></div>;
+            if (!user) return (
+                <div className="min-h-screen sky-bg flex items-center justify-center relative">
+                    <div className="bg-black/50 backdrop-blur-xl border border-white/20 p-8 rounded-3xl text-center shadow-2xl animate-in fade-in zoom-in">
+                        <div className="w-16 h-16 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-6"></div>
+                        <h2 className="text-2xl font-black text-white mb-2">ตรวจสอบสิทธิ์การเข้าถึง...</h2>
+                        <p className="text-white/60">หากไม่เปลี่ยนหน้าอัตโนมัติ กรุณากลับไปล็อกอินที่หน้าหลัก (index.html)</p>
+                    </div>
+                </div>
+            );
 
             return (
                 <div className="min-h-screen w-full font-sans antialiased overflow-hidden relative">
@@ -394,7 +412,7 @@
                     {/* Navbar */}
                     <div className="px-6 py-4 border-b border-white/10 bg-black/40 backdrop-blur-md flex justify-between items-center z-20 relative">
                         <div className="flex items-center gap-4">
-                            <button onClick={() => { stopAudio(); window.location.href = './index.html#dashboard'; }} className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors border border-white/20 shadow-sm text-white"><SafeIcon icon={ArrowLeft} size={20} /></button>
+                            <button onClick={() => { stopAudio(); safeRedirect('./index.html#dashboard'); }} className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors border border-white/20 shadow-sm text-white"><SafeIcon icon={ArrowLeft} size={20} /></button>
                             <h1 className="text-xl md:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-500 flex items-center gap-2"><SafeIcon icon={Bot} className="text-orange-400" size={24} /> AI Skill Lab</h1>
                         </div>
                         <div className="text-white/80 font-bold text-sm bg-white/10 px-4 py-1.5 rounded-full border border-white/20 shadow-sm hidden sm:block">ผู้เรียน: {user.name}</div>
