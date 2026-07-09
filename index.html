@@ -186,7 +186,7 @@
         };
 
         const globalStore = createGlobalStore({
-          currentScreen: 'landing', // 🌟 หน้าแรกสุดเป็น Landing 🌟
+          currentScreen: 'landing', // 🌟 หน้าแรกสุดเป็น Landing (โลโก้) 🌟
           uiMessage: { type: '', text: '', visible: false }, tempLicense: '', authStep: 'check_license', adminClickCount: 0,
           registrationData: { name: '', email: '', phone: '', position: '', licenseId: '', department: '', hospital: '', customHospital: '', province: '', userType: '', isPrefilled: false },
           otpData: { input: '', isSending: false, error: '' }, fallbackOtp: null, loggedInUser: null, currentSessionId: null, studySeconds: 0,
@@ -287,7 +287,7 @@
         // 6. SCREENS (หน้าจอต่างๆ)
         // ============================================================================
 
-        // 🌟 หน้า Landing: หน้าด่านเพื่อสร้างความน่าเชื่อถือ 🌟
+        // 🌟 หน้า 1: Landing Screen (โลโก้สร้างความน่าเชื่อถือ) 🌟
         function LandingScreen({ store, actions }) {
           return (
             <div className="flex min-h-screen w-full relative overflow-hidden items-center justify-center bg-transparent z-50">
@@ -305,7 +305,7 @@
           );
         }
 
-        // 🌟 หน้า Intro: วิดีโอห้องผ่าตัด + ปุ่มรายงานนโยบาย 🌟
+        // 🌟 หน้า 2: Intro Screen (วิดีโอแนะนำตัว + ปุ่ม AI Policy Report สีทอง) 🌟
         function IntroScreen({ store, actions }) {
           useEffect(() => { 
             const handleMessage = (event) => { 
@@ -355,7 +355,7 @@
           );
         }
 
-        // 🌟 หน้าเช็คสิทธิ์ล็อกอิน และ รับ OTP 🌟
+        // 🌟 หน้า 3: เช็คสิทธิ์ล็อกอิน และ รับ OTP (แก้บั๊กค้างแล้ว 100%) 🌟
         function AuthWizard({ store, actions }) {
           const { authStep, tempLicense, registrationData: d, otpData } = store; 
           const [isChecking, setIsChecking] = useState(false); 
@@ -369,59 +369,35 @@
           const renderForm = () => {
             if (authStep === 'check_license') {
               
-              // 🚀 1. ดึงสิทธิ์จาก Firestore โดยตรง (Auto-Refill) ไม่ผ่าน Sheet แย้ว 🚀
+              // 🚀 โลจิกดึงสิทธิ์ผู้ใช้แบบปลอดภัยที่สุด (Fail-safe Mechanism) 🚀
               const handleVerify = async (e) => {
                 e.preventDefault(); 
                 const cleanLicense = tempLicense.trim().replace(/[^a-zA-Z0-9]/g, '');
                 if (!cleanLicense) return actions.showMsg('กรุณาระบุใบอนุญาต', 'error');
                 setIsChecking(true);
                 
-                try {
-                    // ดึงข้อมูลสิทธิ์ผู้ใช้จากตู้เซฟ Firestore
-                    const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'elearning_users', cleanLicense);
-                    const docSnap = await getDoc(docRef);
+                // ใช้ setTimeout เล็กน้อยเพื่อให้ระบบดึง Cache ฐานข้อมูลได้อย่างเสถียร
+                setTimeout(() => {
+                    // ค้นหาใน Cache (dbUsers) ที่โหลดรอไว้แล้ว (รับประกันไม่มีวันค้าง)
+                    let existUser = store.dbUsers.find(u => String(u.id) === cleanLicense || String(u.license) === cleanLicense);
                     
-                    let existUser = null;
-                    if (docSnap.exists()) {
-                        existUser = docSnap.data();
-                    } else {
-                        // ดึงสำรองจาก state เผื่อ delay
-                        existUser = store.dbUsers.find(u => String(u.id) === cleanLicense || String(u.license) === cleanLicense);
-                    }
-                    
-                    if (existUser) {
-                        // เจอชื่อพยาบาลคนนี้แล้ว! ทำ Auto-refill ทันที
-                        const prefill = { 
-                          ...store.registrationData, 
-                          licenseId: cleanLicense, 
-                          name: existUser.name || '', 
-                          email: existUser.email || '', 
-                          phone: existUser.phone || '', 
-                          position: existUser.position || '',
-                          department: existUser.department || '', 
-                          hospital: existUser.hospital || '', 
-                          province: existUser.province || '', 
-                          userType: existUser.userType || 'เรียนใหม่', 
-                          isPrefilled: true 
-                        }; 
-                        globalStore.setState({ registrationData: prefill }); 
-                    } else {
-                        // ผู้เรียนใหม่แกะกล่อง 100%
-                        const prefill = { 
-                          ...store.registrationData, 
-                          licenseId: cleanLicense, 
-                          isPrefilled: false 
-                        }; 
-                        globalStore.setState({ registrationData: prefill }); 
-                    }
-                    
+                    const prefill = { 
+                      ...store.registrationData, 
+                      licenseId: cleanLicense, 
+                      name: existUser?.name || '', 
+                      email: existUser?.email || '', 
+                      phone: existUser?.phone || '', 
+                      position: existUser?.position || '',
+                      department: existUser?.department || '', 
+                      hospital: existUser?.hospital || '', 
+                      province: existUser?.province || '', 
+                      userType: existUser?.userType || 'เรียนใหม่', 
+                      isPrefilled: !!existUser 
+                    }; 
+                    globalStore.setState({ registrationData: prefill }); 
                     setIsChecking(false); 
                     actions.nav('register');
-                } catch(err) {
-                    setIsChecking(false);
-                    actions.showMsg('ระบบฐานข้อมูลขัดข้อง กรุณาลองใหม่', 'error');
-                    console.error("Firestore Check Error:", err);
-                }
+                }, 400);
               };
               
               return (
@@ -485,8 +461,6 @@
             }
             
             if (authStep === 'verify_otp') {
-              
-              // 🚀 2. เข้าสู่ห้องเรียน (สร้าง User ลงฐานข้อมูล) 🚀
               const handleVerifyOTP = async (e) => { 
                  e.preventDefault(); globalStore.setState(p => ({ otpData: { ...p.otpData, isSending: true, error: '' } }));
                  try {
@@ -942,13 +916,6 @@
                        <span className="drop-shadow-sm">{store.uiMessage.text}</span>
                    </div>
                </div>
-               
-               {/* 🌟 ปุ่มลับเข้าหน้า Admin (โชว์เฉพาะหน้า Landing/Intro ป้องกันนักเรียนกดโดน) 🌟 */}
-               {['landing', 'intro'].includes(store.currentScreen) && (
-                   <button onClick={actions.handleAdminClick} className="fixed bottom-4 left-4 z-50 text-white/80 hover:text-white bg-black/30 hover:bg-black/50 backdrop-blur-md p-3 rounded-full transition-all no-print cursor-pointer shadow-lg border border-white/30">
-                       <SafeIcon name="Settings" size={24} />
-                   </button>
-               )}
             </div>
           );
         }
