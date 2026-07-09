@@ -202,22 +202,23 @@
                         const regex = /,(?=(?:(?:[^"]*"){2})*[^"]*$)/;
                         const cols = rows[i].split(regex).map(c => c.trim().replace(/^"|"$/g, ''));
                         
-                        if (cols.length >= 10 && cols[2]) {
+                        if (cols.length >= 3 && cols[2]) {
                             const name = cols[1] || ''; 
                             const license = String(cols[2]).replace(/[^a-zA-Z0-9]/g, ''); 
                             if (!license) continue;
 
-                            const phone = (cols[3] || '').replace(/[^0-9]/g, '');
-                            const email = cols[4] || '';
-                            const position = cols[5] || '';
-                            const department = cols[6] || '';
-                            const hospital = cols[7] || ''; 
-                            const province = cols[8] || '';
+                            const email = cols[3] || '';
+                            const position = cols[4] || '';
+                            const department = cols[5] || '';
+                            const hospital = cols[6] || ''; 
+                            const province = cols[7] || '';
                             
-                            let rawUserType = (cols[9] || '').trim().toLowerCase();
+                            let rawUserType = (cols[8] || '').trim().toLowerCase();
                             let userType = 'เรียนใหม่';
                             if (rawUserType === 'onsite') userType = 'Onsite';
                             else if (rawUserType === 'online') userType = 'Online';
+
+                            const phone = (cols[16] || '').replace(/[^0-9]/g, '');
 
                             const existingUser = usersList.find(u => String(u.id) === license);
                             const isOnsite = userType === 'Onsite';
