@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>e-Learning with Fah AI</title>
     
+    <!-- 🌟 เรียกใช้ไฟล์ข้อมูลแยก (Static Data) 🌟 -->
     <script src="./data.js"></script>
 
     <script src="https://cdn.tailwindcss.com"></script>
@@ -155,16 +156,10 @@
         function parseRawExams(raw) { return raw.map((str, idx) => { const parts = str.split('|').map(s => s.trim()); return { id: idx + 1, question: parts[0].replace(/^[0-9]+\.\s*/, ''), options: parts.slice(1, parts.length - 1), answer: parseInt(parts[parts.length - 1].replace(/[^0-9]/g, ''), 10) }; }); }
         
         const FULL_EXAMS = [recursiveShuffle(formatQuestions(parseRawExams(QUIZ_QUESTIONS_RAW)))];
-        const formatTime = (secs) => !secs ? "0 ชม. 0 นาที" : `${Math.floor(secs / 3600)} ชม. ${Math.floor((secs % 3600) / 60)}`.trim();
+        const formatTime = (secs) => !secs ? "0 ชม. 0 นาที" : `${Math.floor(secs / 3600)} ชม. ${Math.floor((secs % 3600) / 60)} นาที`.trim();
+        const calcProgress = (secs, totalSecs) => Math.min(100, Math.round(((secs||0) / (totalSecs||1)) * 100));
         const generateSessionId = () => Date.now().toString(36) + Math.random().toString(36).substring(2);
         const calculateScore = (questions, answers) => questions.reduce((acc, q) => acc + +(answers[q.id] === q.answer), 0);
-
-        // 🌟 Helper function คำนวณชั่วโมงบังคับตามสิทธิ์เรียน 🌟
-        const getRequiredSeconds = (uType, liveHours) => {
-            if (uType === 'เรียนใหม่') return 8 * 3600; // บังคับ 8 ชั่วโมง
-            if (uType === 'Online') return (liveHours || 1) * 3600; // อ้างอิงชั่วโมง Live จากหลังบ้าน
-            return 10 * 3600; // Onsite & Masterclass ได้ 10 ชั่วโมงเต็ม
-        };
 
         // ============================================================================
         // 4. STATE MANAGEMENT
@@ -191,9 +186,10 @@
         };
 
         const globalStore = createGlobalStore({
-          currentScreen: 'landing',
+          currentScreen: 'landing', 
           uiMessage: { type: '', text: '', visible: false }, tempLicense: '', authStep: 'check_license', adminClickCount: 0,
-          registrationData: { name: '', email: '', phone: '', position: '', licenseId: '', department: '', hospital: '', customHospital: '', province: '', userType: '', workContext: '', isPrefilled: false },
+          // 🌟 อัปเดต Model: เพิ่ม workContext (ลักษณะงานปัจจุบัน) 🌟
+          registrationData: { name: '', email: '', phone: '', position: '', workContext: '', licenseId: '', department: '', hospital: '', customHospital: '', province: '', userType: '', isPrefilled: false },
           otpData: { input: '', isSending: false, error: '' }, fallbackOtp: null, loggedInUser: null, currentSessionId: null, studySeconds: 0,
           quizData: { type: 'pretest', questions: FULL_EXAMS[0] || [], currentIndex: 0, answers: {}, score: 0, isFinished: false },
           activeTab: 'video', currentVideoId: 1, isLiveCheckedIn: false,
@@ -224,19 +220,7 @@
               } 
           },
 
-          handleLogout: () => { 
-              const { loggedInUser: u, studySeconds: s, liveConfig: lc } = globalStore.getState(); 
-              if (u) { 
-                  const reqSecs = getRequiredSeconds(u.userType, lc?.hours);
-                  const newProg = Math.min(100, Math.round((s / reqSecs) * 100));
-                  const up = { ...u, studySeconds: s, progress: newProg }; 
-                  actions.enqueueSync({ action: 'upsertUser', user: up }); 
-                  actions.saveUserToDB(up); 
-              } 
-              globalStore.setState({ loggedInUser: null, studySeconds: 0, isLiveCheckedIn: false, currentSessionId: null, currentScreen: 'landing' }); 
-              localStorage.removeItem('elearning_app_state'); 
-              actions.showMsg('ออกจากระบบแล้ว'); 
-          },
+          handleLogout: () => { const { loggedInUser: u, studySeconds: s, liveConfig: lc } = globalStore.getState(); if (u) { const up = { ...u, studySeconds: s, progress: calcProgress(s, (lc?.hours ?? 1) * 3600) }; actions.enqueueSync({ action: 'upsertUser', user: up }); actions.saveUserToDB(up); } globalStore.setState({ loggedInUser: null, studySeconds: 0, isLiveCheckedIn: false, currentSessionId: null, currentScreen: 'landing' }); localStorage.removeItem('elearning_app_state'); actions.showMsg('ออกจากระบบแล้ว'); },
           
           submitQuiz: () => { const { quizData, loggedInUser: u, dbUsers } = globalStore.getState(); if (quizData.isFinished) return; const score = calculateScore(quizData.questions, quizData.answers); const isPretest = quizData.type === 'pretest'; const isPassed = score >= Math.ceil(quizData.questions.length * 0.8); const upUser = { ...u, ...(isPretest ? { pretest: `${score}/${quizData.questions.length}` } : { posttest: `${score}/${quizData.questions.length}`, status: isPassed ? 'ผ่าน' : 'ไม่ผ่าน' }) }; actions.saveUserToDB(upUser); actions.enqueueSync({ action: 'upsertUser', user: upUser }); globalStore.setState({ loggedInUser: upUser, dbUsers: dbUsers.map(x => x.id === upUser.id ? upUser : x), quizData: { ...quizData, score, isFinished: true }, currentScreen: isPretest ? 'quiz_result' : isPassed ? 'cert_confirm' : 'quiz_fail' }); }
         };
@@ -304,6 +288,7 @@
         // 6. SCREENS (หน้าจอต่างๆ)
         // ============================================================================
 
+        // 🌟 หน้า Landing 🌟
         function LandingScreen({ store, actions }) {
           return (
             <div className="flex min-h-screen w-full relative overflow-hidden items-center justify-center bg-transparent z-50">
@@ -317,6 +302,7 @@
                        </GradientButton>
                    </div>
                </div>
+               
                <button onClick={actions.handleAdminClick} className="fixed bottom-4 left-4 z-50 text-white/80 hover:text-white bg-black/30 hover:bg-black/50 backdrop-blur-md p-3 rounded-full transition-all no-print cursor-pointer shadow-lg border border-white/30">
                    <SafeIcon name="Settings" size={24} />
                </button>
@@ -324,6 +310,7 @@
           );
         }
 
+        // 🌟 หน้า Intro 🌟
         function IntroScreen({ store, actions }) {
           useEffect(() => { 
             const handleMessage = (event) => { 
@@ -341,6 +328,7 @@
               <div className="flex min-h-screen w-full relative overflow-hidden items-center justify-center p-4 pb-16 md:pb-24 print-bg-white">
                  <div className="relative z-10 w-full max-w-6xl mx-auto flex flex-col items-center justify-center">
                     <div className="items-center animate-in slide-in-from-bottom-8 fade-in duration-700 w-full">
+                       
                        <div className="flex flex-col lg:flex-row gap-8 lg:gap-12 items-center justify-center w-full max-w-4xl mx-auto">
                          <div className="w-[60%] sm:w-[50%] md:w-[320px] lg:w-[350px] shrink-0 flex items-center justify-center relative mx-auto lg:mx-0">
                             <div className="w-full aspect-[9/16] relative rounded-[2rem] overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-white/40 bg-black z-10 print-shadow-none print-border-gold">
@@ -358,6 +346,7 @@
                             
                             <div className="pt-4 w-full relative z-10 flex flex-col gap-3 md:gap-4 animate-in slide-in-from-bottom-4 fade-in no-print">
                               <GradientButton onClick={() => { actions.nav('auth_wizard'); }} className="w-full py-4 px-4 text-base md:text-lg rounded-2xl !shadow-[0_10px_25px_rgba(0,185,0,0.3)] border border-line-400">เข้าสู่ระบบ e-Learning <SafeIcon name="ArrowRight" size={20} /></GradientButton>
+                              
                               <button onClick={() => window.open('./executive.html', '_blank')} className="w-full py-3.5 px-4 bg-slate-900/80 hover:bg-black/90 backdrop-blur-2xl border border-yellow-500/50 rounded-2xl text-[13px] md:text-sm font-bold transition-all shadow-[0_10px_30px_rgba(0,0,0,0.4)] flex items-center justify-center gap-2 group mt-2 relative overflow-hidden">
                                  <div className="absolute inset-0 bg-gradient-to-r from-yellow-600/10 via-yellow-400/20 to-yellow-600/10 group-hover:via-yellow-400/30 transition-all"></div>
                                  <SafeIcon name="Globe" size={18} className="text-yellow-400 drop-shadow-[0_0_8px_rgba(250,204,21,0.8)] group-hover:scale-110 transition-transform relative z-10" />
@@ -372,9 +361,12 @@
           );
         }
 
+        // 🌟 หน้าเช็คสิทธิ์ล็อกอิน และ รับ OTP 🌟
         function AuthWizard({ store, actions }) {
           const { authStep, tempLicense, registrationData: d, otpData } = store; 
           const [isChecking, setIsChecking] = useState(false); 
+          const [hasVerified, setHasVerified] = useState(false); 
+          const [selectedUserType, setSelectedUserType] = useState('เรียนใหม่');
           
           const deptList = [...Object.keys(HOSPITAL_MAPPING).filter(k => k !== 'อื่นๆ'), 'อื่นๆ']; 
           const rawHospList = d.department && HOSPITAL_MAPPING[d.department] ? HOSPITAL_MAPPING[d.department].map(h => h.name) : []; 
@@ -382,6 +374,7 @@
           
           const renderForm = () => {
             if (authStep === 'check_license') {
+              
               const handleVerify = async (e) => {
                 e.preventDefault(); 
                 const cleanLicense = tempLicense.trim().replace(/[^a-zA-Z0-9]/g, '');
@@ -412,6 +405,7 @@
                           email: existUser.email || '', 
                           phone: existUser.phone || '', 
                           position: existUser.position || '',
+                          workContext: existUser.workContext || '',
                           department: existUser.department || '', 
                           hospital: existUser.hospital || '', 
                           province: existUser.province || '', 
@@ -476,14 +470,21 @@
                   <form onSubmit={handleRequestOTP} className="flex-1 flex flex-col">
                     <div className="max-h-[40vh] overflow-y-auto custom-scrollbar pr-2 pb-4 space-y-4">
                        <FormInput label="ชื่อ - สกุล" value={d.name || ''} onChange={e => globalStore.setState(p => ({ registrationData: {...p.registrationData, name: e.target.value} }))} placeholder="ระบุชื่อและนามสกุล" />
-                       <FormSelect label="สิทธิ์การเรียน" value={d.userType || 'เรียนใหม่'} onChange={e => globalStore.setState(p => ({ registrationData: {...p.registrationData, userType: e.target.value} }))} options={['เรียนใหม่', 'Online', 'Onsite', 'Masterclass']} placeholder="-- เลือกสิทธิ์การเรียน --" disabled={d.isPrefilled} />
+                       <FormSelect label="สิทธิ์การเรียน" value={d.userType || 'เรียนใหม่'} onChange={e => globalStore.setState(p => ({ registrationData: {...p.registrationData, userType: e.target.value} }))} options={['เรียนใหม่', 'Online', 'Onsite']} placeholder="-- เลือกสิทธิ์การเรียน --" disabled={d.isPrefilled} />
                        <FormInput label="เบอร์โทรศัพท์" type="tel" value={d.phone || ''} onChange={e => globalStore.setState(p => ({ registrationData: {...p.registrationData, phone: e.target.value} }))} placeholder="08xxxxxxxx" />
                        <FormInput label="อีเมล (สำหรับรับ OTP)" type="email" value={d.email || ''} onChange={e => globalStore.setState(p => ({ registrationData: {...p.registrationData, email: e.target.value} }))} placeholder="email@example.com" />
                        <FormInput label="ตำแหน่ง" value={d.position || ''} onChange={e => globalStore.setState(p => ({ registrationData: {...p.registrationData, position: e.target.value} }))} placeholder="ระบุตำแหน่ง" />
-                       <FormSelect label="สังกัด" value={d.department || ''} onChange={(e) => globalStore.setState(p => ({ registrationData: { ...p.registrationData, department: e.target.value, hospital: '', province: '', customHospital: '' } }))} options={deptList} placeholder="-- เลือกสังกัด --" />
                        
-                       <FormSelect label="ลักษณะงานปัจจุบัน" value={d.workContext || ''} onChange={e => globalStore.setState(p => ({ registrationData: {...p.registrationData, workContext: e.target.value} }))} options={['ปฏิบัติงานรับบริจาค/ปลูกถ่ายอวัยวะโดยตรง', 'ปฏิบัติงานในหอผู้ป่วยวิกฤต (ICU / ER / ศัลยกรรมประสาท)', 'บุคลากรทางการแพทย์ทั่วไป (ต้องการเพิ่มพูนความรู้)']} placeholder="-- ระบุความเกี่ยวข้องกับงานบริจาคอวัยวะ --" />
+                       {/* 🌟 ช่องคัดกรองลักษณะงานปัจจุบัน (Seamless Filter) 🌟 */}
+                       <FormSelect 
+                           label="ลักษณะงานปัจจุบัน" 
+                           value={d.workContext || ''} 
+                           onChange={e => globalStore.setState(p => ({ registrationData: {...p.registrationData, workContext: e.target.value} }))} 
+                           options={['ปฏิบัติงานรับบริจาค/ปลูกถ่ายอวัยวะโดยตรง', 'ปฏิบัติงานในหอผู้ป่วยวิกฤต (ICU/OR)', 'ไม่ได้ปฏิบัติงานด้านนี้โดยตรง แต่สนใจศึกษา', 'อื่นๆ']} 
+                           placeholder="-- เลือกลักษณะงาน --" 
+                       />
 
+                       <FormSelect label="สังกัด" value={d.department || ''} onChange={(e) => globalStore.setState(p => ({ registrationData: { ...p.registrationData, department: e.target.value, hospital: '', province: '', customHospital: '' } }))} options={deptList} placeholder="-- เลือกสังกัด --" />
                        <div className="w-full relative z-10">
                            <FormSelect label="หน่วยงาน / โรงพยาบาล" value={d.hospital || ''} onChange={(e) => { const hosp = e.target.value; let foundProv = ''; if (hosp !== 'อื่นๆ' && d.department) { const match = HOSPITAL_MAPPING[d.department].find(h => h.name === hosp); if (match) { foundProv = match.prov; } } globalStore.setState(p => ({ registrationData: { ...p.registrationData, hospital: hosp, province: foundProv || p.registrationData.province, customHospital: '' } })); }} options={hospList} placeholder="-- เลือกหน่วยงาน --" disabled={!d.department} />
                            {d.hospital === 'อื่นๆ' && (<FormInput label="ชื่อหน่วยงาน" type="text" className="mt-3 animate-in fade-in zoom-in-95" value={d.customHospital || ''} onChange={e => globalStore.setState(p => ({ registrationData: {...p.registrationData, customHospital: e.target.value} }))} placeholder="โปรดระบุ" />)}
@@ -501,6 +502,8 @@
             }
             
             if (authStep === 'verify_otp') {
+              
+              // 🚀 2. เข้าสู่ห้องเรียน (สร้าง User ลงฐานข้อมูล และคำนวณสิทธิ์ 4 ระดับ) 🚀
               const handleVerifyOTP = async (e) => { 
                  e.preventDefault(); globalStore.setState(p => ({ otpData: { ...p.otpData, isSending: true, error: '' } }));
                  try {
@@ -510,33 +513,42 @@
                      const license = d.licenseId; 
                      const existingUser = store.dbUsers.find(u => String(u.license || '').trim() === String(license).trim() || String(u.id || '').trim() === String(license).trim()); 
                      
-                     const uType = d.userType || 'เรียนใหม่';
-                     const isOnsiteOrMaster = ['Onsite', 'Masterclass'].includes(uType) || (existingUser && ['Onsite', 'Masterclass'].includes(existingUser.userType));
+                     // กำหนดสิทธิ์สุดท้าย (ถ้าแอดมินยัด Masterclass มาให้ จะใช้ของแอดมินเป็นหลัก)
+                     const finalUserType = existingUser ? existingUser.userType : d.userType;
+                     const isMasterclass = finalUserType === 'Masterclass';
+                     const isOnsite = finalUserType === 'Onsite';
+                     const isOnline = finalUserType === 'Online';
                      
-                     const initialSeconds = existingUser?.studySeconds ?? (isOnsiteOrMaster ? 36000 : 0); 
+                     // 🚀 ตรรกะเป้าหมายเวลา (Target Time)
+                     let targetSeconds = 28800; // เรียนใหม่ 8 ชั่วโมง (28,800 วินาที)
+                     if (isOnsite || isMasterclass) targetSeconds = 36000; // Onsite, Masterclass 10 ชั่วโมง
+                     if (isOnline) targetSeconds = (store.liveConfig?.hours || 10) * 3600; // Online ตามแอดมินตั้ง
+                     
+                     // 🚀 ตรรกะเวลาเริ่มต้น (Initial Time)
+                     const initialSeconds = existingUser?.studySeconds ?? ((isOnsite || isMasterclass) ? 36000 : 0); 
                      const finalHosp = d.hospital === 'อื่นๆ' ? d.customHospital : (d.hospital === 'ศูนย์บริการสาธารณสุข' ? `ศูนย์บริการสาธารณสุข ${d.customHospital}` : d.hospital);
                      
-                     const reqSecs = getRequiredSeconds(uType, store.liveConfig?.hours);
-                     const initialProgress = Math.min(100, Math.round((initialSeconds / reqSecs) * 100));
-
+                     // สรุปข้อมูลผู้ใช้
                      const fullUser = Object.assign({ 
                          id: license || `user_${Date.now()}`, 
                          studySeconds: initialSeconds, 
-                         progress: initialProgress, 
+                         progress: calcProgress(initialSeconds, targetSeconds), 
                          status: 'กำลังเรียน', 
                          pretest: '-', 
                          posttest: '-', 
-                         skillLabPassed: uType === 'Masterclass', // เฉพาะ Masterclass เท่านั้นที่ได้สิทธิ์ skillLab
+                         skillLabPassed: !isMasterclass, // ถ้าไม่ใช่ Masterclass ถือว่าไม่ต้องเข้าห้องนี้ (ให้ผ่านเลยเพื่อไปสอบ)
                          lastVideoId: 1, 
                          videoTimes: {}, 
                          quizSetIndex: 0 
-                     }, existingUser ?? {}, d, { hospital: finalHosp, sessionId: generateSessionId() });
+                     }, existingUser ?? {}, d, { hospital: finalHosp, sessionId: generateSessionId(), userType: finalUserType });
                      
                      globalStore.setState(p => ({ currentSessionId: fullUser.sessionId, studySeconds: initialSeconds, loggedInUser: fullUser, currentVideoId: fullUser.lastVideoId || 1, otpData: { input: '', isSending: false, error: '' }, fallbackOtp: null, dbUsers: existingUser ? p.dbUsers.map(u => u.id === fullUser.id ? fullUser : u) : [fullUser, ...p.dbUsers] })); 
                      
+                     // ยิงข้อมูลอัปเดตลงตู้เซฟ (Firestore)
                      actions.enqueueSync({ action: 'upsertUser', user: fullUser }); 
                      actions.saveUserToDB(fullUser); 
                      
+                     // ถ้ายังไม่ทำ Pretest พาไปทำข้อสอบ ถ้าทำแล้วพาเข้าเรียนโลด
                      if (fullUser.pretest === '-') globalStore.setState({ currentScreen: 'quiz', quizData: { type: 'pretest', questions: store.questionSets[0] || [], currentIndex: 0, answers: {}, score: 0, isFinished: false } }); 
                      else globalStore.setState({ currentScreen: 'dashboard' });
                  } catch (error) { globalStore.setState(p => ({ otpData: { ...p.otpData, error: 'ระบบขัดข้อง กรุณาลองใหม่อีกครั้ง', isSending: false } })); }
@@ -567,6 +579,7 @@
           );
         }
 
+        // 🌟 หน้า Dashboard ห้องเรียนหลัก 🌟
         function StudentDashboard({ store, actions }) {
             const { activeTab: tab, loggedInUser: user, liveConfig: lc, studySeconds: secs, currentVideoId: vId, dbUsers, lessons } = store;
             const [checkedIn, setCheckedIn] = useState(store.isLiveCheckedIn);
@@ -594,40 +607,47 @@
                 sliderRef.current.scrollLeft = scrollLeft - walk;
             };
 
-            // ระบบสะสมเวลาเรียน
+            // ระบบนับเวลาเรียนอัตโนมัติ
             useEffect(() => {
-                if (!['video', 'live'].includes(tab) || !user) return;
-                const reqSecs = getRequiredSeconds(user.userType, lc?.hours);
-                
+                if (!['video'].includes(tab) || !user) return;
                 const timer = setInterval(() => {
                    const state = globalStore.getState(); 
+                   
+                   // คำนวณเป้าหมายเพื่อใช้อัปเดต Progress
+                   let currentTarget = 28800; // เรียนใหม่ 8 ชม.
+                   if (state.loggedInUser.userType === 'Onsite' || state.loggedInUser.userType === 'Masterclass') currentTarget = 36000;
+                   if (state.loggedInUser.userType === 'Online') currentTarget = (lc?.hours || 10) * 3600;
+
                    const newSecs = state.studySeconds + 10; 
-                   const newProg = Math.min(100, Math.round((newSecs / reqSecs) * 100)); 
+                   const newProg = calcProgress(newSecs, currentTarget); 
                    const upUser = { ...state.loggedInUser, studySeconds: newSecs, progress: newProg };
+                   
                    globalStore.setState(p => ({ studySeconds: newSecs, loggedInUser: upUser, dbUsers: p.dbUsers.map(x => x.id === upUser.id ? upUser : x) }));
                    if (newSecs > 0 && newSecs % 30 === 0) actions.saveUserToDB(upUser);
                 }, 10000);
                 return () => clearInterval(timer);
-            }, [tab, user?.id, lc?.hours]);
+            }, [tab, user?.id, lc?.hours, user?.userType]);
 
             if (!user) return null;
             
-            // 🚀 โลจิกสิทธิ์แบบใหม่ (New Access Rules) 🚀
-            const reqSecs = getRequiredSeconds(user.userType, lc?.hours);
-            const isTimeMet = secs >= reqSecs; 
+            // 🚀 โลจิกทะลวงเวลา และการปลดล็อกข้อสอบ (Double-Gate Security) 🚀
+            const isTimeMet = user.progress >= 100 || lc?.allowPosttest; 
             const isMasterclass = user.userType === 'Masterclass';
+            
+            // เฉพาะ Masterclass เท่านั้นที่ต้องบังคับเข้าห้องฝึกเจรจา (skillLabHistory.length > 0)
+            const isUnlockedForPosttest = isMasterclass ? (isTimeMet && user.skillLabHistory?.length > 0) : isTimeMet;
+
             const hasPosttest = user.posttest && user.posttest !== '-'; 
             const activeLesson = lessons ? lessons[(vId || 1) - 1] : null;
             
-            const startQuizParams = { type: 'posttest', questions: store.questionSets[user.quizSetIndex || 0] || store.questionSets[0] || [], currentIndex: 0, answers: {}, score: 0, isFinished: false };
-
+            // ปุ่ม Action หลักกลางจอ
             const actionConfig = hasPosttest 
-                ? { t: "ยินดีด้วย คุณเรียนจบแล้ว 🎉", d: "ผ่านการทดสอบและได้รับประกาศนียบัตร", b: "ดูโปรไฟล์", i: "Award", c: "from-emerald-400 to-emerald-600", a: () => globalStore.setState({ activeTab: 'profile' }) } 
-                : isTimeMet 
-                    ? { t: "พร้อมสอบ Posttest แล้ว!", d: isMasterclass ? "คุณสามารถทำแบบทดสอบ หรือเข้าฝึกเจรจาใน AI Skill Lab ได้ทันที" : "คุณทำเวลาเรียนครบถ้วน สามารถทำแบบทดสอบได้เลย", b: "เริ่มทำ Posttest", i: "FileText", c: "from-rose-400 to-pink-600", a: () => { globalStore.setState({ quizData: startQuizParams }); actions.nav('quiz'); } } 
-                    : user.userType === 'Online'
-                        ? { t: "ภารกิจ: สะสมเวลา Live สด", d: `คุณต้องเข้าชม Live สดให้ครบ ${lc?.hours || 0} ชั่วโมงตามเงื่อนไข`, b: "เข้าหน้า Live สด", i: "Radio", c: "from-blue-500 to-blue-600", a: () => globalStore.setState({ activeTab: 'live' }) }
-                        : { t: `เรียนต่อ: บทที่ ${user?.lastVideoId || 1}`, d: activeLesson?.title || "ดูวิดีโอเพื่อสะสมเวลาเรียน (ขั้นต่ำ 8 ชม.)", b: "เล่นวิดีโอต่อ", i: "PlayCircle", c: "from-line-500 to-line-600", a: () => globalStore.setState({ activeTab: 'video', currentVideoId: user?.lastVideoId || 1 }) };
+              ? { t: "ยินดีด้วย คุณเรียนจบแล้ว 🎉", d: "ผ่านการทดสอบและได้รับประกาศนียบัตร", b: "ดูโปรไฟล์", i: "Award", c: "from-emerald-400 to-emerald-600", a: () => globalStore.setState({ activeTab: 'profile' }) } 
+              : (isMasterclass && isTimeMet && !(user.skillLabHistory?.length > 0))
+                ? { t: "ภารกิจพิเศษ: ฝึกภาคปฏิบัติ", d: "สิทธิ์ Masterclass: เข้าฝึกเจรจากับ AI เพื่อเก็บคะแนน Empathy", b: "เข้าห้อง AI Skill Lab", i: "Bot", c: "from-orange-400 to-amber-500", a: () => window.location.href = './aiskilllab.html' } 
+                : isUnlockedForPosttest 
+                  ? { t: "พร้อมสอบ Posttest แล้ว!", d: "คุณมีสิทธิ์เข้าทำแบบทดสอบหลังเรียนแล้ว", b: "เริ่มทำ Posttest", i: "FileText", c: "from-rose-400 to-pink-600", a: () => { globalStore.setState({ quizData: { type: 'posttest', questions: store.questionSets[user.quizSetIndex || 0] || store.questionSets[0] || [], currentIndex: 0, answers: {}, score: 0, isFinished: false }}); actions.nav('quiz'); } } 
+                  : { t: `เรียนต่อ: บทที่ ${user?.lastVideoId || 1}`, d: activeLesson?.title || "กลับเข้าสู่บทเรียนล่าสุด", b: "เล่นวิดีโอต่อ", i: "PlayCircle", c: "from-line-500 to-line-600", a: () => globalStore.setState({ activeTab: 'video', currentVideoId: user?.lastVideoId || 1 }) };
 
             const leaderboardData = (dbUsers || []).map(u => {
                 const history = u.skillLabHistory || [];
@@ -661,12 +681,16 @@
                 </GlassCard>
 
                 <div className="fixed bottom-4 left-0 right-0 mx-auto w-fit max-w-[96vw] z-50 bg-white/20 backdrop-blur-xl border border-white/40 rounded-[2rem] p-2 shadow-[0_10px_40px_rgba(0,0,0,0.3)] md:relative md:inset-auto md:w-full md:max-w-none md:z-10 md:bg-transparent md:border-none md:shadow-none md:p-0 flex flex-row justify-center gap-2 md:gap-3 md:mb-8 overflow-x-auto custom-scrollbar">
-                  {[{t:'video', l:'วิดีโอ', i:'MonitorPlay'}, {t:'live', l:'Live สด', i:'Radio', e:lc?.status==='live'}, 
+                  {[
+                    {t:'video', l:'วิดีโอ', i:'MonitorPlay'}, 
+                    {t:'live', l:'Live สด', i:'Radio', e:lc?.status==='live'}, 
                     {t:'skill_lab', l:'AI Skill Lab', i:'Bot', a:() => { 
-                        if(isMasterclass) window.location.href='./aiskilllab.html'; 
+                        if(user.userType === 'Masterclass') window.location.href='./aiskilllab.html'; 
                         else actions.showMsg('ฟีเจอร์ AI (Beta) สงวนสิทธิ์เฉพาะกลุ่ม Masterclass ในช่วงทดสอบค่ะ 💙', 'error'); 
                     }}, 
-                    {t:'leaderboard', l:'จัดอันดับ', i:'Award'}, {t:'profile', l:'โปรไฟล์', i:'History'}].map(({t, l, i, e, a}) => {
+                    {t:'leaderboard', l:'จัดอันดับ', i:'Award'}, 
+                    {t:'profile', l:'โปรไฟล์', i:'History'}
+                  ].map(({t, l, i, e, a}) => {
                      const isActive = tab === t; 
                      const activeClass = isActive ? '!bg-white/90 border-white text-line-700 shadow-[0_5px_15px_rgba(0,185,0,0.2)] scale-105' : e ? '!bg-rose-100/80 text-rose-600 border-rose-300/80 animate-pulse' : 'text-slate-700 border-white/20 hover:text-slate-900 hover:!bg-white/50';
                      return (<button key={t} onClick={a ?? (() => globalStore.setState({ activeTab: t }))} className={`shrink-0 flex flex-col items-center justify-center w-[64px] h-[72px] sm:w-[72px] sm:h-[80px] md:w-auto md:h-auto md:flex-row md:px-8 md:py-4 rounded-[1.25rem] md:rounded-[1.5rem] font-bold md:font-black text-[10px] md:text-lg border cursor-pointer transition-all active:scale-95 ${activeClass}`}><div className={`md:p-1.5 md:rounded-full ${isActive ? 'md:bg-white/60 text-line-600 md:shadow-inner' : ''}`}><SafeIcon name={i} size={24} className={`mb-1 md:mb-0 md:w-6 md:h-6 ${e ? 'animate-ping' : ''}`} /></div><span className="text-center drop-shadow-sm leading-tight px-1">{l}</span></button>);
@@ -740,7 +764,7 @@
                           {lc?.status === 'paused' && (<div className="absolute inset-0 bg-white/60 backdrop-blur-xl z-20 flex flex-col items-center justify-center text-slate-800 rounded-2xl border border-white/60"><SafeIcon name="PauseCircle" size={60} className="mb-2 md:mb-4 text-line-600 animate-pulse" /><h2 className="text-xl md:text-3xl font-extrabold drop-shadow-md">พักการถ่ายทอดสด</h2></div>)}
                           <div style={{ position: 'relative', paddingTop: '56.25%', overflow: 'hidden', borderRadius: '1rem', background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(255,255,255,0.4)' }}><iframe src={lc?.url} style={{ position: 'absolute', top:0, left:0, width: '100%', height:'100%', border:'none' }} allowFullScreen /></div>
                           <div className="flex flex-col md:flex-row justify-between items-center mt-6 mb-4 px-2 gap-4"><h3 className="text-lg md:text-3xl font-extrabold text-slate-800 flex items-center gap-2 drop-shadow-md">{lc?.status === 'live' && <span className="w-3 h-3 bg-rose-500 rounded-full animate-ping shadow-[0_0_10px_rgba(244,63,94,0.8)]"></span>}{lc?.topic}</h3></div>
-                          <div className="bg-white/40 border border-white/60 p-4 md:p-6 rounded-2xl w-full flex flex-col sm:flex-row justify-between items-center gap-4 backdrop-blur-md"><div className="text-center sm:text-left"><p className="text-xs md:text-sm font-bold text-slate-800 drop-shadow-sm">เวลารวมของคอร์ส {lc?.hours || 10} ชั่วโมง ({lc?.days || 1} วัน)</p></div>{!checkedIn ? <GradientButton onClick={() => globalStore.setState({ isLiveCheckedIn: true })} className="w-full sm:w-auto py-3 px-6 text-sm border border-white/40"><SafeIcon name="CheckCircle" className="w-5 h-5" /> ยืนยันเข้าเรียน</GradientButton> : <div className="text-emerald-800 font-bold bg-emerald-100/80 px-4 py-2.5 rounded-xl border border-emerald-300 backdrop-blur-sm shadow-sm"><SafeIcon name="CheckCircle" className="w-4 h-4 inline mr-1"/> เช็คอินสำเร็จ</div>}</div>
+                          <div className="bg-white/40 border border-white/60 p-4 md:p-6 rounded-2xl w-full flex flex-col sm:flex-row justify-between items-center gap-4 backdrop-blur-md"><div className="text-center sm:text-left"><p className="text-xs md:text-sm font-bold text-slate-800 drop-shadow-sm">เวลารวมของคอร์ส {lc?.hours} ชั่วโมง ({lc?.days} วัน)</p></div>{!checkedIn ? <GradientButton onClick={() => globalStore.setState({ isLiveCheckedIn: true })} className="w-full sm:w-auto py-3 px-6 text-sm border border-white/40"><SafeIcon name="CheckCircle" className="w-5 h-5" /> ยืนยันเข้าเรียน</GradientButton> : <div className="text-emerald-800 font-bold bg-emerald-100/80 px-4 py-2.5 rounded-xl border border-emerald-300 backdrop-blur-sm shadow-sm"><SafeIcon name="CheckCircle" className="w-4 h-4 inline mr-1"/> เช็คอินสำเร็จ</div>}</div>
                         </div>
                       </div>
                     ) : (
@@ -752,6 +776,7 @@
             );
         }
 
+        // 🌟 หน้าทำข้อสอบ 🌟
         function QuizScreen({ store, actions }) {
           const { quizData: { questions, currentIndex, answers, type, isFinished } } = store; const q = questions[currentIndex]; const isAns = q && answers[q.id] !== undefined; const [timeLeft, setTimeLeft] = useState(2700); const timerRef = useRef(null); 
           useEffect(() => { if (isFinished) return; const tmr = setInterval(() => setTimeLeft(p => { if (p <= 1) { clearInterval(tmr); actions.submitQuiz(); return 0; } return p - 1; }), 1000); return () => clearInterval(tmr); }, [isFinished]);
@@ -840,6 +865,7 @@
           );
         }
 
+        // 🌟 หน้าโปรไฟล์ 🌟
         function ProfileSummaryScreen({ store: { loggedInUser, studySeconds }, actions, inline = false }) {
           if (!loggedInUser) return null;
           const history = loggedInUser.skillLabHistory || [];
@@ -876,6 +902,27 @@
                          </a>
                       </div>
                   )}
+
+                  {/* แหล่งข้อมูลอ้างอิงศูนย์รับบริจาคอวัยวะสภากาชาดไทย */}
+                  <div className="mt-8 mb-8 text-left">
+                      <h3 className="text-sm font-extrabold text-slate-800 mb-3 flex items-center gap-2 drop-shadow-sm"><SafeIcon name="Globe" className="text-line-600" size={18} /> แหล่งข้อมูลอ้างอิงสำคัญ</h3>
+                      <div className="flex flex-col sm:flex-row gap-3">
+                          <a href="https://organdonate.redcross.or.th/" target="_blank" rel="noopener noreferrer" className="flex-1 bg-white/60 hover:bg-white/90 border border-white/80 p-4 rounded-2xl flex items-center gap-3 transition-all shadow-sm hover:shadow-md active:scale-95 backdrop-blur-md group">
+                              <div className="w-10 h-10 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform"><SafeIcon name="Heart" size={20} className="animate-pulse" /></div>
+                              <div>
+                                  <div className="text-sm font-bold text-slate-800 drop-shadow-sm">ศูนย์รับบริจาคอวัยวะฯ</div>
+                                  <div className="text-[10px] text-slate-600 font-medium">เว็บไซต์หลัก สภากาชาดไทย</div>
+                              </div>
+                          </a>
+                          <a href="https://organdonate.redcross.or.th/download" target="_blank" rel="noopener noreferrer" className="flex-1 bg-white/60 hover:bg-white/90 border border-white/80 p-4 rounded-2xl flex items-center gap-3 transition-all shadow-sm hover:shadow-md active:scale-95 backdrop-blur-md group">
+                              <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform"><SafeIcon name="Download" size={20} /></div>
+                              <div>
+                                  <div className="text-sm font-bold text-slate-800 drop-shadow-sm">ดาวน์โหลดแบบฟอร์ม</div>
+                                  <div className="text-[10px] text-slate-600 font-medium">เอกสารและคู่มือปฏิบัติงาน</div>
+                              </div>
+                          </a>
+                      </div>
+                  </div>
 
                   {!inline && <button onClick={actions.handleLogout} className="mt-2 text-sm font-bold bg-white/40 hover:bg-white/60 backdrop-blur-md px-6 py-3 rounded-full border border-white/60 text-rose-600 transition-colors shadow-sm">ออกจากระบบ</button>}
               </div>
