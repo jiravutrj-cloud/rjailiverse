@@ -59,10 +59,6 @@
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from 'firebase/auth';
         import { getFirestore, collection, doc, setDoc, onSnapshot, deleteDoc } from 'firebase/firestore';
 
-        // ============================================================================
-        // ข้อมูลถูกย้ายไปที่ data.js เรียบร้อยแล้วเพื่อความเบาของไฟล์
-        // ============================================================================
-
         const ICONS = {
           Users: LucideIcons.Users, Radio: LucideIcons.Radio, BookOpen: LucideIcons.BookOpen, 
           Database: LucideIcons.Database, Activity: LucideIcons.Activity, LogOut: LucideIcons.LogOut,
@@ -116,7 +112,7 @@
                 lessons: window.INITIAL_LESSONS || [],
                 questionSets: window.QUIZ_QUESTIONS_RAW ? [parseRawExams(window.QUIZ_QUESTIONS_RAW)] : [[]]
             });
-            const [liveConfig, setLiveConfig] = useState({ status: 'offline', topic: '', url: '', documentUrl: '' });
+            const [liveConfig, setLiveConfig] = useState({ status: 'offline', days: 1, hours: 10, topic: '', url: '', documentUrl: '' });
             const [systemConfig, setSystemConfig] = useState({ appsScriptUrl: '', certScriptUrl: '', lookerStudioUrl: '', masterCsvUrl: '', autoSyncFromSheet: false });
             const [alertMsg, setAlertMsg] = useState({ show: false, text: '', type: 'success' });
             
@@ -165,9 +161,16 @@
                 const unsubContent = onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_config', 'content'), (docSnap) => {
                     if (docSnap.exists() && docSnap.data()) {
                         const data = docSnap.data();
+                        
+                        // 🌟 แปลง Object จาก Firebase กลับเป็น Array เพื่อให้หน้าจอแสดงผลได้ 🌟
+                        let parsedQuestionSets = data.questionSets;
+                        if (parsedQuestionSets && !Array.isArray(parsedQuestionSets)) {
+                            parsedQuestionSets = Object.keys(parsedQuestionSets).sort().map(k => parsedQuestionSets[k]);
+                        }
+
                         setContentConfig(prev => ({
                             lessons: data.lessons || prev.lessons,
-                            questionSets: data.questionSets || prev.questionSets
+                            questionSets: parsedQuestionSets || prev.questionSets
                         }));
                     }
                 }, (err) => console.error("Content sync error:", err));
@@ -213,25 +216,26 @@
                             const hospital = cols[6] || ''; 
                             const province = cols[7] || '';
                             
-                            // 🚀 อัปเกรดระบบกรองสิทธิ์ (Smart Fallback) ทะลวง Dirty Data
                             let userType = 'เรียนใหม่';
                             let rawUserType = String(cols[8] || '').trim().toLowerCase();
                             
                             if (rawUserType.includes('onsite')) {
                                 userType = 'Onsite';
+                            } else if (rawUserType.includes('masterclass')) {
+                                userType = 'Masterclass';
                             } else if (rawUserType.includes('online')) {
                                 userType = 'Online';
                             } else {
-                                // ไม้ตายสุดท้าย: หากคอลัมน์ 8 หาไม่เจอ ให้กวาดข้อความทั้งบรรทัดเพื่อดักจับสิทธิ์
                                 const fullRowText = rows[i].toLowerCase();
                                 if (fullRowText.includes('onsite')) userType = 'Onsite';
+                                else if (fullRowText.includes('masterclass')) userType = 'Masterclass';
                                 else if (fullRowText.includes('online')) userType = 'Online';
                             }
 
                             const phone = (cols[16] || '').replace(/[^0-9]/g, '');
 
                             const existingUser = usersList.find(u => String(u.id) === license);
-                            const isOnsite = userType === 'Onsite';
+                            const isOnsiteOrMaster = userType === 'Onsite' || userType === 'Masterclass';
 
                             let targetPayload = {
                                 id: license, 
@@ -252,17 +256,17 @@
                                 targetPayload.posttest = '-';
                                 targetPayload.lastVideoId = 1;
                                 targetPayload.videoTimes = {};
-                                targetPayload.progress = isOnsite ? 100 : 0;
-                                targetPayload.studySeconds = isOnsite ? 36000 : 0;
-                                targetPayload.skillLabPassed = isOnsite;
+                                targetPayload.progress = isOnsiteOrMaster ? 100 : 0;
+                                targetPayload.studySeconds = isOnsiteOrMaster ? 36000 : 0;
+                                targetPayload.skillLabPassed = userType === 'Masterclass';
                                 
                                 await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_users', license), targetPayload, { merge: true });
                                 newCount++;
                             } else {
-                                if (isOnsite && ((existingUser.progress || 0) < 100 || !existingUser.skillLabPassed)) {
+                                if (isOnsiteOrMaster && ((existingUser.progress || 0) < 100 || (userType === 'Masterclass' && !existingUser.skillLabPassed))) {
                                     targetPayload.progress = 100;
                                     targetPayload.studySeconds = 36000;
-                                    targetPayload.skillLabPassed = true;
+                                    if (userType === 'Masterclass') targetPayload.skillLabPassed = true;
                                 }
                                 await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_users', license), targetPayload, { merge: true });
                                 updateCount++;
@@ -277,14 +281,22 @@
             };
 
             const handleForceRefillAll = async () => {
-                if(!window.confirm('ระบบจะค้นหาผู้เรียนที่มีสิทธิ์ Onsite ทั้งหมด และเติมเวลาเรียนเป็น 100% พร้อมผ่าน Skill Lab อัตโนมัติ ยืนยันหรือไม่?')) return;
+                if(!window.confirm('ระบบจะค้นหาผู้เรียนที่มีสิทธิ์ Onsite หรือ Masterclass ทั้งหมด และเติมเวลาเรียนเป็น 100% พร้อมมอบสิทธิ์พิเศษอัตโนมัติ ยืนยันหรือไม่?')) return;
                 let count = 0;
                 showAlert('กำลังประมวลผล Auto-Refill...', 'info');
                 try {
                     for(const u of usersList) {
-                        const isUserOnsite = u.userType === 'Onsite' || String(u.userType).toLowerCase() === 'onsite';
-                        if (isUserOnsite && (u.progress < 100 || !u.skillLabPassed)) {
-                            await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_users', String(u.id)), { progress: 100, studySeconds: 36000, skillLabPassed: true, userType: 'Onsite' }, { merge: true });
+                        const uTypeStr = String(u.userType).toLowerCase();
+                        const isUserOnsite = ['onsite', 'masterclass'].includes(uTypeStr);
+                        const isMasterclass = uTypeStr === 'masterclass';
+                        
+                        if (isUserOnsite && (u.progress < 100 || (isMasterclass && !u.skillLabPassed))) {
+                            await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_users', String(u.id)), { 
+                                progress: 100, 
+                                studySeconds: 36000, 
+                                skillLabPassed: isMasterclass, 
+                                userType: u.userType 
+                            }, { merge: true });
                             count++;
                         }
                     }
@@ -326,10 +338,10 @@
             const updateUserStatus = async (userId, newStatus, newType) => {
                 try {
                     let updatePayload = { status: newStatus, userType: newType };
-                    if (newType === 'Onsite') {
+                    if (newType === 'Onsite' || newType === 'Masterclass') {
                         updatePayload.studySeconds = 36000;
                         updatePayload.progress = 100;
-                        updatePayload.skillLabPassed = true;
+                        updatePayload.skillLabPassed = (newType === 'Masterclass'); // เฉพาะ Masterclass ทะลุกำแพง skill lab
                     }
                     await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_users', userId), updatePayload, { merge: true });
                     showAlert('อัปเดตสิทธิ์สำเร็จ');
@@ -348,16 +360,16 @@
             const handleAddManualUser = async (e) => {
                 e.preventDefault();
                 const uid = manualForm.license || Date.now().toString();
-                const isOnsite = manualForm.userType === 'Onsite';
+                const isOnsiteOrMaster = manualForm.userType === 'Onsite' || manualForm.userType === 'Masterclass';
                 const newUser = { 
                     id: uid, 
                     ...manualForm, 
-                    progress: isOnsite ? 100 : 0, 
-                    studySeconds: isOnsite ? 36000 : 0, 
+                    progress: isOnsiteOrMaster ? 100 : 0, 
+                    studySeconds: isOnsiteOrMaster ? 36000 : 0, 
                     status: 'กำลังเรียน', 
                     pretest: '-', 
                     posttest: '-', 
-                    skillLabPassed: isOnsite, 
+                    skillLabPassed: manualForm.userType === 'Masterclass', 
                     lastVideoId: 1, 
                     videoTimes: {} 
                 };
@@ -370,10 +382,39 @@
 
             const saveContentConfig = async () => {
                 try {
-                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_config', 'content'), contentConfig, { merge: true });
+                    // 🌟 ป้องกัน Error: แปลง Nested Array เป็น Object ก่อนเซฟลง Firebase 🌟
+                    const firestorePayload = {
+                        lessons: contentConfig.lessons,
+                        questionSets: Object.assign({}, contentConfig.questionSets) 
+                    };
+                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_config', 'content'), firestorePayload, { merge: true });
                     showAlert('อัปเดตและเผยแพร่เนื้อหาเรียบร้อยแล้ว');
                 } catch (e) {
-                    showAlert('เกิดข้อผิดพลาดในการบันทึกเนื้อหา', 'error');
+                    showAlert('เกิดข้อผิดพลาดในการบันทึกเนื้อหา: ' + e.message, 'error');
+                }
+            };
+
+            // 🌟 ปุ่มฉุกเฉิน: ดึงข้อมูลจากไฟล์ data.js มากู้คืนระบบ 🌟
+            const handleRestoreDefaultContent = async () => {
+                if (!window.confirm("🚨 ยืนยันการกู้คืนข้อมูลหรือไม่? ระบบจะดึง 20 บทเรียน และ 40 ข้อสอบดั้งเดิม กลับมาทับข้อมูลที่ว่างเปล่าทันที")) return;
+                
+                const defaultLessons = window.INITIAL_LESSONS || [];
+                const defaultQuizzes = window.QUIZ_QUESTIONS_RAW ? [parseRawExams(window.QUIZ_QUESTIONS_RAW)] : [[]];
+                
+                const resetData = { lessons: defaultLessons, questionSets: defaultQuizzes };
+                
+                // 🌟 แปลงร่างเป็น Object ป้องกันการ Error ทันทีที่กดกู้คืน 🌟
+                const firestorePayload = {
+                    lessons: defaultLessons,
+                    questionSets: Object.assign({}, defaultQuizzes)
+                };
+                
+                try {
+                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_config', 'content'), firestorePayload, { merge: true });
+                    setContentConfig(resetData);
+                    showAlert('✅ กู้คืนข้อมูลสำเร็จ! 20 บทเรียน 40 ข้อสอบ กลับมาแล้วครับ', 'success');
+                } catch(e) {
+                    showAlert('❌ เกิดข้อผิดพลาดในการกู้คืน: ' + e.message, 'error');
                 }
             };
 
@@ -398,10 +439,10 @@
             }
 
             const handleExportCSV = () => {
-                const headers = ["ชื่อ-สกุล", "อีเมล", "เบอร์โทร", "ใบประกอบวิชาชีพ", "ตำแหน่ง", "หน่วยงาน", "สถานะ", "Pretest", "Posttest", "ความคืบหน้า (%)", "คะแนนเจรจาเฉลี่ย"];
+                const headers = ["ชื่อ-สกุล", "อีเมล", "เบอร์โทร", "ใบประกอบวิชาชีพ", "ตำแหน่ง", "ลักษณะงาน", "หน่วยงาน", "สิทธิ์การเรียน", "สถานะ", "Pretest", "Posttest", "ความคืบหน้า (%)", "คะแนนเจรจาเฉลี่ย"];
                 const csvData = usersList.map(u => {
                     const avgScore = u.skillLabHistory?.length > 0 ? Math.round(u.skillLabHistory.reduce((sum, r) => sum + (r.score || 0), 0) / u.skillLabHistory.length) : 0;
-                    return [u.name, u.email, u.phone, u.licenseId, u.position, u.hospital, u.status, u.pretest, u.posttest, u.progress, avgScore];
+                    return [u.name, u.email, u.phone, u.licenseId, u.position, u.workContext || '-', u.hospital, u.userType, u.status, u.pretest, u.posttest, u.progress, avgScore];
                 });
                 const csvContent = [headers, ...csvData].map(e => e.join(",")).join("\n");
                 const blob = new Blob(["\ufeff" + csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -456,7 +497,7 @@
                                         
                                         <button onClick={() => syncFromGoogleSheet(true)} className="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold text-sm shadow-sm hover:bg-blue-500 shrink-0 flex items-center gap-1"><SafeIcon name="RefreshCw" size={16}/> ดึงสิทธิ์จาก Sheet</button>
                                         
-                                        <button onClick={handleForceRefillAll} className="bg-amber-500 text-white px-4 py-2 rounded-lg font-bold text-sm shadow-sm hover:bg-amber-400 shrink-0 flex items-center gap-1"><SafeIcon name="Activity" size={16}/> Auto-Refill Onsite</button>
+                                        <button onClick={handleForceRefillAll} className="bg-amber-500 text-white px-4 py-2 rounded-lg font-bold text-sm shadow-sm hover:bg-amber-400 shrink-0 flex items-center gap-1"><SafeIcon name="Activity" size={16}/> Auto-Refill VIP</button>
 
                                         <button onClick={() => setShowManualForm(!showManualForm)} className="bg-slate-800 text-white px-4 py-2 rounded-lg font-bold text-sm shadow-sm hover:bg-slate-700 shrink-0 flex items-center gap-1"><SafeIcon name="Plus" size={16}/> เพิ่มมือ</button>
                                         
@@ -469,7 +510,7 @@
                                         <div><label className="block text-xs font-bold text-slate-500 mb-1">ชื่อ-สกุล</label><input required value={manualForm.name} onChange={e => setManualForm({...manualForm, name: e.target.value})} className="w-full px-3 py-2 border rounded-lg outline-none focus:border-line-500 text-sm" /></div>
                                         <div><label className="block text-xs font-bold text-slate-500 mb-1">ใบอนุญาต (ID)</label><input required value={manualForm.license} onChange={e => setManualForm({...manualForm, license: e.target.value})} className="w-full px-3 py-2 border rounded-lg outline-none focus:border-line-500 text-sm" /></div>
                                         <div><label className="block text-xs font-bold text-slate-500 mb-1">โรงพยาบาล</label><input required value={manualForm.hospital} onChange={e => setManualForm({...manualForm, hospital: e.target.value})} className="w-full px-3 py-2 border rounded-lg outline-none focus:border-line-500 text-sm" /></div>
-                                        <div><label className="block text-xs font-bold text-slate-500 mb-1">สิทธิ์ (Type)</label><select value={manualForm.userType} onChange={e => setManualForm({...manualForm, userType: e.target.value})} className="w-full px-3 py-2 border rounded-lg outline-none focus:border-line-500 text-sm bg-white"><option>เรียนใหม่</option><option>Onsite</option><option>Online</option></select></div>
+                                        <div><label className="block text-xs font-bold text-slate-500 mb-1">สิทธิ์ (Type)</label><select value={manualForm.userType} onChange={e => setManualForm({...manualForm, userType: e.target.value})} className="w-full px-3 py-2 border rounded-lg outline-none focus:border-line-500 text-sm bg-white"><option>เรียนใหม่</option><option>Onsite</option><option>Online</option><option>Masterclass</option></select></div>
                                         <button type="submit" className="w-full bg-slate-800 text-white font-bold py-2 rounded-lg shadow-sm hover:bg-slate-700">บันทึก</button>
                                     </form>
                                 )}
@@ -487,7 +528,7 @@
                                                         <td className="p-4 text-slate-600 font-mono text-xs">{u.license || u.id}</td>
                                                         <td className="p-4">
                                                             <select value={u.userType || 'เรียนใหม่'} onChange={(e) => updateUserStatus(u.id, u.status, e.target.value)} className="bg-white border border-slate-300 rounded px-2 py-1 text-xs font-bold outline-none shadow-sm focus:border-line-500">
-                                                                <option value="เรียนใหม่">เรียนใหม่</option><option value="Online">Online</option><option value="Onsite">Onsite</option>
+                                                                <option value="เรียนใหม่">เรียนใหม่</option><option value="Online">Online</option><option value="Onsite">Onsite</option><option value="Masterclass">Masterclass</option>
                                                             </select>
                                                         </td>
                                                         <td className="p-4"><div className="flex items-center gap-2"><div className="w-16 h-1.5 bg-slate-200 rounded-full overflow-hidden"><div className="bg-line-500 h-full" style={{width: `${u.progress}%`}}></div></div><span className="text-xs text-slate-500 font-bold">{u.progress}%</span></div></td>
@@ -561,7 +602,19 @@
                                         </div>
                                         <div><label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">หัวข้อการบรรยาย</label><input type="text" value={liveConfig.topic} onChange={e => setLiveConfig({...liveConfig, topic: e.target.value})} className="w-full px-4 py-2.5 rounded-lg border border-slate-300 outline-none focus:border-line-500" placeholder="เช่น บรรยายพิเศษนโยบายชาติ..." /></div>
                                     </div>
-                                    <div><label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Embed URL (ลิงก์วิดีโอจาก Canva/Vimeo/Youtube)</label><input type="text" value={liveConfig.url} onChange={e => setLiveConfig({...liveConfig, url: e.target.value})} className="w-full px-4 py-2.5 rounded-lg border border-slate-300 outline-none focus:border-line-500 font-mono text-sm" placeholder="https://www.canva.com/..." /></div>
+                                    
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">จำนวนวัน (สำหรับโชว์ในเว็บ)</label>
+                                            <input type="number" min="1" value={liveConfig.days || 1} onChange={e => setLiveConfig({...liveConfig, days: parseInt(e.target.value) || 1})} className="w-full px-4 py-2.5 rounded-lg border border-slate-300 outline-none focus:border-line-500 font-mono text-sm" placeholder="1" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">ชั่วโมงบังคับเรียน (สำหรับสิทธิ์ Online)</label>
+                                            <input type="number" min="1" value={liveConfig.hours || 10} onChange={e => setLiveConfig({...liveConfig, hours: parseInt(e.target.value) || 10})} className="w-full px-4 py-2.5 rounded-lg border border-slate-300 outline-none focus:border-line-500 font-mono text-sm" placeholder="10" />
+                                        </div>
+                                    </div>
+
+                                    <div><label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 mt-2">Embed URL (ลิงก์วิดีโอจาก Canva/Vimeo/Youtube)</label><input type="text" value={liveConfig.url} onChange={e => setLiveConfig({...liveConfig, url: e.target.value})} className="w-full px-4 py-2.5 rounded-lg border border-slate-300 outline-none focus:border-line-500 font-mono text-sm" placeholder="https://www.canva.com/..." /></div>
                                     <div className="pt-4 border-t border-slate-100"><label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 flex items-center gap-2"><SafeIcon name="UploadCloud" size={16} className="text-line-500"/> ลิงก์เอกสารประกอบ Live (Google Drive / PDF)</label><input type="text" value={liveConfig.documentUrl || ''} onChange={e => setLiveConfig({...liveConfig, documentUrl: e.target.value})} className="w-full px-4 py-2.5 rounded-lg border border-slate-300 outline-none focus:border-line-500 font-mono text-sm" placeholder="วางลิงก์เอกสารให้ผู้เรียนดาวน์โหลด..." /></div>
                                     <button onClick={saveLiveConfig} className="w-full bg-line-500 hover:bg-line-600 text-white font-bold py-3.5 rounded-xl transition-colors shadow-md flex items-center justify-center gap-2"><SafeIcon name="Save" size={20} /> เผยแพร่สถานะ Live ให้นักเรียนเห็น</button>
                                 </div>
@@ -573,16 +626,19 @@
                             <div className="animate-in fade-in max-w-5xl">
                                 <div className="flex justify-between items-center mb-6">
                                     <h2 className="text-2xl font-black text-slate-800 flex items-center gap-2"><SafeIcon name="BookOpen" className="text-line-600" /> แก้ไขรายวิชา</h2>
-                                    <button onClick={saveContentConfig} className="bg-line-500 text-white px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-sm hover:bg-line-600 transition-colors"><SafeIcon name="UploadCloud" size={18}/> เผยแพร่ขึ้น Cloud</button>
+                                    <div className="flex gap-2">
+                                        <button onClick={handleRestoreDefaultContent} className="bg-amber-500 text-white px-4 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-sm hover:bg-amber-600 transition-colors"><SafeIcon name="RefreshCw" size={18}/> กู้คืนข้อมูลเริ่มต้น</button>
+                                        <button onClick={saveContentConfig} className="bg-line-500 text-white px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-sm hover:bg-line-600 transition-colors"><SafeIcon name="UploadCloud" size={18}/> เผยแพร่ขึ้น Cloud</button>
+                                    </div>
                                 </div>
                                 <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
                                     <div className="space-y-4 max-h-[65vh] overflow-y-auto pr-2 custom-scrollbar">
-                                        {contentConfig.lessons.map(l => (
+                                        {(contentConfig.lessons || []).map(l => (
                                             <div key={l.id} className="p-4 bg-slate-50 border border-slate-200 rounded-xl flex flex-col md:flex-row gap-4 items-start md:items-center">
                                                 <div className="w-10 h-10 bg-slate-200 rounded-full flex items-center justify-center font-black text-slate-500 shrink-0">{l.id}</div>
                                                 <div className="flex-1 w-full space-y-2">
-                                                    <input type="text" value={l.title} onChange={e => setContentConfig(p => ({ ...p, lessons: p.lessons.map(x => x.id === l.id ? { ...x, title: e.target.value } : x) }))} className="w-full text-sm font-bold p-2 border rounded-lg outline-none focus:border-line-500" placeholder="ชื่อบทเรียน" />
-                                                    <input type="text" value={l.videoId} onChange={e => setContentConfig(p => ({ ...p, lessons: p.lessons.map(x => x.id === l.id ? { ...x, videoId: e.target.value } : x) }))} className="w-full text-xs font-mono p-2 border rounded-lg outline-none focus:border-line-500 text-slate-500" placeholder="Google Drive Video ID" />
+                                                    <input type="text" value={l.title} onChange={e => setContentConfig(p => ({ ...p, lessons: (p.lessons || []).map(x => x.id === l.id ? { ...x, title: e.target.value } : x) }))} className="w-full text-sm font-bold p-2 border rounded-lg outline-none focus:border-line-500" placeholder="ชื่อบทเรียน" />
+                                                    <input type="text" value={l.videoId} onChange={e => setContentConfig(p => ({ ...p, lessons: (p.lessons || []).map(x => x.id === l.id ? { ...x, videoId: e.target.value } : x) }))} className="w-full text-xs font-mono p-2 border rounded-lg outline-none focus:border-line-500 text-slate-500" placeholder="Google Drive Video ID" />
                                                 </div>
                                             </div>
                                         ))}
@@ -596,15 +652,18 @@
                             <div className="animate-in fade-in max-w-5xl">
                                 <div className="flex justify-between items-center mb-6">
                                     <h2 className="text-2xl font-black text-slate-800 flex items-center gap-2"><SafeIcon name="CheckSquare" className="text-line-600" /> จัดการข้อสอบ (Pretest / Posttest)</h2>
-                                    <button onClick={saveContentConfig} className="bg-line-500 text-white px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-sm hover:bg-line-600 transition-colors"><SafeIcon name="UploadCloud" size={18}/> เผยแพร่ข้อสอบขึ้น Cloud</button>
+                                    <div className="flex gap-2">
+                                        <button onClick={handleRestoreDefaultContent} className="bg-amber-500 text-white px-4 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-sm hover:bg-amber-600 transition-colors"><SafeIcon name="RefreshCw" size={18}/> กู้คืนข้อมูลเริ่มต้น</button>
+                                        <button onClick={saveContentConfig} className="bg-line-500 text-white px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-sm hover:bg-line-600 transition-colors"><SafeIcon name="UploadCloud" size={18}/> เผยแพร่ข้อสอบขึ้น Cloud</button>
+                                    </div>
                                 </div>
                                 
                                 <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col h-[70vh]">
                                     <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-6">
-                                        {(contentConfig.questionSets[0] || []).map((q, qIndex) => (
+                                        {(contentConfig.questionSets && contentConfig.questionSets[0] ? contentConfig.questionSets[0] : []).map((q, qIndex) => (
                                             <div key={q.id || qIndex} className="p-5 bg-slate-50 border border-slate-200 rounded-xl relative">
                                                 <button onClick={() => {
-                                                    const newQuiz = [...contentConfig.questionSets[0]];
+                                                    const newQuiz = [...(contentConfig.questionSets[0] || [])];
                                                     newQuiz.splice(qIndex, 1);
                                                     setContentConfig(p => ({ ...p, questionSets: [newQuiz] }));
                                                 }} className="absolute top-4 right-4 text-rose-400 hover:text-rose-600 hover:bg-rose-50 p-2 rounded-lg transition-colors" title="ลบข้อนี้"><SafeIcon name="Trash2" size={18}/></button>
@@ -612,7 +671,7 @@
                                                 <div className="mb-4 pr-12">
                                                     <label className="block text-xs font-bold text-slate-500 mb-1">ข้อที่ {qIndex + 1} (คำถาม)</label>
                                                     <textarea value={q.question} onChange={e => {
-                                                        const newQuiz = [...contentConfig.questionSets[0]];
+                                                        const newQuiz = [...(contentConfig.questionSets[0] || [])];
                                                         newQuiz[qIndex] = { ...newQuiz[qIndex], question: e.target.value };
                                                         setContentConfig(p => ({ ...p, questionSets: [newQuiz] }));
                                                     }} className="w-full text-sm font-bold p-3 border rounded-lg outline-none focus:border-line-500 min-h-[80px]" placeholder="ระบุคำถาม..." />
@@ -622,19 +681,19 @@
                                                     {q.options.map((opt, optIndex) => (
                                                         <div key={optIndex} className="flex items-center gap-2">
                                                             <input type="radio" name={`correct-${qIndex}`} checked={q.answer === optIndex} onChange={() => {
-                                                                const newQuiz = [...contentConfig.questionSets[0]];
+                                                                const newQuiz = [...(contentConfig.questionSets[0] || [])];
                                                                 newQuiz[qIndex] = { ...newQuiz[qIndex], answer: optIndex };
                                                                 setContentConfig(p => ({ ...p, questionSets: [newQuiz] }));
                                                             }} className="w-4 h-4 text-line-600 cursor-pointer" title="เลือกเป็นคำตอบที่ถูกต้อง" />
                                                             <input type="text" value={opt} onChange={e => {
-                                                                const newQuiz = [...contentConfig.questionSets[0]];
+                                                                const newQuiz = [...(contentConfig.questionSets[0] || [])];
                                                                 const newOptions = [...newQuiz[qIndex].options];
                                                                 newOptions[optIndex] = e.target.value;
                                                                 newQuiz[qIndex] = { ...newQuiz[qIndex], options: newOptions };
                                                                 setContentConfig(p => ({ ...p, questionSets: [newQuiz] }));
                                                             }} className={`w-full text-sm p-2 border rounded-lg outline-none focus:border-line-500 ${q.answer === optIndex ? 'border-line-500 bg-line-50 font-bold text-line-800' : 'text-slate-700'}`} placeholder={`ตัวเลือกที่ ${optIndex + 1}`} />
                                                             <button onClick={() => {
-                                                                const newQuiz = [...contentConfig.questionSets[0]];
+                                                                const newQuiz = [...(contentConfig.questionSets[0] || [])];
                                                                 const newOptions = [...newQuiz[qIndex].options];
                                                                 newOptions.splice(optIndex, 1);
                                                                 if (newQuiz[qIndex].answer === optIndex) newQuiz[qIndex].answer = 0;
@@ -645,7 +704,7 @@
                                                         </div>
                                                     ))}
                                                     <button onClick={() => {
-                                                        const newQuiz = [...contentConfig.questionSets[0]];
+                                                        const newQuiz = [...(contentConfig.questionSets[0] || [])];
                                                         newQuiz[qIndex] = { ...newQuiz[qIndex], options: [...newQuiz[qIndex].options, "ตัวเลือกใหม่"] };
                                                         setContentConfig(p => ({ ...p, questionSets: [newQuiz] }));
                                                     }} className="text-xs font-bold text-line-600 hover:bg-line-50 py-2 rounded-lg border border-dashed border-line-300 flex items-center justify-center gap-1"><SafeIcon name="Plus" size={14}/> เพิ่มตัวเลือก</button>
@@ -655,7 +714,7 @@
                                     </div>
                                     <div className="pt-4 mt-4 border-t border-slate-100 flex justify-center shrink-0">
                                         <button onClick={() => {
-                                            const newQuiz = [...(contentConfig.questionSets[0] || [])];
+                                            const newQuiz = [...(contentConfig.questionSets && contentConfig.questionSets[0] ? contentConfig.questionSets[0] : [])];
                                             newQuiz.push({ id: Date.now(), question: "คำถามใหม่...", options: ["ก.", "ข.", "ค.", "ง."], answer: 0 });
                                             setContentConfig(p => ({ ...p, questionSets: [newQuiz] }));
                                             setTimeout(() => {
