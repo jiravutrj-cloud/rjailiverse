@@ -161,9 +161,16 @@
                 const unsubContent = onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_config', 'content'), (docSnap) => {
                     if (docSnap.exists() && docSnap.data()) {
                         const data = docSnap.data();
+                        
+                        // 🌟 นู๋เสริมการแปลง Object จาก Firebase กลับเป็น Array 🌟
+                        let parsedQuestionSets = data.questionSets;
+                        if (parsedQuestionSets && !Array.isArray(parsedQuestionSets)) {
+                            parsedQuestionSets = Object.keys(parsedQuestionSets).sort().map(k => parsedQuestionSets[k]);
+                        }
+
                         setContentConfig(prev => ({
                             lessons: data.lessons || prev.lessons,
-                            questionSets: data.questionSets || prev.questionSets
+                            questionSets: parsedQuestionSets || prev.questionSets
                         }));
                     }
                 }, (err) => console.error("Content sync error:", err));
@@ -375,14 +382,19 @@
 
             const saveContentConfig = async () => {
                 try {
-                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_config', 'content'), contentConfig, { merge: true });
+                    // 🌟 นู๋แก้จุดนี้: Firestore ไม่ยอมรับ Nested Array จึงต้องจับแปลงร่างเป็น Object ก่อนเซฟค่ะ! 🌟
+                    const firestorePayload = {
+                        lessons: contentConfig.lessons,
+                        questionSets: Object.assign({}, contentConfig.questionSets) 
+                    };
+                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_config', 'content'), firestorePayload, { merge: true });
                     showAlert('อัปเดตและเผยแพร่เนื้อหาเรียบร้อยแล้ว');
                 } catch (e) {
-                    showAlert('เกิดข้อผิดพลาดในการบันทึกเนื้อหา', 'error');
+                    showAlert('เกิดข้อผิดพลาดในการบันทึกเนื้อหา: ' + e.message, 'error');
                 }
             };
 
-            // 🌟 เพิ่มปุ่มฉุกเฉิน กู้คืนข้อมูล 20 บทเรียน 40 ข้อสอบ 🌟
+            // 🌟 ปุ่มฉุกเฉิน: แก้ไขปัญหา Firestore Block ข้อมูล Nested Array 🌟
             const handleRestoreDefaultContent = async () => {
                 if (!window.confirm("🚨 ยืนยันการกู้คืนข้อมูลหรือไม่? ระบบจะดึง 20 บทเรียน และ 40 ข้อสอบดั้งเดิม กลับมาทับข้อมูลที่ว่างเปล่าทันที")) return;
                 
@@ -391,12 +403,18 @@
                 
                 const resetData = { lessons: defaultLessons, questionSets: defaultQuizzes };
                 
+                // 🌟 แปลงร่างเป็น Object ป้องกันการ Error ทันทีที่กดกู้คืน 🌟
+                const firestorePayload = {
+                    lessons: defaultLessons,
+                    questionSets: Object.assign({}, defaultQuizzes)
+                };
+                
                 try {
-                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_config', 'content'), resetData, { merge: true });
+                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_config', 'content'), firestorePayload, { merge: true });
                     setContentConfig(resetData);
                     showAlert('✅ กู้คืนข้อมูลสำเร็จ! 20 บทเรียน 40 ข้อสอบ กลับมาแล้วค่ะ', 'success');
                 } catch(e) {
-                    showAlert('❌ เกิดข้อผิดพลาดในการกู้คืน', 'error');
+                    showAlert('❌ เกิดข้อผิดพลาดในการกู้คืน: ' + e.message, 'error');
                 }
             };
 
@@ -616,12 +634,12 @@
                                 </div>
                                 <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
                                     <div className="space-y-4 max-h-[65vh] overflow-y-auto pr-2 custom-scrollbar">
-                                        {contentConfig.lessons.map(l => (
+                                        {(contentConfig.lessons || []).map(l => (
                                             <div key={l.id} className="p-4 bg-slate-50 border border-slate-200 rounded-xl flex flex-col md:flex-row gap-4 items-start md:items-center">
                                                 <div className="w-10 h-10 bg-slate-200 rounded-full flex items-center justify-center font-black text-slate-500 shrink-0">{l.id}</div>
                                                 <div className="flex-1 w-full space-y-2">
-                                                    <input type="text" value={l.title} onChange={e => setContentConfig(p => ({ ...p, lessons: p.lessons.map(x => x.id === l.id ? { ...x, title: e.target.value } : x) }))} className="w-full text-sm font-bold p-2 border rounded-lg outline-none focus:border-line-500" placeholder="ชื่อบทเรียน" />
-                                                    <input type="text" value={l.videoId} onChange={e => setContentConfig(p => ({ ...p, lessons: p.lessons.map(x => x.id === l.id ? { ...x, videoId: e.target.value } : x) }))} className="w-full text-xs font-mono p-2 border rounded-lg outline-none focus:border-line-500 text-slate-500" placeholder="Google Drive Video ID" />
+                                                    <input type="text" value={l.title} onChange={e => setContentConfig(p => ({ ...p, lessons: (p.lessons || []).map(x => x.id === l.id ? { ...x, title: e.target.value } : x) }))} className="w-full text-sm font-bold p-2 border rounded-lg outline-none focus:border-line-500" placeholder="ชื่อบทเรียน" />
+                                                    <input type="text" value={l.videoId} onChange={e => setContentConfig(p => ({ ...p, lessons: (p.lessons || []).map(x => x.id === l.id ? { ...x, videoId: e.target.value } : x) }))} className="w-full text-xs font-mono p-2 border rounded-lg outline-none focus:border-line-500 text-slate-500" placeholder="Google Drive Video ID" />
                                                 </div>
                                             </div>
                                         ))}
@@ -643,10 +661,10 @@
                                 
                                 <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col h-[70vh]">
                                     <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-6">
-                                        {(contentConfig.questionSets[0] || []).map((q, qIndex) => (
+                                        {(contentConfig.questionSets && contentConfig.questionSets[0] ? contentConfig.questionSets[0] : []).map((q, qIndex) => (
                                             <div key={q.id || qIndex} className="p-5 bg-slate-50 border border-slate-200 rounded-xl relative">
                                                 <button onClick={() => {
-                                                    const newQuiz = [...contentConfig.questionSets[0]];
+                                                    const newQuiz = [...(contentConfig.questionSets[0] || [])];
                                                     newQuiz.splice(qIndex, 1);
                                                     setContentConfig(p => ({ ...p, questionSets: [newQuiz] }));
                                                 }} className="absolute top-4 right-4 text-rose-400 hover:text-rose-600 hover:bg-rose-50 p-2 rounded-lg transition-colors" title="ลบข้อนี้"><SafeIcon name="Trash2" size={18}/></button>
@@ -654,7 +672,7 @@
                                                 <div className="mb-4 pr-12">
                                                     <label className="block text-xs font-bold text-slate-500 mb-1">ข้อที่ {qIndex + 1} (คำถาม)</label>
                                                     <textarea value={q.question} onChange={e => {
-                                                        const newQuiz = [...contentConfig.questionSets[0]];
+                                                        const newQuiz = [...(contentConfig.questionSets[0] || [])];
                                                         newQuiz[qIndex] = { ...newQuiz[qIndex], question: e.target.value };
                                                         setContentConfig(p => ({ ...p, questionSets: [newQuiz] }));
                                                     }} className="w-full text-sm font-bold p-3 border rounded-lg outline-none focus:border-line-500 min-h-[80px]" placeholder="ระบุคำถาม..." />
@@ -664,19 +682,19 @@
                                                     {q.options.map((opt, optIndex) => (
                                                         <div key={optIndex} className="flex items-center gap-2">
                                                             <input type="radio" name={`correct-${qIndex}`} checked={q.answer === optIndex} onChange={() => {
-                                                                const newQuiz = [...contentConfig.questionSets[0]];
+                                                                const newQuiz = [...(contentConfig.questionSets[0] || [])];
                                                                 newQuiz[qIndex] = { ...newQuiz[qIndex], answer: optIndex };
                                                                 setContentConfig(p => ({ ...p, questionSets: [newQuiz] }));
                                                             }} className="w-4 h-4 text-line-600 cursor-pointer" title="เลือกเป็นคำตอบที่ถูกต้อง" />
                                                             <input type="text" value={opt} onChange={e => {
-                                                                const newQuiz = [...contentConfig.questionSets[0]];
+                                                                const newQuiz = [...(contentConfig.questionSets[0] || [])];
                                                                 const newOptions = [...newQuiz[qIndex].options];
                                                                 newOptions[optIndex] = e.target.value;
                                                                 newQuiz[qIndex] = { ...newQuiz[qIndex], options: newOptions };
                                                                 setContentConfig(p => ({ ...p, questionSets: [newQuiz] }));
                                                             }} className={`w-full text-sm p-2 border rounded-lg outline-none focus:border-line-500 ${q.answer === optIndex ? 'border-line-500 bg-line-50 font-bold text-line-800' : 'text-slate-700'}`} placeholder={`ตัวเลือกที่ ${optIndex + 1}`} />
                                                             <button onClick={() => {
-                                                                const newQuiz = [...contentConfig.questionSets[0]];
+                                                                const newQuiz = [...(contentConfig.questionSets[0] || [])];
                                                                 const newOptions = [...newQuiz[qIndex].options];
                                                                 newOptions.splice(optIndex, 1);
                                                                 if (newQuiz[qIndex].answer === optIndex) newQuiz[qIndex].answer = 0;
@@ -687,7 +705,7 @@
                                                         </div>
                                                     ))}
                                                     <button onClick={() => {
-                                                        const newQuiz = [...contentConfig.questionSets[0]];
+                                                        const newQuiz = [...(contentConfig.questionSets[0] || [])];
                                                         newQuiz[qIndex] = { ...newQuiz[qIndex], options: [...newQuiz[qIndex].options, "ตัวเลือกใหม่"] };
                                                         setContentConfig(p => ({ ...p, questionSets: [newQuiz] }));
                                                     }} className="text-xs font-bold text-line-600 hover:bg-line-50 py-2 rounded-lg border border-dashed border-line-300 flex items-center justify-center gap-1"><SafeIcon name="Plus" size={14}/> เพิ่มตัวเลือก</button>
@@ -697,7 +715,7 @@
                                     </div>
                                     <div className="pt-4 mt-4 border-t border-slate-100 flex justify-center shrink-0">
                                         <button onClick={() => {
-                                            const newQuiz = [...(contentConfig.questionSets[0] || [])];
+                                            const newQuiz = [...(contentConfig.questionSets && contentConfig.questionSets[0] ? contentConfig.questionSets[0] : [])];
                                             newQuiz.push({ id: Date.now(), question: "คำถามใหม่...", options: ["ก.", "ข.", "ค.", "ง."], answer: 0 });
                                             setContentConfig(p => ({ ...p, questionSets: [newQuiz] }));
                                             setTimeout(() => {
