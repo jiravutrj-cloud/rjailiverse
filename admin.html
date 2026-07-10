@@ -382,6 +382,24 @@
                 }
             };
 
+            // 🌟 เพิ่มปุ่มฉุกเฉิน กู้คืนข้อมูล 20 บทเรียน 40 ข้อสอบ 🌟
+            const handleRestoreDefaultContent = async () => {
+                if (!window.confirm("🚨 ยืนยันการกู้คืนข้อมูลหรือไม่? ระบบจะดึง 20 บทเรียน และ 40 ข้อสอบดั้งเดิม กลับมาทับข้อมูลที่ว่างเปล่าทันที")) return;
+                
+                const defaultLessons = window.INITIAL_LESSONS || [];
+                const defaultQuizzes = window.QUIZ_QUESTIONS_RAW ? [parseRawExams(window.QUIZ_QUESTIONS_RAW)] : [[]];
+                
+                const resetData = { lessons: defaultLessons, questionSets: defaultQuizzes };
+                
+                try {
+                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_config', 'content'), resetData, { merge: true });
+                    setContentConfig(resetData);
+                    showAlert('✅ กู้คืนข้อมูลสำเร็จ! 20 บทเรียน 40 ข้อสอบ กลับมาแล้วค่ะ', 'success');
+                } catch(e) {
+                    showAlert('❌ เกิดข้อผิดพลาดในการกู้คืน', 'error');
+                }
+            };
+
             const filteredUsers = usersList.filter(u => u.name?.toLowerCase().includes(searchTerm.toLowerCase()) || u.license?.includes(searchTerm));
 
             if (!isAuth) {
@@ -591,7 +609,10 @@
                             <div className="animate-in fade-in max-w-5xl">
                                 <div className="flex justify-between items-center mb-6">
                                     <h2 className="text-2xl font-black text-slate-800 flex items-center gap-2"><SafeIcon name="BookOpen" className="text-line-600" /> แก้ไขรายวิชา</h2>
-                                    <button onClick={saveContentConfig} className="bg-line-500 text-white px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-sm hover:bg-line-600 transition-colors"><SafeIcon name="UploadCloud" size={18}/> เผยแพร่ขึ้น Cloud</button>
+                                    <div className="flex gap-2">
+                                        <button onClick={handleRestoreDefaultContent} className="bg-amber-500 text-white px-4 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-sm hover:bg-amber-600 transition-colors"><SafeIcon name="RefreshCw" size={18}/> กู้คืนข้อมูลเริ่มต้น</button>
+                                        <button onClick={saveContentConfig} className="bg-line-500 text-white px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-sm hover:bg-line-600 transition-colors"><SafeIcon name="UploadCloud" size={18}/> เผยแพร่ขึ้น Cloud</button>
+                                    </div>
                                 </div>
                                 <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
                                     <div className="space-y-4 max-h-[65vh] overflow-y-auto pr-2 custom-scrollbar">
@@ -614,7 +635,10 @@
                             <div className="animate-in fade-in max-w-5xl">
                                 <div className="flex justify-between items-center mb-6">
                                     <h2 className="text-2xl font-black text-slate-800 flex items-center gap-2"><SafeIcon name="CheckSquare" className="text-line-600" /> จัดการข้อสอบ (Pretest / Posttest)</h2>
-                                    <button onClick={saveContentConfig} className="bg-line-500 text-white px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-sm hover:bg-line-600 transition-colors"><SafeIcon name="UploadCloud" size={18}/> เผยแพร่ข้อสอบขึ้น Cloud</button>
+                                    <div className="flex gap-2">
+                                        <button onClick={handleRestoreDefaultContent} className="bg-amber-500 text-white px-4 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-sm hover:bg-amber-600 transition-colors"><SafeIcon name="RefreshCw" size={18}/> กู้คืนข้อมูลเริ่มต้น</button>
+                                        <button onClick={saveContentConfig} className="bg-line-500 text-white px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-sm hover:bg-line-600 transition-colors"><SafeIcon name="UploadCloud" size={18}/> เผยแพร่ข้อสอบขึ้น Cloud</button>
+                                    </div>
                                 </div>
                                 
                                 <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col h-[70vh]">
