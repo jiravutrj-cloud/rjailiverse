@@ -193,7 +193,7 @@
         const globalStore = createGlobalStore({
           currentScreen: 'landing',
           uiMessage: { type: '', text: '', visible: false }, tempLicense: '', authStep: 'check_license', adminClickCount: 0,
-          registrationData: { name: '', email: '', phone: '', position: '', licenseId: '', department: '', hospital: '', customHospital: '', province: '', userType: '', isPrefilled: false },
+          registrationData: { name: '', email: '', phone: '', position: '', licenseId: '', department: '', hospital: '', customHospital: '', province: '', userType: '', workContext: '', isPrefilled: false },
           otpData: { input: '', isSending: false, error: '' }, fallbackOtp: null, loggedInUser: null, currentSessionId: null, studySeconds: 0,
           quizData: { type: 'pretest', questions: FULL_EXAMS[0] || [], currentIndex: 0, answers: {}, score: 0, isFinished: false },
           activeTab: 'video', currentVideoId: 1, isLiveCheckedIn: false,
@@ -481,6 +481,9 @@
                        <FormInput label="อีเมล (สำหรับรับ OTP)" type="email" value={d.email || ''} onChange={e => globalStore.setState(p => ({ registrationData: {...p.registrationData, email: e.target.value} }))} placeholder="email@example.com" />
                        <FormInput label="ตำแหน่ง" value={d.position || ''} onChange={e => globalStore.setState(p => ({ registrationData: {...p.registrationData, position: e.target.value} }))} placeholder="ระบุตำแหน่ง" />
                        <FormSelect label="สังกัด" value={d.department || ''} onChange={(e) => globalStore.setState(p => ({ registrationData: { ...p.registrationData, department: e.target.value, hospital: '', province: '', customHospital: '' } }))} options={deptList} placeholder="-- เลือกสังกัด --" />
+                       
+                       <FormSelect label="ลักษณะงานปัจจุบัน" value={d.workContext || ''} onChange={e => globalStore.setState(p => ({ registrationData: {...p.registrationData, workContext: e.target.value} }))} options={['ปฏิบัติงานรับบริจาค/ปลูกถ่ายอวัยวะโดยตรง', 'ปฏิบัติงานในหอผู้ป่วยวิกฤต (ICU / ER / ศัลยกรรมประสาท)', 'บุคลากรทางการแพทย์ทั่วไป (ต้องการเพิ่มพูนความรู้)']} placeholder="-- ระบุความเกี่ยวข้องกับงานบริจาคอวัยวะ --" />
+
                        <div className="w-full relative z-10">
                            <FormSelect label="หน่วยงาน / โรงพยาบาล" value={d.hospital || ''} onChange={(e) => { const hosp = e.target.value; let foundProv = ''; if (hosp !== 'อื่นๆ' && d.department) { const match = HOSPITAL_MAPPING[d.department].find(h => h.name === hosp); if (match) { foundProv = match.prov; } } globalStore.setState(p => ({ registrationData: { ...p.registrationData, hospital: hosp, province: foundProv || p.registrationData.province, customHospital: '' } })); }} options={hospList} placeholder="-- เลือกหน่วยงาน --" disabled={!d.department} />
                            {d.hospital === 'อื่นๆ' && (<FormInput label="ชื่อหน่วยงาน" type="text" className="mt-3 animate-in fade-in zoom-in-95" value={d.customHospital || ''} onChange={e => globalStore.setState(p => ({ registrationData: {...p.registrationData, customHospital: e.target.value} }))} placeholder="โปรดระบุ" />)}
