@@ -2,24 +2,66 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin - e-Learning RJ Ailiverse</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AI Skill Lab - RJ Ailiverse</title>
     
-    <!-- 🌟 เรียกใช้ไฟล์ข้อมูลแยก (Static Data) เพื่อรีดน้ำหนักโค้ด 🌟 -->
     <script src="./data.js"></script>
-
     <script src="https://cdn.tailwindcss.com"></script>
+    
     <script>
-      tailwind.config = { theme: { extend: { colors: { line: { 50: '#e5f8e5', 100: '#cbf1cb', 200: '#9ce49c', 300: '#6dd66d', 400: '#3ec93e', 500: '#00B900', 600: '#009400', 700: '#006f00', 800: '#004a00', 900: '#002500' } } } } }
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              line: { 50: '#e5f8e5', 100: '#cbf1cb', 200: '#9ce49c', 300: '#6dd66d', 400: '#3ec93e', 500: '#00B900', 600: '#009400', 700: '#006f00', 800: '#004a00', 900: '#002500' },
+              gold: { 200: '#FDE68A', 300: '#FCD34D', 400: '#FBBF24', 500: '#F59E0B', 600: '#D97706' }
+            },
+            animation: {
+              'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+              'glow': 'glow 2s ease-in-out infinite alternate',
+            },
+            keyframes: {
+              glow: {
+                '0%': { boxShadow: '0 0 5px rgba(59, 130, 246, 0.5)' },
+                '100%': { boxShadow: '0 0 20px rgba(59, 130, 246, 0.8), 0 0 30px rgba(59, 130, 246, 0.6)' }
+              }
+            }
+          }
+        }
+      }
     </script>
     
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&display=swap');
-        body { font-family: 'Sarabun', sans-serif; background-color: #f1f5f9; color: #1e293b; margin: 0; }
+        body { font-family: 'Sarabun', sans-serif; margin: 0; overflow-x: hidden; background-color: #0f172a; color: white; }
+        
+        .sky-bg { position: fixed; inset: 0; z-index: 0; background: linear-gradient(to bottom, #0f172a 0%, #1e40af 30%, #38bdf8 60%, #fcd34d 100%); }
+        .clouds-wrapper { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 2; pointer-events: none; opacity: 0.85; }
+        .cloud-layer { position: absolute; bottom: 0; left: 0; width: 200%; height: 100%; background-repeat: repeat-x; background-size: auto 100%; animation: drift linear infinite; }
+        .layer-1 { opacity: 0.9; background-image: url('https://raw.githubusercontent.com/danielstuart14/CSS_FOG_ANIMATION/master/fog1.png'); animation-duration: 150s; }
+        .layer-2 { opacity: 0.6; background-image: url('https://raw.githubusercontent.com/danielstuart14/CSS_FOG_ANIMATION/master/fog2.png'); animation-duration: 200s; transform: scale(1.1); }
+        .layer-3 { opacity: 0.4; background-image: url('https://raw.githubusercontent.com/danielstuart14/CSS_FOG_ANIMATION/master/fog1.png'); animation-duration: 250s; transform: scale(1.2); }
+        @keyframes drift { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+
         .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 10px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background-color: #94a3b8; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background-color: rgba(255,255,255,0.4); border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background-color: rgba(255,255,255,0.6); }
+        
+        .pt-safe { padding-top: env(safe-area-inset-top, 20px); }
+        .pb-safe { padding-bottom: env(safe-area-inset-bottom, 20px); }
+
+        /* 🚀 ICU Monitor CSS 🚀 */
+        @keyframes ekg-pan {
+            from { background-position: 0 0; }
+            to { background-position: -200px 0; }
+        }
+        .icu-grid {
+            background-image: 
+                linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
     </style>
 
     <script type="importmap">
@@ -38,691 +80,676 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 </head>
 <body>
-    <div id="admin-root"></div>
+    <div id="skilllab-root"></div>
 
     <script type="text/babel" data-type="module">
-        // 🛡️ ป้องกันจอขาว (Global Error Handler)
-        window.onerror = function(message, source, lineno, colno, error) {
-            document.body.innerHTML = `
-                <div style="min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; color:#1e293b; font-family:sans-serif; padding:20px; text-align:center;">
-                    <h2 style="font-size:24px; font-weight:bold; margin-bottom:10px; color:#ef4444;">พบข้อผิดพลาดในโค้ด (Syntax Error)</h2>
-                    <p style="color:#64748b; max-width:600px; line-height:1.5; background:#f8fafc; padding:15px; border-radius:8px; border:1px solid #e2e8f0;">${message}</p>
-                </div>
-            `;
-            return true;
-        };
-
-        import React, { useState, useEffect, useRef } from 'react';
+        import React, { useState, useEffect, useRef, useCallback } from 'react';
         import { createRoot } from 'react-dom/client';
         import * as LucideIcons from 'lucide-react';
         import { initializeApp, getApps, getApp } from 'firebase/app';
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from 'firebase/auth';
-        import { getFirestore, collection, doc, setDoc, onSnapshot, deleteDoc } from 'firebase/firestore';
+        import { getAuth, signInAnonymously } from 'firebase/auth';
+        import { getFirestore, doc, setDoc } from 'firebase/firestore';
 
-        const ICONS = {
-          Users: LucideIcons.Users, Radio: LucideIcons.Radio, BookOpen: LucideIcons.BookOpen, 
-          Database: LucideIcons.Database, Activity: LucideIcons.Activity, LogOut: LucideIcons.LogOut,
-          Search: LucideIcons.Search, Edit: LucideIcons.Edit, CheckCircle: LucideIcons.CheckCircle,
-          XCircle: LucideIcons.XCircle, Save: LucideIcons.Save, UploadCloud: LucideIcons.UploadCloud,
-          Trash2: LucideIcons.Trash2, Plus: LucideIcons.Plus, Download: LucideIcons.Download,
-          RefreshCw: LucideIcons.RefreshCw, ShieldCheck: LucideIcons.ShieldCheck, Info: LucideIcons.Info, CheckSquare: LucideIcons.CheckSquare,
-          ArrowLeft: LucideIcons.ArrowLeft, MonitorPlay: LucideIcons.MonitorPlay, Lock: LucideIcons.Lock, Globe: LucideIcons.Globe
-        };
+        const { ArrowLeft, PlayCircle, Bot, Volume2, X, Send, Mic, Image: ImageIcon, Brain, Target, TrendingUp, CheckCircle2, Lock, Clock, Lightbulb, Activity } = LucideIcons;
 
-        function parseRawExams(raw) {
-            if (!raw || !Array.isArray(raw)) return [];
-            return raw.map((str, idx) => {
-                const parts = str.split('|').map(s => s.trim());
-                return {
-                    id: idx + 1,
-                    question: parts[0] ? parts[0].replace(/^[0-9]+\.\s*/, '') : '',
-                    options: parts.slice(1, parts.length - 1),
-                    answer: parseInt((parts[parts.length - 1] || '0').replace(/[^0-9]/g, ''), 10) || 0
-                };
-            });
+        function SafeIcon({ icon: Icon, size = 24, className = "" }) {
+          if (!Icon) return null;
+          return <Icon size={size} className={className} />;
         }
 
-        function SafeIcon({ name, size = 20, className = "" }) {
-          const IconComponent = ICONS[name] || ICONS['Activity'];
-          return <IconComponent size={size} className={className} />;
-        }
+        const FAH_IDLE_VIDEO = window.FAH_IDLE_VIDEO || "";
+        const CHARACTER_VIDEOS = window.CHARACTER_VIDEOS || {};
+        const SKILL_LAB_SCENARIOS = window.SKILL_LAB_SCENARIOS || [];
 
-        // ============================================================================
-        // การเชื่อมต่อ Firebase
-        // ============================================================================
         let app, auth, db, appId = 'fah-elearning-prod';
         try {
           const fbP1 = "AIzaSyBs275"; const fbP2 = "NY99gdv1uZdAnb"; const fbP3 = "mx3UlWO8K4o5a0";
           let fbConfig = (typeof __firebase_config !== 'undefined' && __firebase_config) 
             ? JSON.parse(__firebase_config) : { apiKey: fbP1 + fbP2 + fbP3, authDomain: "e-learning-with-fah-ai.firebaseapp.com", projectId: "e-learning-with-fah-ai", storageBucket: "e-learning-with-fah-ai.firebasestorage.app", messagingSenderId: "418946105960", appId: "1:418946105960:web:728e28070790975df231dd" };
-          
           app = getApps().length === 0 ? initializeApp(fbConfig) : getApp();
-          auth = getAuth(app);
-          db = getFirestore(app);
+          auth = getAuth(app); db = getFirestore(app);
           appId = typeof __app_id !== 'undefined' && __app_id ? String(__app_id).replace(/\//g, '-') : 'fah-elearning-prod';
-        } catch (error) { console.error("Firebase init error", error); }
+        } catch (error) { console.warn("Firebase init error", error); }
 
-        function AdminApp() {
+        const appsScriptUrl = 'https://script.google.com/macros/s/AKfycbwt9H-GVs2aijX_sgzjlpGP9314ereuA9ZECNs4Uc00VLz5rFcJm7aYmkduEMiFVKjA/exec';
+
+        const fetchAppsScript = async (payload) => { 
+            try { const res = await fetch(appsScriptUrl, { method: 'POST', body: JSON.stringify(payload) }); return await res.json(); } catch(e) { return { status: 'error', message: e.message }; } 
+        };
+
+        const callGeminiAPI = async (prompt, systemInstruction, base64Image = null) => {
+            try {
+                const res = await fetchAppsScript({ action: 'callGemini', prompt: prompt, systemInstruction: systemInstruction, base64Image: base64Image });
+                if (res.status === 'success' && res.text) return res.text;
+                throw new Error(res.message || "ไม่มีข้อมูลตอบกลับจาก AI");
+            } catch (e) { return `[ระบบขัดข้อง] ${e.message}`; }
+        };
+
+        const callGeminiTTS = async (text, voiceName = "Aoede") => {
+            for (let i = 0; i < 3; i++) {
+                try {
+                    const res = await fetchAppsScript({ action: 'callGeminiTTS', text: text, voiceName: voiceName });
+                    if (res.status === 'success' && res.inlineData) return res.inlineData;
+                    throw new Error(res.message || 'TTS Error');
+                } catch (e) { if (i < 2) await new Promise(r => setTimeout(r, 2000)); else throw e; }
+            }
+        };
+
+        const pcm16ToWav = (base64PCM, sampleRate = 24000) => {
+          const binaryString = window.atob(base64PCM); const bytes = new Uint8Array(binaryString.length); for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
+          const buffer = new ArrayBuffer(44 + bytes.length); const view = new DataView(buffer);
+          const writeStr = (offset, str) => { for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i)); };
+          writeStr(0, 'RIFF'); view.setUint32(4, 36 + bytes.length, true); writeStr(8, 'WAVE'); writeStr(12, 'fmt '); view.setUint32(16, 16, true); view.setUint16(20, 1, true); view.setUint16(22, 1, true); view.setUint32(24, sampleRate, true); view.setUint32(28, sampleRate * 2, true); view.setUint16(32, 2, true); view.setUint16(34, 16, true); writeStr(36, 'data'); view.setUint32(40, bytes.length, true);
+          new Uint8Array(buffer, 44).set(bytes); return URL.createObjectURL(new Blob([buffer], { type: 'audio/wav' }));
+        };
+
+        function GlassCard({ children, className = "", onClick, ...rest }) {
+          let radiusClass = 'rounded-[2rem]'; const m = className.match(/rounded-(?:\[.*?\]|\w+)/); if (m) radiusClass = m[0];
+          let bgClass = className.replace(/\bbg-(?:white|slate-[12]00)(?:\/\d+)?\b/g, '').replace(/\bborder-white(?:\/\d+)?\b/g, '').replace(/\bbackdrop-blur-(?:sm|md|lg|xl|2xl|3xl)\b/g, '').replace(/\b!border-none\b/g, '').replace(/\bborder-none\b/g, '');
+          return (
+            <div onClick={onClick} className={`relative overflow-hidden bg-white/10 backdrop-blur-xl border border-white/20 shadow-xl ${radiusClass} transition-all duration-300 ${onClick ? 'cursor-pointer hover:-translate-y-1 hover:bg-white/20' : ''} ${bgClass}`} {...rest}>
+              <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-white/5 to-transparent pointer-events-none z-0" />
+              <div className="relative z-10 w-full h-full text-white">{children}</div>
+            </div>
+          );
+        }
+
+        function SkillLabApp() {
             const [user, setUser] = useState(null);
-            const [isAuth, setIsAuth] = useState(false);
-            const [password, setPassword] = useState('');
-            const [activeTab, setActiveTab] = useState('users');
-            const [usersList, setUsersList] = useState([]);
-            const [contentConfig, setContentConfig] = useState({ 
-                lessons: window.INITIAL_LESSONS || [],
-                questionSets: window.QUIZ_QUESTIONS_RAW ? [parseRawExams(window.QUIZ_QUESTIONS_RAW)] : [[]]
-            });
-            const [liveConfig, setLiveConfig] = useState({ status: 'offline', days: 1, hours: 10, topic: '', url: '', documentUrl: '' });
-            const [systemConfig, setSystemConfig] = useState({ appsScriptUrl: '', certScriptUrl: '', lookerStudioUrl: '', masterCsvUrl: '', autoSyncFromSheet: false });
-            const [alertMsg, setAlertMsg] = useState({ show: false, text: '', type: 'success' });
+            const [selectedScenario, setSelectedScenario] = useState(null);
+            const [accessDenied, setAccessDenied] = useState(false); 
             
-            const [searchTerm, setSearchTerm] = useState('');
-            const [showManualForm, setShowManualForm] = useState(false);
-            const [manualForm, setManualForm] = useState({ name: '', license: '', userType: 'เรียนใหม่', hospital: 'รพ.ราชวิถี' });
+            // Chatbot States
+            const [chatInput, setChatInput] = useState(''); 
+            const [isTyping, setIsTyping] = useState(false); 
+            const [messages, setMessages] = useState([]); 
+            const [isListening, setIsListening] = useState(false); 
+            const [isVadMode, setIsVadMode] = useState(false); 
+            const [audioLevel, setAudioLevel] = useState(0); 
+            const [selectedImage, setSelectedImage] = useState(null);
+            const [uiMessage, setUiMessage] = useState({ show: false, text: '', type: 'success' });
+            
+            // 🚀 Next-Gen Features States 🚀
+            const [smartSuggestions, setSmartSuggestions] = useState([]); 
+            const [pressureTime, setPressureTime] = useState(20); 
+            
+            // 🌟 TTS & Waveform States 🌟
+            const [isAiSpeaking, setIsAiSpeaking] = useState(false);
+            
+            // Roleplay States
+            const [roleplayPhase, setRoleplayPhase] = useState('none'); 
+            const [currentEmotion, setCurrentEmotion] = useState('NEUTRAL');
+            const [currentSpeaker, setCurrentSpeaker] = useState('FAH');
+            const [scenarioLang, setScenarioLang] = useState('th');
+            const [currentScenarioPrompt, setCurrentScenarioPrompt] = useState('');
 
-            const showAlert = (text, type = 'success') => {
-                setAlertMsg({ show: true, text, type });
-                setTimeout(() => setAlertMsg({ show: false, text: '', type }), 4000);
+            // Refs
+            const audioContextRef = useRef(null); const analyserRef = useRef(null); const microphoneRef = useRef(null); const vadSilenceTimerRef = useRef(null); const isSpeakingRef = useRef(false); const latestTranscriptRef = useRef('');
+            const recognitionRef = useRef(null); const messagesEndRef = useRef(null); const audioRef = useRef(null); const currentSpeechIdRef = useRef(0);
+            
+            // 🌟 TTS Refs 🌟
+            const ttsCanvasRef = useRef(null);
+            const ttsAudioCtxRef = useRef(null);
+            const ttsAnalyserRef = useRef(null);
+            const ttsAnimFrameRef = useRef(null);
+
+            const showMsg = (text, type = 'success') => {
+                setUiMessage({ show: true, text, type });
+                setTimeout(() => setUiMessage({ show: false, text: '', type }), 3500);
             };
 
+            const safeRedirect = (url) => {
+                try { window.location.href = url; } catch (e) { console.warn("Redirect blocked:", url); }
+            };
+
+            // ตรวจสอบการล็อกอิน และ สิทธิ์จาก LocalStorage
             useEffect(() => {
-                if (!auth || !db) return;
-                const initAuth = async () => {
-                    try {
-                        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                            await signInWithCustomToken(auth, __initial_auth_token);
+                try {
+                    const saved = localStorage.getItem('elearning_app_state');
+                    if (saved) {
+                        const parsed = JSON.parse(saved);
+                        if (parsed.loggedInUser) {
+                            const uType = parsed.loggedInUser.userType;
+                            // กำแพงเหล็ก รับเฉพาะ Masterclass เท่านั้น
+                            if (uType !== 'Masterclass') {
+                                setAccessDenied(true);
+                                return;
+                            }
+                            setUser(parsed.loggedInUser);
+                            signInAnonymously(auth).catch(e => console.warn(e));
                         } else {
-                            await signInAnonymously(auth);
+                            safeRedirect('./index.html');
                         }
-                    } catch (err) {
-                        console.error("Auth init error:", err);
+                    } else {
+                        safeRedirect('./index.html');
                     }
-                };
-                initAuth();
-                const unsubscribe = onAuthStateChanged(auth, setUser);
-                return () => unsubscribe();
+                } catch (e) { safeRedirect('./index.html'); }
             }, []);
 
+            // Scroll to bottom
+            useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, smartSuggestions]);
+
+            // ⏱️ ระบบบีบคั้น (The Crisis Countdown) - แก้ไขบั๊กตัดบท AI ⏱️
             useEffect(() => {
-                if (!user || !db) return;
-                
-                const unsubUsers = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'elearning_users'), (snapshot) => {
-                    const arr = []; snapshot.forEach(doc => arr.push({ id: doc.id, ...doc.data() })); setUsersList(arr);
-                }, (err) => console.error("Users sync error:", err));
-
-                const unsubSettings = onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_config', 'settings'), (docSnap) => {
-                    if (docSnap.exists()) {
-                        const data = docSnap.data();
-                        if (data.liveConfig) setLiveConfig(data.liveConfig);
-                        setSystemConfig(prev => ({ ...prev, ...data }));
-                    }
-                }, (err) => console.error("Settings sync error:", err));
-
-                const unsubContent = onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_config', 'content'), (docSnap) => {
-                    if (docSnap.exists() && docSnap.data()) {
-                        const data = docSnap.data();
-                        setContentConfig(prev => ({
-                            lessons: data.lessons || prev.lessons,
-                            questionSets: data.questionSets || prev.questionSets
-                        }));
-                    }
-                }, (err) => console.error("Content sync error:", err));
-                
-                return () => {
-                    unsubUsers();
-                    unsubSettings();
-                    unsubContent();
-                };
-            }, [user]);
-
-            const syncFromGoogleSheet = async (isManual = false) => {
-                if (!systemConfig.masterCsvUrl) {
-                    if (isManual) showAlert('กรุณาระบุลิงก์ Google Sheets แบบ CSV ก่อน (ตั้งค่าที่แท็บ Auto-Sync)', 'error');
-                    return;
+                let timer;
+                // เพิ่มเงื่อนไข !isAiSpeaking เข้าไป เพื่อให้ระบบนับถอยหลังเฉพาะตอนที่ AI หยุดพูดแล้วเท่านั้น
+                if (roleplayPhase === 'negotiating' && !isTyping && !isAiSpeaking && messages.length > 0 && messages[messages.length-1].sender === 'ai') {
+                    timer = setInterval(() => {
+                        setPressureTime(p => {
+                            if (isListening || chatInput.length > 0 || isAiSpeaking) return p; 
+                            if (p <= 1) {
+                                clearInterval(timer);
+                                handleAutoTimeout(); 
+                                return 20;
+                            }
+                            return p - 1;
+                        });
+                    }, 1000);
+                } else {
+                    setPressureTime(20); // รีเซ็ตเวลาเป็น 20 วิ เสมอถ้า AI กำลังพิมพ์ กำลังพูด หรือเรากำลังพิมพ์
                 }
-                if (isManual) showAlert('กำลังดึงข้อมูลสิทธิ์ผู้เรียนจากตาราง...', 'info');
+                return () => clearInterval(timer);
+            }, [roleplayPhase, isTyping, messages, isListening, chatInput, isAiSpeaking]);
+
+            const handleAutoTimeout = () => { handleSendChat(null, "[ผู้เรียนเงียบ ไม่ตอบสนองทันเวลา]"); };
+
+            // VAD Logic
+            useEffect(() => {
+                const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+                if (SR) {
+                    recognitionRef.current = new SR(); recognitionRef.current.continuous = true; recognitionRef.current.interimResults = true; recognitionRef.current.lang = 'th-TH'; 
+                    recognitionRef.current.onresult = (e) => { let finalT = ''; let interT = ''; for (let i = e.resultIndex; i < e.results.length; ++i) { if (e.results[i].isFinal) finalT += e.results[i][0].transcript; else interT += e.results[i][0].transcript; } setChatInput(p => { const newText = p + finalT; latestTranscriptRef.current = newText || interT; return newText || interT; }); };
+                    recognitionRef.current.onend = () => { if (isVadMode && isListening) { try { recognitionRef.current.start(); } catch(err){} } else { setIsListening(false); setChatInput(curr => { const corText = curr.trim(); if (corText && corText !== 'พร้อม') handleSendChat(null, corText); return curr; }); } };
+                    recognitionRef.current.onerror = (e) => { if(e.error !== 'no-speech') setIsListening(false); };
+                }
+            }, [selectedScenario, messages, isVadMode, isListening]);
+
+            const processAudio = useCallback(() => {
+                if (!analyserRef.current || !isListening || !isVadMode) return;
+                const dataArr = new Uint8Array(analyserRef.current.frequencyBinCount); analyserRef.current.getByteFrequencyData(dataArr);
+                let sum = 0; for (let i = 0; i < dataArr.length; i++) sum += dataArr[i]; const avg = sum / dataArr.length; setAudioLevel(avg);
+                if (avg > 15) { if (!isSpeakingRef.current) isSpeakingRef.current = true; if (vadSilenceTimerRef.current) { clearTimeout(vadSilenceTimerRef.current); vadSilenceTimerRef.current = null; } } else { if (isSpeakingRef.current && !vadSilenceTimerRef.current) { vadSilenceTimerRef.current = setTimeout(() => { isSpeakingRef.current = false; const finalSp = latestTranscriptRef.current.trim(); if (finalSp) { handleSendChat(null, finalSp); setChatInput(''); latestTranscriptRef.current = ''; } vadSilenceTimerRef.current = null; }, 800); } }
+                if (isListening && isVadMode) requestAnimationFrame(processAudio);
+            }, [isListening, isVadMode]);
+
+            const startVAD = async () => { try { if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) throw new Error("NotSupportedError"); const stream = await navigator.mediaDevices.getUserMedia({ audio: true }); audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)(); analyserRef.current = audioContextRef.current.createAnalyser(); microphoneRef.current = audioContextRef.current.createMediaStreamSource(stream); microphoneRef.current.connect(analyserRef.current); analyserRef.current.fftSize = 256; setIsVadMode(true); setIsListening(true); recognitionRef.current?.start(); processAudio(); showMsg('🎙️ เปิดโหมด VAD'); } catch (err) { showMsg('ไมค์ไม่ทำงาน', 'error'); } };
+            const stopVAD = () => { setIsVadMode(false); setIsListening(false); recognitionRef.current?.stop(); if (audioContextRef.current) audioContextRef.current.close(); if (vadSilenceTimerRef.current) clearTimeout(vadSilenceTimerRef.current); showMsg('ปิดไมโครโฟนแล้ว', 'success'); };
+            const toggleMic = () => { if (isListening) stopVAD(); else { setChatInput(''); latestTranscriptRef.current = ''; startVAD(); } };
+
+            const stopAudio = useCallback(() => { 
+                currentSpeechIdRef.current += 1; 
+                setIsAiSpeaking(false);
+                if(ttsAnimFrameRef.current) cancelAnimationFrame(ttsAnimFrameRef.current);
+                if(ttsCanvasRef.current) ttsCanvasRef.current.getContext('2d').clearRect(0, 0, ttsCanvasRef.current.width, ttsCanvasRef.current.height);
+                if (audioRef.current) { audioRef.current.pause(); audioRef.current.removeAttribute('src'); audioRef.current.load(); audioRef.current = null; } 
+            }, []);
+            
+            // 🌟 ระบบเล่นเสียงพร้อมคลื่น Web Audio API 🌟
+            const speakThai = async (text, onEndCallback = null, speaker = 'FAH', isSystemVoice = false) => {
+                stopAudio(); currentSpeechIdRef.current += 1; const speechId = currentSpeechIdRef.current; 
+                
+                let targetVoice = "Aoede"; 
+                let cleanSpeakText = text.replace(/\[.*?\]/g, '').replace(/\(.*?\)/g, '').replace(/\*.*?\*/g, '').replace(/#.*?#/g, '').replace(/^(ฟ้า|เมฆ|พี่เอก|เอก|น้องชาย|ลูกสาว|แฟน|แฟนของฟ้า|Fah|Mek|Brother|Sister|Boyfriend|AI)\s*:\s*/i, '').trim();
+                let emotionPrompt = "";
+                
+                if (isListening) { recognitionRef.current?.stop(); setIsListening(false); }
+                
+                if (isSystemVoice) {
+                    targetVoice = "Aoede";
+                    emotionPrompt = `[พูดด้วยเสียงผู้ประกาศหญิง น้ำเสียงเป็นทางการ สุภาพ นุ่มนวล ใจดี ให้กำลังใจ ไม่ร้องไห้]: ${cleanSpeakText}`;
+                } else {
+                    if (speaker === 'BROTHER') { targetVoice = "Charon"; emotionPrompt = `[พูดด้วยเสียงผู้ชายวัยรุ่น 18 ปี กำลังอารมณ์เสียและเศร้าเสียใจ]: ${cleanSpeakText}`; } 
+                    else if (speaker === 'BOYFRIEND') { targetVoice = "Charon"; emotionPrompt = `[พูดด้วยเสียงผู้ชายวัยผู้ใหญ่ นุ่มนวล อบอุ่น ใจเย็น สุภาพ และคอยให้กำลังใจ]: ${cleanSpeakText}`; } 
+                    else { targetVoice = "Aoede"; emotionPrompt = `[พูดด้วยเสียงผู้หญิงวัยรุ่น 22 ปี กำลังร้องไห้และสับสน]: ${cleanSpeakText}`; }
+                }
+
                 try {
-                    const noCacheUrl = systemConfig.masterCsvUrl + (systemConfig.masterCsvUrl.includes('?') ? '&' : '?') + 't=' + new Date().getTime();
-                    const res = await fetch(noCacheUrl, { cache: 'no-store' });
+                    const inlineData = await callGeminiTTS(emotionPrompt, targetVoice); 
+                    if (speechId !== currentSpeechIdRef.current) return;
+                    const sampleRate = parseInt(inlineData.mimeType.match(/rate=(\d+)/)?.[1] ?? "24000", 10); 
+                    const audioUrl = pcm16ToWav(inlineData.data, sampleRate);
+                    const audio = new Audio(audioUrl); 
+                    audio.crossOrigin = "anonymous";
+                    audioRef.current = audio; 
+
+                    // --- Setup Audio Analyser for Hologram Wave ---
+                    if (!ttsAudioCtxRef.current) {
+                        ttsAudioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
+                        ttsAnalyserRef.current = ttsAudioCtxRef.current.createAnalyser();
+                        ttsAnalyserRef.current.fftSize = 128;
+                    }
+                    if (ttsAudioCtxRef.current.state === 'suspended') ttsAudioCtxRef.current.resume();
+
+                    const source = ttsAudioCtxRef.current.createMediaElementSource(audio);
+                    source.connect(ttsAnalyserRef.current);
+                    ttsAnalyserRef.current.connect(ttsAudioCtxRef.current.destination);
+
+                    setIsAiSpeaking(true);
+
+                    // Waveform Animation Loop (สีธรรมชาติ ไม่หลอน)
+                    const drawWave = () => {
+                        if (!ttsCanvasRef.current || !ttsAnalyserRef.current) return;
+                        const canvas = ttsCanvasRef.current;
+                        const ctx = canvas.getContext('2d');
+                        const dataArray = new Uint8Array(ttsAnalyserRef.current.frequencyBinCount);
+                        ttsAnalyserRef.current.getByteFrequencyData(dataArray);
+
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                        const barWidth = (canvas.width / dataArray.length) * 2.5;
+                        let x = 0;
+                        for(let i = 0; i < dataArray.length; i++) {
+                            const barHeight = Math.min(canvas.height, (dataArray[i] / 255) * canvas.height * 1.2); 
+                            // ใช้สีฟ้าธรรมชาติ ไม่ใช้โฮโลแกรมไซอัน
+                            const hue = 210; 
+                            ctx.fillStyle = `hsla(${hue}, 100%, 70%, 0.8)`;
+                            ctx.shadowBlur = 10;
+                            ctx.shadowColor = `hsla(${hue}, 100%, 70%, 0.6)`;
+                            ctx.fillRect(x, canvas.height - barHeight, barWidth - 1, barHeight);
+                            x += barWidth;
+                        }
+                        ttsAnimFrameRef.current = requestAnimationFrame(drawWave);
+                    };
+
+                    audio.onplay = () => {
+                        if(ttsAnimFrameRef.current) cancelAnimationFrame(ttsAnimFrameRef.current);
+                        drawWave();
+                    };
+
+                    audio.onended = () => { 
+                        setIsAiSpeaking(false);
+                        if(ttsAnimFrameRef.current) cancelAnimationFrame(ttsAnimFrameRef.current);
+                        if(ttsCanvasRef.current) ttsCanvasRef.current.getContext('2d').clearRect(0, 0, ttsCanvasRef.current.width, ttsCanvasRef.current.height);
+                        if (onEndCallback) onEndCallback(); 
+                    }; 
+                    audio.onerror = () => { 
+                        setIsAiSpeaking(false);
+                        showMsg('ระบบเสียงเล่นไม่ได้', 'error'); 
+                        if (onEndCallback) onEndCallback(); 
+                    }; 
                     
-                    if (!res.ok) throw new Error('Cannot fetch CSV');
-                    const text = await res.text();
-                    const rows = text.split('\n').filter(r => r.trim());
-                    if (rows.length <= 1) {
-                        if (isManual) showAlert('ไม่พบข้อมูลผู้เรียนในตาราง', 'error');
-                        return;
-                    }
-
-                    let newCount = 0; let updateCount = 0;
-                    for (let i = 1; i < rows.length; i++) {
-                        const regex = /,(?=(?:(?:[^"]*"){2})*[^"]*$)/;
-                        const cols = rows[i].split(regex).map(c => c.trim().replace(/^"|"$/g, ''));
-                        
-                        if (cols.length >= 3 && cols[2]) {
-                            const name = cols[1] || ''; 
-                            const license = String(cols[2]).replace(/[^a-zA-Z0-9]/g, ''); 
-                            if (!license) continue;
-
-                            const email = cols[3] || '';
-                            const position = cols[4] || '';
-                            const department = cols[5] || '';
-                            const hospital = cols[6] || ''; 
-                            const province = cols[7] || '';
-                            
-                            let userType = 'เรียนใหม่';
-                            let rawUserType = String(cols[8] || '').trim().toLowerCase();
-                            
-                            if (rawUserType.includes('onsite')) {
-                                userType = 'Onsite';
-                            } else if (rawUserType.includes('masterclass')) {
-                                userType = 'Masterclass';
-                            } else if (rawUserType.includes('online')) {
-                                userType = 'Online';
-                            } else {
-                                const fullRowText = rows[i].toLowerCase();
-                                if (fullRowText.includes('onsite')) userType = 'Onsite';
-                                else if (fullRowText.includes('masterclass')) userType = 'Masterclass';
-                                else if (fullRowText.includes('online')) userType = 'Online';
-                            }
-
-                            const phone = (cols[16] || '').replace(/[^0-9]/g, '');
-
-                            const existingUser = usersList.find(u => String(u.id) === license);
-                            const isOnsiteOrMaster = userType === 'Onsite' || userType === 'Masterclass';
-
-                            let targetPayload = {
-                                id: license, 
-                                name: name,
-                                license: license,
-                                phone: phone,
-                                email: email,
-                                position: position,
-                                department: department,
-                                hospital: hospital,
-                                province: province,
-                                userType: userType
-                            };
-
-                            if (!existingUser) {
-                                targetPayload.status = 'กำลังเรียน';
-                                targetPayload.pretest = '-';
-                                targetPayload.posttest = '-';
-                                targetPayload.lastVideoId = 1;
-                                targetPayload.videoTimes = {};
-                                targetPayload.progress = isOnsiteOrMaster ? 100 : 0;
-                                targetPayload.studySeconds = isOnsiteOrMaster ? 36000 : 0;
-                                targetPayload.skillLabPassed = userType === 'Masterclass';
-                                
-                                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_users', license), targetPayload, { merge: true });
-                                newCount++;
-                            } else {
-                                if (isOnsiteOrMaster && ((existingUser.progress || 0) < 100 || (userType === 'Masterclass' && !existingUser.skillLabPassed))) {
-                                    targetPayload.progress = 100;
-                                    targetPayload.studySeconds = 36000;
-                                    if (userType === 'Masterclass') targetPayload.skillLabPassed = true;
-                                }
-                                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_users', license), targetPayload, { merge: true });
-                                updateCount++;
-                            }
-                        }
-                    }
-                    if (isManual) showAlert(`ซิงค์ข้อมูลสำเร็จ! (เพิ่มใหม่ ${newCount} คน, อัปเดต/Auto-refill ${updateCount} คน)`);
-                } catch (e) {
-                    if (isManual) showAlert('ดึงข้อมูลล้มเหลว กรุณาตรวจสอบลิงก์ CSV', 'error');
-                    console.error("Sync Sheet Error:", e);
+                    audio.play().catch(e => { console.error("Audio Play Error:", e); showMsg('กรุณาแตะหน้าจอเพื่ออนุญาตเล่นเสียง', 'error'); if (onEndCallback) onEndCallback(); }); 
+                } catch (error) { 
+                    if (speechId === currentSpeechIdRef.current) { 
+                        showMsg(`เสียงขัดข้อง: ${error.message}`, 'error'); 
+                        if (onEndCallback) onEndCallback(); 
+                    } 
                 }
             };
 
-            const handleForceRefillAll = async () => {
-                if(!window.confirm('ระบบจะค้นหาผู้เรียนที่มีสิทธิ์ Onsite หรือ Masterclass ทั้งหมด และเติมเวลาเรียนเป็น 100% พร้อมมอบสิทธิ์พิเศษอัตโนมัติ ยืนยันหรือไม่?')) return;
-                let count = 0;
-                showAlert('กำลังประมวลผล Auto-Refill...', 'info');
+            const handleVimeoMessage = useCallback((event) => {
+                if (!event.origin.includes('vimeo.com')) return;
                 try {
-                    for(const u of usersList) {
-                        const uTypeStr = String(u.userType).toLowerCase();
-                        const isUserOnsite = ['onsite', 'masterclass'].includes(uTypeStr);
-                        const isMasterclass = uTypeStr === 'masterclass';
-                        
-                        if (isUserOnsite && (u.progress < 100 || (isMasterclass && !u.skillLabPassed))) {
-                            await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_users', String(u.id)), { 
-                                progress: 100, 
-                                studySeconds: 36000, 
-                                skillLabPassed: isMasterclass, 
-                                userType: u.userType 
-                            }, { merge: true });
-                            count++;
-                        }
+                    const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+                    if (data.event === 'ready' && data.player_id === 'scenario_vid') { 
+                        event.source.postMessage(JSON.stringify({method: 'addEventListener', value: 'finish'}), 'https://player.vimeo.com'); 
+                        event.source.postMessage(JSON.stringify({method: 'play'}), 'https://player.vimeo.com'); 
+                    } else if (data.event === 'finish' && roleplayPhase === 'playing_scenario') {
+                        triggerScenarioNegotiation();
                     }
-                    showAlert(`ดำเนินการ Auto-Refill สำเร็จ ${count} รายการ`);
-                } catch(e) {
-                    showAlert('เกิดข้อผิดพลาดในการ Refill', 'error');
-                    console.error(e);
-                }
+                } catch (e) {}
+            }, [roleplayPhase, selectedScenario]);
+            
+            useEffect(() => { window.addEventListener('message', handleVimeoMessage); return () => window.removeEventListener('message', handleVimeoMessage); }, [handleVimeoMessage]);
+
+            const triggerScenarioNegotiation = () => {
+                const contextText = selectedScenario?.language === 'en' ? "Scenario ended. Patient is a 46yo male, brain dead from car accident. Relatives: Fah (22), Mek (18), and P'Ek (Fah's Boyfriend, 32). Let's start the roleplay." : "ข้อมูลเบื้องต้น: คนไข้ชาย อายุ 46 ปี ประสบอุบัติเหตุรถยนต์ แพทย์ประเมินก้านสมองและทดสอบการหายใจแล้ว ยืนยันภาวะสมองตาย ญาติหน้าห้อง ICU มี ฟ้า (ลูกสาว), เมฆ (น้องชาย) และ แฟนของฟ้า เริ่มการเจรจาได้เลยค่ะ";
+                setRoleplayPhase('giving_context'); setCurrentEmotion('SAD'); setCurrentSpeaker('FAH');
+                const contextMsgId = Date.now(); 
+                setMessages(prev => [...prev, { id: contextMsgId, sender: 'ai', text: contextText, isVoiceOnly: false, speakerName: 'ระบบ', isContext: true }]);
+                speakThai(contextText, () => setRoleplayPhase('negotiating'), 'FAH', true);
             };
 
-            useEffect(() => {
-                if (isAuth && systemConfig.autoSyncFromSheet && systemConfig.masterCsvUrl) {
-                    const interval = setInterval(() => syncFromGoogleSheet(false), 30000);
-                    return () => clearInterval(interval);
-                }
-            }, [isAuth, systemConfig.autoSyncFromSheet, systemConfig.masterCsvUrl, usersList]);
-
-            const handleLogin = (e) => { e.preventDefault(); if (password === 'admin2026') setIsAuth(true); else showAlert('รหัสผ่านไม่ถูกต้อง', 'error'); };
-
-            const saveSettings = async (settingsToUpdate) => {
-                try {
-                    const newSettings = { ...systemConfig, ...settingsToUpdate };
-                    setSystemConfig(newSettings);
-                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_config', 'settings'), newSettings, { merge: true });
-                    showAlert('บันทึกการตั้งค่าเรียบร้อย');
-                } catch (e) { showAlert('เกิดข้อผิดพลาด', 'error'); }
+            const startScenario = (sc) => {
+                setSelectedScenario(sc); setRoleplayPhase('speaking_intro'); setMessages([]); setSmartSuggestions([]); setScenarioLang(sc.language || 'th'); setPressureTime(20);
+                const userPosition = user?.position || "บุคลากรทางการแพทย์";
+                const dynamicPrompt = sc.systemPrompt.replace(/{{USER_POSITION}}/g, userPosition).replace(/{{PATIENT_GENDER}}/g, 'ชาย').replace(/{{PATIENT_AGE}}/g, `46 ปี`).replace(/{{PATIENT_CAUSE}}/g, 'อุบัติเหตุรถยนต์').replace(/{{PATIENT_RELATION}}/g, 'คนไข้').replace(/{{REL1_ROLE}}/g, sc.language === 'en' ? 'Fah' : 'ฟ้า').replace(/{{REL2_ROLE}}/g, sc.language === 'en' ? 'Mek' : 'เมฆ'); 
+                setCurrentScenarioPrompt(dynamicPrompt); setCurrentEmotion('SAD'); setCurrentSpeaker('FAH');
+                
+                const introMsg = `โหมดจำลองสถานการณ์วิกฤต ที่นี่คือพื้นที่ปลอดภัยสำหรับฝึกเจรจา ระบบจะเริ่มจับเวลาหากคุณไม่ตอบสนอง เตรียมชมวิดีโอปูเรื่องราวได้เลยค่ะ พร้อมนะคะ?`;
+                const introMsgId = Date.now(); 
+                setMessages([{ id: introMsgId, sender: 'ai', text: introMsg, isVoiceOnly: true, speakerName: 'ระบบ', isContext: true }]);
+                speakThai(introMsg, () => { 
+                    setMessages(prev => prev.map(m => m.id === introMsgId ? { ...m, isVoiceOnly: false } : m)); 
+                    setRoleplayPhase('playing_scenario'); 
+                }, 'FAH', true);
             };
 
-            const saveLiveConfig = async () => {
-                try {
-                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_config', 'settings'), { liveConfig }, { merge: true });
-                    showAlert('อัปเดตและเผยแพร่สถานะ Live สำเร็จ');
-                } catch (e) { 
-                    showAlert('เกิดข้อผิดพลาดในการบันทึก Live', 'error'); 
-                    console.error("Save Live Error:", e);
+            const handleSendChat = async (e, quickActionText = null) => {
+                if (e) e.preventDefault(); const userMsg = quickActionText ?? chatInput.trim(); if ((!userMsg && !selectedImage) || isTyping) return;
+                stopAudio(); if (['speaking_intro', 'playing_scenario'].includes(roleplayPhase)) return; 
+                
+                setMessages(prev => [...prev, { id: Date.now(), sender: 'user', text: userMsg, image: selectedImage }]); setChatInput(''); const imageToSend = selectedImage; setSelectedImage(null); setIsTyping(true); setSmartSuggestions([]); setPressureTime(20);
+                
+                const historyContext = messages.filter(m => !m.isContext).slice(-10).map(m => `${m.sender === 'user' ? 'ผู้เรียน' : 'ครอบครัว'}: ${m.text}`).join('\n');
+                let introGuideline = "";
+                if (userMsg.match(/(ชื่อ|แนะนำตัว|พยาบาล|หมอ|แพทย์|สวัสดี)/i) && messages.length <= 3) {
+                    introGuideline = `\n[กฎระบบแนะนำตัวเพิ่มเติม]: ให้ตัวละคร "ฟ้า" แนะนำตัวเธอและทุกคนในครอบครัวทีเดียวพร้อมกัน คือ 1.ฟ้า 2.เมฆ 3.พี่เอก โดยไม่มีคำพูดชู้สาว`;
                 }
-            };
+                
+                const suggestionInstruction = `\n\n[ข้อบังคับพิเศษ: SMART HOOKS]\nในตอนท้ายสุดของข้อความ ให้คุณประเมินอารมณ์และเสนอ 'ตัวเลือกการตอบกลับเบื้องต้น' ให้ผู้เรียน 2 ทางเลือก โดยต้องจัดรูปแบบให้เป๊ะดังนี้ ห้ามผิดเพี้ยนเด็ดขาด:\n[DIALOGUE]\n(บทสนทนาของญาติ)\n[SUGGESTION 1] (ทางเลือกที่ 1)\n[SUGGESTION 2] (ทางเลือกที่ 2)`;
 
-            const updateUserStatus = async (userId, newStatus, newType) => {
+                // 🌟 อัปเกรด: ฝังโครงสร้างทีมแพทย์เข้าไปให้ AI รู้ทันทีว่าใครมีหน้าที่อะไร 🌟
+                const roleplayPrompt = `[ข้อมูลพื้นฐานสำหรับ AI ทำความเข้าใจบทบาทของผู้เรียน]:\n${window.CLINICAL_KNOWLEDGE_BASE || ''}\n\n${currentScenarioPrompt}${introGuideline}${suggestionInstruction}\n\nประวัติ:\n${historyContext}\nผู้เรียน: ${userMsg}\nญาติ (ใส่ Tag อารมณ์และชื่อคนพูดก่อนเสมอ):`;
+                
                 try {
-                    let updatePayload = { status: newStatus, userType: newType };
-                    if (newType === 'Onsite' || newType === 'Masterclass') {
-                        updatePayload.studySeconds = 36000;
-                        updatePayload.progress = 100;
-                        updatePayload.skillLabPassed = (newType === 'Masterclass'); // เฉพาะ Masterclass ทะลุกำแพง skill lab
+                    let rawResponse = await callGeminiAPI(userMsg, roleplayPrompt, imageToSend); 
+                    
+                    if (rawResponse.startsWith('[ระบบขัดข้อง]')) {
+                        setMessages(prev => [...prev, { id: Date.now(), sender: 'ai', text: rawResponse, isVoiceOnly: false, speakerName: 'ระบบ' }]);
+                        showMsg(rawResponse, 'error');
+                        setIsTyping(false);
+                        return; 
                     }
-                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_users', userId), updatePayload, { merge: true });
-                    showAlert('อัปเดตสิทธิ์สำเร็จ');
-                } catch (e) { showAlert('เกิดข้อผิดพลาด', 'error'); }
+
+                    let aiText = rawResponse;
+                    let sug1 = "", sug2 = "";
+                    const sug1Match = aiText.match(/\[SUGGESTION 1\](.*?)(?=\[SUGGESTION 2\]|$)/is);
+                    const sug2Match = aiText.match(/\[SUGGESTION 2\](.*?)$/is);
+                    if (sug1Match) sug1 = sug1Match[1].trim();
+                    if (sug2Match) sug2 = sug2Match[1].trim();
+                    aiText = aiText.replace(/\[SUGGESTION 1\].*$/is, '').replace(/\[DIALOGUE\]/i, '').trim();
+                    setSmartSuggestions([sug1, sug2].filter(Boolean));
+                    
+                    let spk = 'FAH'; let visualSpeaker = 'FAH'; let cleanText = aiText; const checkStr = cleanText.substring(0, 150).toLowerCase();
+                    
+                    if (checkStr.match(/\[\s*(เมฆ|น้องชาย|mek|brother)\s*\]|(^|\s)(เมฆ|น้องชาย|mek|brother)\s*:/)) { spk = 'BROTHER'; visualSpeaker = 'BROTHER'; } 
+                    else if (checkStr.match(/\[\s*(พี่เอก|เอก|แฟน|แฟนของฟ้า|แฟนหนุ่ม|boyfriend)\s*\]|(^|\s)(พี่เอก|เอก|แฟน|แฟนของฟ้า|แฟนหนุ่ม|boyfriend)\s*:/)) { spk = 'BOYFRIEND'; visualSpeaker = 'FAH'; } 
+                    else { spk = 'FAH'; visualSpeaker = 'FAH'; }
+                    
+                    let foundEmotion = "SAD"; const emotionsList = ["SAD", "HESITANT", "CONFUSED", "ANGRY", "ADVISING", "NEUTRAL"]; 
+                    for (const em of emotionsList) { if (new RegExp(`\\[\\s*${em}\\s*\\]`, 'i').test(checkStr)) { foundEmotion = em; break; } }
+                    
+                    setCurrentSpeaker(visualSpeaker); setCurrentEmotion(foundEmotion);
+                    
+                    cleanText = cleanText.replace(/\[.*?\]/g, '').replace(/\(.*?\)/g, '').replace(/^(ฟ้า|เมฆ|พี่เอก|เอก|น้องชาย|ลูกสาว|แฟน|แฟนของฟ้า|Fah|Mek|Brother|Sister|Boyfriend)\s*:\s*/i, '').replace(/[*#]/g, '').trim();
+                    
+                    const isVoiceOnly = roleplayPhase === 'negotiating'; 
+                    const speakerName = spk === 'BROTHER' ? 'เมฆ' : spk === 'BOYFRIEND' ? 'พี่เอก' : 'ฟ้า'; 
+                    const msgId = Date.now() + 1;
+                    const displayChatText = (roleplayPhase === 'negotiating') ? `(${speakerName}) ${cleanText}` : cleanText;
+                    
+                    setMessages(prev => [...prev, { id: msgId, sender: 'ai', text: displayChatText, isVoiceOnly, speakerName }]); setIsTyping(false); 
+                    
+                    speakThai(cleanText, () => setMessages(prev => prev.map(m => m.id === msgId ? { ...m, isVoiceOnly: false } : m)), spk, false);
+                } catch (err) { 
+                    setIsTyping(false); 
+                    setMessages(prev => [...prev, { id: Date.now(), sender: 'ai', text: `ข้อผิดพลาด (${err.message})`, isVoiceOnly: false, speakerName: 'ระบบ' }]); 
+                }
             };
 
-            const deleteUser = async (userId) => {
-                if (window.confirm('ยืนยันการลบสิทธิ์ผู้ใช้งานนี้ออกจากระบบ? (ข้อมูลการเรียนจะถูกลบถาวร)')) {
+            const endScenarioAndEvaluate = async () => {
+                stopAudio(); setIsTyping(true); setRoleplayPhase('evaluating'); setCurrentEmotion('ADVISING'); setCurrentSpeaker('FAH'); setSmartSuggestions([]);
+                setMessages(prev => [...prev, { id: Date.now(), sender: 'user', text: "🛑 จบการจำลองสถานการณ์ ช่วยประเมินให้หน่อยค่ะ" }]);
+                
+                const history = messages.slice(-15).map(m => `${m.sender === 'ai' ? 'ญาติ' : 'ผู้เรียน'}: ${m.text}`).join('\n');
+                
+                // 🌟 อัปเกรดการประเมินด้วย 5W1H และ 5 Core Techniques 🌟
+                const evalPrompt = `คุณคือ "ปรมาจารย์ด้านจิตวิทยาการแพทย์ (Cognitive Profiler)" ประเมินการเจรจานี้อ้างอิงจากบทบาททีมแพทย์และ 5 เทคนิคการเจรจาในคู่มือนี้: ${window.CLINICAL_KNOWLEDGE_BASE || ''}\n\nประวัติการสนทนา:\n${history}\n\n1. ให้คะแนนความเห็นอกเห็นใจ (Empathy Score) จาก 0-100 (ระบุแท็ก [EMPATHY: คะแนน] เสมอ)\n2. หากคะแนนเกิน 60 ถือว่าผ่าน พิมพ์ [PASS] ไม่ผ่านพิมพ์ [FAIL]\n3. [สำคัญ] วิเคราะห์การเจรจาตามหลัก 5W1H และตรวจสอบว่าผู้เรียนนำ "เทคนิคเจรจา 5 ข้อ (เช่น Decoupling, Perception Check, Positive Framing)" มาใช้ได้อย่างเหมาะสมกับบริบทสังคมไทยหรือไม่\n4. สรุป จุดแข็ง และ จุดอ่อน ที่ผู้เรียนต้องนำไปปรับปรุงให้ชัดเจนและเป็นมืออาชีพ`;
+                
+                try {
+                    const aiResponse = await callGeminiAPI("ประเมินการเจรจาหน่อย", evalPrompt); 
+                    if (aiResponse.startsWith('[ระบบขัดข้อง]')) {
+                        setMessages(prev => [...prev, { id: Date.now(), sender: 'ai', text: aiResponse, isVoiceOnly: false, speakerName: 'ระบบ' }]);
+                        showMsg(aiResponse, 'error'); setIsTyping(false); return; 
+                    }
+                    
+                    const isPass = aiResponse.includes('[PASS]'); 
+                    const empathyMatch = aiResponse.match(/\[EMPATHY:\s*(\d+)\]/i);
+                    const empathyScore = empathyMatch ? parseInt(empathyMatch[1]) : (isPass ? 80 : 40);
+                    let cleanResponse = aiResponse.replace(/\[PASS\]/g, '').replace(/\[FAIL\]/g, '').replace(/\[EMPATHY:\s*\d+\]/gi, '').trim();
+                    
+                    setMessages(prev => [...prev, { id: Date.now()+1, sender: 'ai', text: cleanResponse, isVoiceOnly: false, speakerName: 'ระบบ' }]); 
+                    
+                    const evalRecord = { timestamp: new Date().toISOString(), scenarioId: selectedScenario.id, passed: isPass, score: empathyScore, evaluation: cleanResponse, chatLog: history }; 
+                    const upUser = { ...user, skillLabPassed: true, skillLabHistory: [...(user.skillLabHistory || []), evalRecord] }; 
+                    setUser(upUser);
                     try {
-                        await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_users', userId));
-                        showAlert('ลบผู้เรียนออกจากระบบเรียบร้อย');
-                    } catch (e) { showAlert('ลบข้อมูลไม่สำเร็จ', 'error'); }
-                }
+                        await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_users', upUser.id), upUser, { merge: true });
+                        const lState = JSON.parse(localStorage.getItem('elearning_app_state') || '{}');
+                        lState.loggedInUser = upUser; localStorage.setItem('elearning_app_state', JSON.stringify(lState));
+                    } catch(e) {}
+                    
+                    showMsg(`บันทึกผลเรียบร้อย (Empathy Score: ${empathyScore})`, 'success'); 
+                    speakThai(cleanResponse.replace(/[*#]/g, ''), null, 'FAH', true);
+                } catch (e) { setMessages(prev => [...prev, { id: Date.now(), sender: 'ai', text: `ข้อผิดพลาด: ${e.message}`, isVoiceOnly: false, speakerName: 'ระบบ' }]); }
+                setIsTyping(false);
             };
 
-            const handleAddManualUser = async (e) => {
-                e.preventDefault();
-                const uid = manualForm.license || Date.now().toString();
-                const isOnsiteOrMaster = manualForm.userType === 'Onsite' || manualForm.userType === 'Masterclass';
-                const newUser = { 
-                    id: uid, 
-                    ...manualForm, 
-                    progress: isOnsiteOrMaster ? 100 : 0, 
-                    studySeconds: isOnsiteOrMaster ? 36000 : 0, 
-                    status: 'กำลังเรียน', 
-                    pretest: '-', 
-                    posttest: '-', 
-                    skillLabPassed: manualForm.userType === 'Masterclass', 
-                    lastVideoId: 1, 
-                    videoTimes: {} 
-                };
-                try {
-                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_users', uid), newUser, { merge: true });
-                    setShowManualForm(false);
-                    showAlert('เพิ่มผู้เรียนใหม่สำเร็จ');
-                } catch (e) { showAlert('เพิ่มข้อมูลไม่สำเร็จ', 'error'); }
-            };
+            const handleImageUpload = (e) => { const file = e.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onloadend = () => setSelectedImage(reader.result); reader.readAsDataURL(file); };
 
-            const saveContentConfig = async () => {
-                try {
-                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_config', 'content'), contentConfig, { merge: true });
-                    showAlert('อัปเดตและเผยแพร่เนื้อหาเรียบร้อยแล้ว');
-                } catch (e) {
-                    showAlert('เกิดข้อผิดพลาดในการบันทึกเนื้อหา', 'error');
-                }
-            };
+            // ==========================================
+            // UI RENDERING VALUES
+            // ==========================================
+            const isChaos = currentEmotion === 'ANGRY' || currentEmotion === 'CONFUSED' || currentEmotion === 'HESITANT';
+            const hrRate = selectedScenario ? (isChaos ? (Math.floor(Math.random() * 20) + 115) : (Math.floor(Math.random() * 10) + 75)) : 0; 
+            const spo2 = selectedScenario ? (isChaos ? 94 : 98) : 0;
+            const emotionStressMap = { ANGRY: 95, CONFUSED: 75, HESITANT: 60, SAD: 50, NEUTRAL: 20, ADVISING: 10 };
+            const stressLevel = selectedScenario ? (emotionStressMap[currentEmotion] || 20) : 0;
+            const stressColor = stressLevel > 70 ? 'bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.8)]' : stressLevel > 40 ? 'bg-amber-400 shadow-[0_0_10px_rgba(251,191,36,0.8)]' : 'bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.8)]';
 
-            const filteredUsers = usersList.filter(u => u.name?.toLowerCase().includes(searchTerm.toLowerCase()) || u.license?.includes(searchTerm));
+            let videoToPlay = CHARACTER_VIDEOS?.['FAH']?.['NEUTRAL'] || "";
+            if (currentSpeaker === 'BROTHER') videoToPlay = CHARACTER_VIDEOS?.['BROTHER']?.[currentEmotion] || CHARACTER_VIDEOS?.['BROTHER']?.['NEUTRAL'] || "";
+            else videoToPlay = CHARACTER_VIDEOS?.['FAH']?.[currentEmotion] || CHARACTER_VIDEOS?.['FAH']?.['NEUTRAL'] || "";
 
-            if (!isAuth) {
-                return (
-                    <div className="min-h-screen flex items-center justify-center bg-slate-900">
-                        <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md text-center">
-                            <div className="w-16 h-16 bg-line-100 text-line-600 rounded-full flex items-center justify-center mx-auto mb-6"><SafeIcon name="Lock" size={32} /></div>
-                            <h2 className="text-2xl font-black text-slate-800 mb-2">RJ Ailiverse Backend</h2>
-                            <p className="text-slate-500 mb-8 text-sm">ระบบจัดการข้อมูลส่วนกลาง (Admin Only)</p>
-                            <form onSubmit={handleLogin} className="flex flex-col gap-4">
-                                <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="ระบุรหัสผ่านแอดมิน" className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-line-500 outline-none text-center tracking-widest text-lg" />
-                                <button type="submit" className="w-full bg-line-500 text-white font-bold py-3 rounded-xl hover:bg-line-600 transition-colors">เข้าสู่ระบบหลังบ้าน</button>
-                                <button type="button" onClick={() => window.location.href = './index.html'} className="text-sm text-slate-500 hover:text-slate-800 mt-2">กลับสู่หน้าจอผู้เรียน</button>
-                            </form>
+            // 🚀 แสดงหน้าจอ Access Denied หากไม่ใช่ Masterclass 🚀
+            if (accessDenied) return (
+                <div className="min-h-screen sky-bg flex items-center justify-center p-4 relative z-50">
+                    <div className="bg-slate-900/80 backdrop-blur-xl border border-white/20 p-8 rounded-[2.5rem] text-center shadow-2xl max-w-md w-full animate-in zoom-in fade-in duration-500">
+                        <div className="w-20 h-20 bg-rose-500/10 rounded-full flex items-center justify-center mx-auto mb-6 border border-rose-500/30 shadow-[0_0_20px_rgba(244,63,94,0.3)]">
+                            <SafeIcon icon={Lock} size={40} className="text-rose-400" />
                         </div>
-                        {alertMsg.show && <div className={`fixed top-4 px-6 py-3 rounded-full font-bold shadow-lg animate-in fade-in slide-in-from-top-4 ${alertMsg.type === 'error' ? 'bg-rose-100 border border-rose-400 text-rose-700' : 'bg-emerald-100 border border-emerald-400 text-emerald-800'}`}>{alertMsg.text}</div>}
+                        <h2 className="text-2xl font-black text-white mb-3 drop-shadow-md">สงวนสิทธิ์เฉพาะกลุ่ม</h2>
+                        <p className="text-slate-300 font-medium text-sm mb-8 leading-relaxed drop-shadow-sm">ขณะนี้ห้องจำลอง AI Skill Lab (Beta) เปิดให้ทดสอบเฉพาะสิทธิ์ <b>Masterclass</b> เท่านั้นค่ะ สำหรับสิทธิ์อื่นๆ จะเปิดให้ใช้งานในเฟสถัดไป ขออภัยในความไม่สะดวกนะคะ 💙</p>
+                        <button onClick={() => safeRedirect('./index.html#dashboard')} className="w-full py-4 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-bold transition-all border border-white/20 shadow-sm active:scale-95">กลับสู่ห้องเรียนหลัก</button>
                     </div>
-                );
-            }
+                </div>
+            );
 
-            const handleExportCSV = () => {
-                const headers = ["ชื่อ-สกุล", "อีเมล", "เบอร์โทร", "ใบประกอบวิชาชีพ", "ตำแหน่ง", "ลักษณะงาน", "หน่วยงาน", "สิทธิ์การเรียน", "สถานะ", "Pretest", "Posttest", "ความคืบหน้า (%)", "คะแนนเจรจาเฉลี่ย"];
-                const csvData = usersList.map(u => {
-                    const avgScore = u.skillLabHistory?.length > 0 ? Math.round(u.skillLabHistory.reduce((sum, r) => sum + (r.score || 0), 0) / u.skillLabHistory.length) : 0;
-                    return [u.name, u.email, u.phone, u.licenseId, u.position, u.workContext || '-', u.hospital, u.userType, u.status, u.pretest, u.posttest, u.progress, avgScore];
-                });
-                const csvContent = [headers, ...csvData].map(e => e.join(",")).join("\n");
-                const blob = new Blob(["\ufeff" + csvContent], { type: 'text/csv;charset=utf-8;' });
-                const link = document.createElement("a");
-                const url = URL.createObjectURL(blob);
-                link.setAttribute("href", url);
-                link.setAttribute("download", `rjailiverse_users_${new Date().toISOString().split('T')[0]}.csv`);
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-            };
+            if (!user) return (
+                <div className="min-h-screen sky-bg flex items-center justify-center relative">
+                    <div className="bg-black/50 backdrop-blur-xl border border-white/20 p-8 rounded-3xl text-center shadow-2xl animate-in fade-in zoom-in">
+                        <div className="w-16 h-16 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-6"></div>
+                        <h2 className="text-2xl font-black text-white mb-2">ตรวจสอบสิทธิ์การเข้าถึง...</h2>
+                        <p className="text-white/60">หากไม่เปลี่ยนหน้าอัตโนมัติ กรุณากลับไปล็อกอินที่หน้าหลัก (index.html)</p>
+                    </div>
+                </div>
+            );
+
+            // 🌟 ตัวแปรคุมสถานะหน้าจอ 🌟
+            const isPiP = roleplayPhase === 'giving_context' || roleplayPhase === 'negotiating' || roleplayPhase === 'evaluating';
+            const isFullVideo = roleplayPhase === 'speaking_intro' || roleplayPhase === 'playing_scenario';
 
             return (
-                <div className="flex h-screen bg-slate-100 overflow-hidden">
-                    {/* Sidebar */}
-                    <div className="w-64 bg-white border-r border-slate-200 flex flex-col shadow-sm z-20 shrink-0 hidden md:flex">
-                        <div className="p-6 border-b border-slate-100 text-center">
-                            <h1 className="text-xl font-black text-line-600">Admin Panel</h1>
-                            <p className="text-xs font-bold text-slate-400 mt-1 uppercase tracking-widest">RJ Ailiverse</p>
+                <div className="min-h-screen w-full font-sans antialiased overflow-hidden relative">
+                    <div className="sky-bg"></div><div className="clouds-wrapper"><div className="cloud-layer layer-1"></div><div className="cloud-layer layer-2"></div><div className="cloud-layer layer-3"></div></div>
+                    
+                    {uiMessage.show && <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-[100] px-6 py-3 rounded-full font-bold shadow-xl animate-in slide-in-from-top-4 border backdrop-blur-md ${uiMessage.type === 'error' ? 'bg-rose-500/20 text-rose-300 border-rose-500/50' : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/50'}`}>{uiMessage.text}</div>}
+
+                    {/* Navbar */}
+                    <div className="px-6 py-4 border-b border-white/10 bg-black/40 backdrop-blur-md flex justify-between items-center z-20 relative shadow-md">
+                        <div className="flex items-center gap-4">
+                            <button onClick={() => { stopAudio(); safeRedirect('./index.html#dashboard'); }} className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors border border-white/20 shadow-sm text-white"><SafeIcon icon={ArrowLeft} size={20} /></button>
+                            <h1 className="text-xl md:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-500 flex items-center gap-2"><SafeIcon icon={Bot} className="text-orange-400" size={24} /> AI Skill Lab</h1>
                         </div>
-                        <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-                            {[{id: 'users', label: 'จัดการสิทธิ์ผู้เรียน', icon: 'Users'}, {id: 'data', label: 'Auto-Sync & ระบบคิว', icon: 'Database'}, {id: 'live', label: 'ระบบถ่ายทอดสด', icon: 'Radio'}, {id: 'content', label: 'แก้ไขบทเรียน', icon: 'BookOpen'}, {id: 'quiz', label: 'จัดการข้อสอบ', icon: 'CheckSquare'}, {id: 'analytics', label: 'Dashboard', icon: 'Activity'}].map(t => (
-                                <button key={t.id} onClick={() => setActiveTab(t.id)} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-colors ${activeTab === t.id ? 'bg-line-50 text-line-700' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'}`}><SafeIcon name={t.icon} /> {t.label}</button>
-                            ))}
-                        </nav>
-                        <div className="p-4 border-t border-slate-100">
-                            <button onClick={() => window.location.href = './index.html'} className="w-full flex items-center justify-center gap-2 py-3 text-sm font-bold text-slate-500 hover:bg-slate-50 rounded-xl transition-colors"><SafeIcon name="LogOut" size={16}/> สลับไปหน้าผู้เรียน</button>
-                        </div>
+                        <div className="text-white/80 font-bold text-sm bg-white/10 px-4 py-1.5 rounded-full border border-white/20 shadow-sm hidden sm:flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> {user.name}</div>
                     </div>
 
-                    {/* Main Content Area */}
-                    <div className="flex-1 overflow-y-auto custom-scrollbar p-4 md:p-8 relative">
-                        {alertMsg.show && <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-50 px-6 py-3 rounded-full font-bold shadow-lg animate-in fade-in slide-in-from-top-4 flex items-center gap-2 ${alertMsg.type === 'error' ? 'bg-rose-100 border border-rose-400 text-rose-800' : 'bg-emerald-100 border border-emerald-400 text-emerald-800'}`}><SafeIcon name={alertMsg.type === 'error' ? 'XCircle' : 'CheckCircle'} /> {alertMsg.text}</div>}
+                    <div className="p-4 md:p-6 lg:p-8 h-[calc(100vh-73px)] w-full relative z-10 flex">
                         
-                        {/* Mobile Tabs */}
-                        <div className="md:hidden flex gap-2 overflow-x-auto mb-6 custom-scrollbar pb-2">
-                             {[{id: 'users', label: 'ผู้ใช้'}, {id: 'live', label: 'Live สด'}, {id: 'content', label: 'บทเรียน'}, {id: 'quiz', label: 'ข้อสอบ'}].map(t => (
-                                <button key={t.id} onClick={() => setActiveTab(t.id)} className={`px-4 py-2 rounded-xl font-bold text-sm whitespace-nowrap ${activeTab === t.id ? 'bg-line-500 text-white' : 'bg-white text-slate-600'}`}>{t.label}</button>
-                            ))}
-                        </div>
-
-                        {/* 1. จัดการสิทธิ์ผู้เรียน (User Management) */}
-                        {activeTab === 'users' && (
-                            <div className="animate-in fade-in flex flex-col h-full">
-                                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-                                    <div>
-                                        <h2 className="text-2xl font-black text-slate-800 flex items-center gap-2"><SafeIcon name="Users" className="text-line-600" /> จัดการสิทธิ์ผู้เรียน</h2>
-                                        <p className="text-slate-500 text-sm mt-1">ผู้เรียนทั้งหมดในระบบ: {usersList.length} ราย</p>
-                                    </div>
-                                    <div className="flex flex-wrap gap-2 w-full md:w-auto mt-4 md:mt-0">
-                                        <div className="bg-white px-4 py-2 rounded-lg border flex items-center gap-2 flex-1 md:w-64 min-w-[200px]"><SafeIcon name="Search" className="text-slate-400 shrink-0" /><input type="text" placeholder="ค้นหาชื่อ หรือ ใบอนุญาต..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="outline-none text-sm w-full bg-transparent" /></div>
-                                        
-                                        <button onClick={() => syncFromGoogleSheet(true)} className="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold text-sm shadow-sm hover:bg-blue-500 shrink-0 flex items-center gap-1"><SafeIcon name="RefreshCw" size={16}/> ดึงสิทธิ์จาก Sheet</button>
-                                        
-                                        <button onClick={handleForceRefillAll} className="bg-amber-500 text-white px-4 py-2 rounded-lg font-bold text-sm shadow-sm hover:bg-amber-400 shrink-0 flex items-center gap-1"><SafeIcon name="Activity" size={16}/> Auto-Refill VIP</button>
-
-                                        <button onClick={() => setShowManualForm(!showManualForm)} className="bg-slate-800 text-white px-4 py-2 rounded-lg font-bold text-sm shadow-sm hover:bg-slate-700 shrink-0 flex items-center gap-1"><SafeIcon name="Plus" size={16}/> เพิ่มมือ</button>
-                                        
-                                        <button onClick={handleExportCSV} className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg font-bold text-sm shadow-sm flex items-center gap-1"><SafeIcon name="Download" size={16}/> CSV</button>
-                                    </div>
+                        {!selectedScenario ? (
+                            <div className="w-full max-w-6xl mx-auto flex flex-col lg:flex-row gap-6 h-full animate-in fade-in zoom-in-95">
+                                <div className="w-full lg:w-1/3 flex flex-col gap-6 h-full">
+                                    <GlassCard className="!p-0 overflow-hidden h-full max-h-[600px] w-full max-w-[350px] mx-auto relative bg-black/60 shadow-2xl flex items-center justify-center border border-white/20">
+                                        <iframe src={FAH_IDLE_VIDEO} className="absolute inset-0 w-full h-full border-none pointer-events-none" allow="autoplay; fullscreen" />
+                                    </GlassCard>
                                 </div>
-
-                                {showManualForm && (
-                                    <form onSubmit={handleAddManualUser} className="mb-6 p-6 bg-white rounded-2xl shadow-sm border border-slate-200 grid grid-cols-1 md:grid-cols-5 gap-4 items-end animate-in fade-in slide-in-from-top-4">
-                                        <div><label className="block text-xs font-bold text-slate-500 mb-1">ชื่อ-สกุล</label><input required value={manualForm.name} onChange={e => setManualForm({...manualForm, name: e.target.value})} className="w-full px-3 py-2 border rounded-lg outline-none focus:border-line-500 text-sm" /></div>
-                                        <div><label className="block text-xs font-bold text-slate-500 mb-1">ใบอนุญาต (ID)</label><input required value={manualForm.license} onChange={e => setManualForm({...manualForm, license: e.target.value})} className="w-full px-3 py-2 border rounded-lg outline-none focus:border-line-500 text-sm" /></div>
-                                        <div><label className="block text-xs font-bold text-slate-500 mb-1">โรงพยาบาล</label><input required value={manualForm.hospital} onChange={e => setManualForm({...manualForm, hospital: e.target.value})} className="w-full px-3 py-2 border rounded-lg outline-none focus:border-line-500 text-sm" /></div>
-                                        <div><label className="block text-xs font-bold text-slate-500 mb-1">สิทธิ์ (Type)</label><select value={manualForm.userType} onChange={e => setManualForm({...manualForm, userType: e.target.value})} className="w-full px-3 py-2 border rounded-lg outline-none focus:border-line-500 text-sm bg-white"><option>เรียนใหม่</option><option>Onsite</option><option>Online</option><option>Masterclass</option></select></div>
-                                        <button type="submit" className="w-full bg-slate-800 text-white font-bold py-2 rounded-lg shadow-sm hover:bg-slate-700">บันทึก</button>
-                                    </form>
-                                )}
-
-                                <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex-1 relative">
-                                    <div className="absolute inset-0 overflow-auto custom-scrollbar">
-                                        <table className="w-full text-left text-sm whitespace-nowrap min-w-[800px]">
-                                            <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider sticky top-0 z-10 shadow-sm">
-                                                <tr><th className="p-4">ชื่อผู้เรียน</th><th className="p-4">ใบอนุญาต</th><th className="p-4">ประเภทสิทธิ์</th><th className="p-4">ความคืบหน้า</th><th className="p-4">สถานะการเรียน</th><th className="p-4 text-center">เพิกถอนสิทธิ์</th></tr>
-                                            </thead>
-                                            <tbody className="divide-y divide-slate-100">
-                                                {filteredUsers.length > 0 ? filteredUsers.map(u => (
-                                                    <tr key={u.id} className="hover:bg-slate-50 transition-colors">
-                                                        <td className="p-4 font-bold text-slate-800">{u.name}</td>
-                                                        <td className="p-4 text-slate-600 font-mono text-xs">{u.license || u.id}</td>
-                                                        <td className="p-4">
-                                                            <select value={u.userType || 'เรียนใหม่'} onChange={(e) => updateUserStatus(u.id, u.status, e.target.value)} className="bg-white border border-slate-300 rounded px-2 py-1 text-xs font-bold outline-none shadow-sm focus:border-line-500">
-                                                                <option value="เรียนใหม่">เรียนใหม่</option><option value="Online">Online</option><option value="Onsite">Onsite</option><option value="Masterclass">Masterclass</option>
-                                                            </select>
-                                                        </td>
-                                                        <td className="p-4"><div className="flex items-center gap-2"><div className="w-16 h-1.5 bg-slate-200 rounded-full overflow-hidden"><div className="bg-line-500 h-full" style={{width: `${u.progress}%`}}></div></div><span className="text-xs text-slate-500 font-bold">{u.progress}%</span></div></td>
-                                                        <td className="p-4">
-                                                            <select value={u.status || 'กำลังเรียน'} onChange={(e) => updateUserStatus(u.id, e.target.value, u.userType)} className={`border rounded px-2 py-1 text-xs font-bold outline-none shadow-sm ${u.status === 'ผ่าน' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
-                                                                <option value="กำลังเรียน">กำลังเรียน</option><option value="ผ่าน">สอบผ่าน (บังคับ)</option><option value="ไม่ผ่าน">ไม่ผ่าน</option>
-                                                            </select>
-                                                        </td>
-                                                        <td className="p-4 text-center"><button onClick={() => deleteUser(u.id)} className="text-slate-400 hover:text-rose-600 hover:bg-rose-50 p-2 rounded-lg transition-colors" title="ลบผู้ใช้งาน"><SafeIcon name="Trash2" size={18} /></button></td>
-                                                    </tr>
-                                                )) : (
-                                                    <tr><td colSpan="6" className="p-12 text-center text-slate-400 font-medium">ไม่พบข้อมูลผู้เรียน</td></tr>
-                                                )}
-                                            </tbody>
-                                        </table>
+                                <div className="w-full lg:w-2/3 flex flex-col gap-4">
+                                    <div className="p-4 bg-blue-500/10 border border-blue-500/30 rounded-xl mb-4 backdrop-blur-md">
+                                        <p className="text-sm md:text-base font-bold text-blue-200 flex gap-2 leading-relaxed"><SafeIcon icon={Target} size={24} className="shrink-0 text-blue-400 mt-0.5" /><span><strong>คำชี้แจง:</strong> พื้นที่นี้คือสถานการณ์จำลอง AI ไม่มีผลต่อการตัดคะแนนสอบ ขอให้ผู้เรียนนำความรู้เรื่องการเจรจา (B.A.L.I.) มาประยุกต์ใช้อย่างเต็มที่ค่ะ</span></p>
                                     </div>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* 2. ระบบดึงข้อมูลอัตโนมัติ (Data Auto-Sync) */}
-                        {activeTab === 'data' && (
-                            <div className="animate-in fade-in max-w-4xl">
-                                <h2 className="text-2xl font-black text-slate-800 mb-2 flex items-center gap-2"><SafeIcon name="Database" className="text-line-600" /> ระบบเชื่อมโยงข้อมูล & Auto-Sync</h2>
-                                <p className="text-slate-500 text-sm mb-6">ตั้งค่าให้ระบบดึงรายชื่อและสิทธิ์นักเรียนจาก Google Sheets เข้ามาให้อัตโนมัติ</p>
-                                
-                                <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-200 space-y-6">
-                                    <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl flex gap-3 text-blue-800 text-sm">
-                                        <SafeIcon name="Info" className="shrink-0 mt-0.5" />
-                                        <div><b>วิธีใช้งาน:</b> ให้ไปที่ Google Sheets ของคุณ เลือก ไฟล์ (File) &gt; แชร์ (Share) &gt; เผยแพร่ทางเว็บ (Publish to web) &gt; เปลี่ยนจาก 'หน้าเว็บ' เป็น 'ค่าที่คั่นด้วยจุลภาค (CSV)' แล้วนำลิงก์ที่ได้มาวางในช่องด้านล่าง (คอลัมน์ในตารางต้องเรียงตามนี้: ชื่อ, ใบอนุญาต, โรงพยาบาล, สิทธิ์)</div>
-                                    </div>
-                                    
-                                    <div>
-                                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">ลิงก์ Google Sheets (รูปแบบ CSV)</label>
-                                        <input type="url" value={systemConfig.masterCsvUrl || ''} onChange={e => setSystemConfig({...systemConfig, masterCsvUrl: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-slate-300 outline-none focus:border-line-500 font-mono text-sm" placeholder="https://docs.google.com/spreadsheets/d/.../pub?output=csv" />
-                                    </div>
-                                    
-                                    <div className="flex flex-col sm:flex-row items-center gap-4 pt-2">
-                                        <div className="flex-1 w-full bg-slate-50 p-4 rounded-xl border border-slate-200 flex items-center justify-between">
-                                            <div>
-                                                <div className="font-bold text-slate-800 text-sm">อัปเดตสิทธิ์อัตโนมัติ (Auto-Sync)</div>
-                                                <div className="text-xs text-slate-500 mt-0.5">ระบบจะดึงข้อมูลใหม่ทุกๆ 30 วินาที เมื่อเปิดหน้านี้ไว้</div>
-                                            </div>
-                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                <input type="checkbox" className="sr-only peer" checked={systemConfig.autoSyncFromSheet} onChange={e => saveSettings({ autoSyncFromSheet: e.target.checked })} />
-                                                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-line-500"></div>
-                                            </label>
-                                        </div>
-                                        <button onClick={() => syncFromGoogleSheet(true)} className="w-full sm:w-auto bg-line-50 text-line-600 hover:bg-line-100 border border-line-200 font-bold py-4 px-6 rounded-xl transition-colors flex items-center justify-center gap-2 whitespace-nowrap"><SafeIcon name="RefreshCw" size={18} /> ดึงข้อมูลเดี๋ยวนี้</button>
-                                    </div>
-                                    
-                                    <div className="border-t border-slate-100 pt-6 mt-6">
-                                        <button onClick={() => saveSettings(systemConfig)} className="w-full bg-slate-800 text-white hover:bg-slate-700 font-bold py-3.5 rounded-xl transition-colors shadow-sm">บันทึกลิงก์และตั้งค่าส่วนกลาง</button>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* 3. ระบบ Live และเอกสาร (Live Stream & Docs) */}
-                        {activeTab === 'live' && (
-                            <div className="animate-in fade-in max-w-3xl">
-                                <h2 className="text-2xl font-black text-slate-800 mb-6 flex items-center gap-2"><SafeIcon name="Radio" className="text-rose-500" /> ระบบควบคุม Live สด และเอกสาร</h2>
-                                <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-200 space-y-6">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        <div>
-                                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">สถานะการถ่ายทอด</label>
-                                            <div className="flex gap-2">
-                                                <button onClick={() => setLiveConfig({...liveConfig, status: 'live'})} className={`flex-1 py-2.5 rounded-lg font-bold border transition-colors ${liveConfig.status === 'live' ? 'bg-rose-100 text-rose-700 border-rose-300' : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100'}`}>🔴 LIVE</button>
-                                                <button onClick={() => setLiveConfig({...liveConfig, status: 'offline'})} className={`flex-1 py-2.5 rounded-lg font-bold border transition-colors ${liveConfig.status === 'offline' ? 'bg-slate-800 text-white border-slate-800' : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100'}`}>ปิด (Offline)</button>
-                                            </div>
-                                        </div>
-                                        <div><label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">หัวข้อการบรรยาย</label><input type="text" value={liveConfig.topic} onChange={e => setLiveConfig({...liveConfig, topic: e.target.value})} className="w-full px-4 py-2.5 rounded-lg border border-slate-300 outline-none focus:border-line-500" placeholder="เช่น บรรยายพิเศษนโยบายชาติ..." /></div>
-                                    </div>
-                                    
-                                    {/* 🚀 New Feature: Custom Live Targets (Days / Hours) 🚀 */}
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
-                                        <div>
-                                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">จำนวนวัน (สำหรับโชว์ในเว็บ)</label>
-                                            <input type="number" min="1" value={liveConfig.days || 1} onChange={e => setLiveConfig({...liveConfig, days: parseInt(e.target.value) || 1})} className="w-full px-4 py-2.5 rounded-lg border border-slate-300 outline-none focus:border-line-500 font-mono text-sm" placeholder="1" />
-                                        </div>
-                                        <div>
-                                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">ชั่วโมงบังคับเรียน (สำหรับสิทธิ์ Online)</label>
-                                            <input type="number" min="1" value={liveConfig.hours || 10} onChange={e => setLiveConfig({...liveConfig, hours: parseInt(e.target.value) || 10})} className="w-full px-4 py-2.5 rounded-lg border border-slate-300 outline-none focus:border-line-500 font-mono text-sm" placeholder="10" />
-                                        </div>
-                                    </div>
-
-                                    <div><label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 mt-2">Embed URL (ลิงก์วิดีโอจาก Canva/Vimeo/Youtube)</label><input type="text" value={liveConfig.url} onChange={e => setLiveConfig({...liveConfig, url: e.target.value})} className="w-full px-4 py-2.5 rounded-lg border border-slate-300 outline-none focus:border-line-500 font-mono text-sm" placeholder="https://www.canva.com/..." /></div>
-                                    <div className="pt-4 border-t border-slate-100"><label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 flex items-center gap-2"><SafeIcon name="UploadCloud" size={16} className="text-line-500"/> ลิงก์เอกสารประกอบ Live (Google Drive / PDF)</label><input type="text" value={liveConfig.documentUrl || ''} onChange={e => setLiveConfig({...liveConfig, documentUrl: e.target.value})} className="w-full px-4 py-2.5 rounded-lg border border-slate-300 outline-none focus:border-line-500 font-mono text-sm" placeholder="วางลิงก์เอกสารให้ผู้เรียนดาวน์โหลด..." /></div>
-                                    <button onClick={saveLiveConfig} className="w-full bg-line-500 hover:bg-line-600 text-white font-bold py-3.5 rounded-xl transition-colors shadow-md flex items-center justify-center gap-2"><SafeIcon name="Save" size={20} /> เผยแพร่สถานะ Live ให้นักเรียนเห็น</button>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* 4. จัดการเนื้อหา (Content Editor) */}
-                        {activeTab === 'content' && (
-                            <div className="animate-in fade-in max-w-5xl">
-                                <div className="flex justify-between items-center mb-6">
-                                    <h2 className="text-2xl font-black text-slate-800 flex items-center gap-2"><SafeIcon name="BookOpen" className="text-line-600" /> แก้ไขรายวิชา</h2>
-                                    <button onClick={saveContentConfig} className="bg-line-500 text-white px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-sm hover:bg-line-600 transition-colors"><SafeIcon name="UploadCloud" size={18}/> เผยแพร่ขึ้น Cloud</button>
-                                </div>
-                                <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-                                    <div className="space-y-4 max-h-[65vh] overflow-y-auto pr-2 custom-scrollbar">
-                                        {contentConfig.lessons.map(l => (
-                                            <div key={l.id} className="p-4 bg-slate-50 border border-slate-200 rounded-xl flex flex-col md:flex-row gap-4 items-start md:items-center">
-                                                <div className="w-10 h-10 bg-slate-200 rounded-full flex items-center justify-center font-black text-slate-500 shrink-0">{l.id}</div>
-                                                <div className="flex-1 w-full space-y-2">
-                                                    <input type="text" value={l.title} onChange={e => setContentConfig(p => ({ ...p, lessons: p.lessons.map(x => x.id === l.id ? { ...x, title: e.target.value } : x) }))} className="w-full text-sm font-bold p-2 border rounded-lg outline-none focus:border-line-500" placeholder="ชื่อบทเรียน" />
-                                                    <input type="text" value={l.videoId} onChange={e => setContentConfig(p => ({ ...p, lessons: p.lessons.map(x => x.id === l.id ? { ...x, videoId: e.target.value } : x) }))} className="w-full text-xs font-mono p-2 border rounded-lg outline-none focus:border-line-500 text-slate-500" placeholder="Google Drive Video ID" />
+                                    <h2 className="text-2xl font-black text-white mb-4 drop-shadow-sm text-center lg:text-left">เลือกกรณีศึกษาเพื่อเริ่มฝึกเจรจา</h2>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 overflow-y-auto custom-scrollbar pb-10">
+                                        {SKILL_LAB_SCENARIOS.map((sc, idx) => (
+                                            <GlassCard key={sc.id} onClick={() => startScenario(sc)} className="p-6 text-center border-t-4 border-t-orange-500 hover:border-t-orange-400 group">
+                                                <div className={`w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center text-white shadow-[0_0_20px_rgba(0,0,0,0.5)] ${sc.language === 'en' ? 'bg-gradient-to-br from-indigo-500 to-purple-600' : 'bg-gradient-to-br from-amber-500 to-orange-600'}`}>
+                                                    <span className="text-xl font-black">{sc.language === 'en' ? 'EN' : 'TH'}</span>
                                                 </div>
-                                            </div>
+                                                <div className="text-xs font-black text-white/80 bg-white/10 px-3 py-1 rounded-full mx-auto w-fit mb-3 border border-white/20">เคสที่ {idx + 1}</div>
+                                                <h3 className="font-extrabold text-xl text-white mb-3 group-hover:text-orange-400 transition-colors">{sc.title}</h3>
+                                                <p className="text-sm text-white/60 line-clamp-3">{sc.description}</p>
+                                            </GlassCard>
                                         ))}
                                     </div>
                                 </div>
                             </div>
-                        )}
-
-                        {/* 5. จัดการข้อสอบ */}
-                        {activeTab === 'quiz' && (
-                            <div className="animate-in fade-in max-w-5xl">
-                                <div className="flex justify-between items-center mb-6">
-                                    <h2 className="text-2xl font-black text-slate-800 flex items-center gap-2"><SafeIcon name="CheckSquare" className="text-line-600" /> จัดการข้อสอบ (Pretest / Posttest)</h2>
-                                    <button onClick={saveContentConfig} className="bg-line-500 text-white px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-sm hover:bg-line-600 transition-colors"><SafeIcon name="UploadCloud" size={18}/> เผยแพร่ข้อสอบขึ้น Cloud</button>
-                                </div>
+                        ) : (
+                        
+                            <div className="w-full max-w-[1400px] mx-auto animate-in fade-in zoom-in-95 h-full flex flex-col lg:flex-row relative rounded-[2.5rem] overflow-hidden shadow-2xl border border-white/20 bg-white/10 backdrop-blur-md">
                                 
-                                <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col h-[70vh]">
-                                    <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-6">
-                                        {(contentConfig.questionSets[0] || []).map((q, qIndex) => (
-                                            <div key={q.id || qIndex} className="p-5 bg-slate-50 border border-slate-200 rounded-xl relative">
-                                                <button onClick={() => {
-                                                    const newQuiz = [...contentConfig.questionSets[0]];
-                                                    newQuiz.splice(qIndex, 1);
-                                                    setContentConfig(p => ({ ...p, questionSets: [newQuiz] }));
-                                                }} className="absolute top-4 right-4 text-rose-400 hover:text-rose-600 hover:bg-rose-50 p-2 rounded-lg transition-colors" title="ลบข้อนี้"><SafeIcon name="Trash2" size={18}/></button>
-                                                
-                                                <div className="mb-4 pr-12">
-                                                    <label className="block text-xs font-bold text-slate-500 mb-1">ข้อที่ {qIndex + 1} (คำถาม)</label>
-                                                    <textarea value={q.question} onChange={e => {
-                                                        const newQuiz = [...contentConfig.questionSets[0]];
-                                                        newQuiz[qIndex] = { ...newQuiz[qIndex], question: e.target.value };
-                                                        setContentConfig(p => ({ ...p, questionSets: [newQuiz] }));
-                                                    }} className="w-full text-sm font-bold p-3 border rounded-lg outline-none focus:border-line-500 min-h-[80px]" placeholder="ระบุคำถาม..." />
-                                                </div>
-                                                
-                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                    {q.options.map((opt, optIndex) => (
-                                                        <div key={optIndex} className="flex items-center gap-2">
-                                                            <input type="radio" name={`correct-${qIndex}`} checked={q.answer === optIndex} onChange={() => {
-                                                                const newQuiz = [...contentConfig.questionSets[0]];
-                                                                newQuiz[qIndex] = { ...newQuiz[qIndex], answer: optIndex };
-                                                                setContentConfig(p => ({ ...p, questionSets: [newQuiz] }));
-                                                            }} className="w-4 h-4 text-line-600 cursor-pointer" title="เลือกเป็นคำตอบที่ถูกต้อง" />
-                                                            <input type="text" value={opt} onChange={e => {
-                                                                const newQuiz = [...contentConfig.questionSets[0]];
-                                                                const newOptions = [...newQuiz[qIndex].options];
-                                                                newOptions[optIndex] = e.target.value;
-                                                                newQuiz[qIndex] = { ...newQuiz[qIndex], options: newOptions };
-                                                                setContentConfig(p => ({ ...p, questionSets: [newQuiz] }));
-                                                            }} className={`w-full text-sm p-2 border rounded-lg outline-none focus:border-line-500 ${q.answer === optIndex ? 'border-line-500 bg-line-50 font-bold text-line-800' : 'text-slate-700'}`} placeholder={`ตัวเลือกที่ ${optIndex + 1}`} />
-                                                            <button onClick={() => {
-                                                                const newQuiz = [...contentConfig.questionSets[0]];
-                                                                const newOptions = [...newQuiz[qIndex].options];
-                                                                newOptions.splice(optIndex, 1);
-                                                                if (newQuiz[qIndex].answer === optIndex) newQuiz[qIndex].answer = 0;
-                                                                else if (newQuiz[qIndex].answer > optIndex) newQuiz[qIndex].answer -= 1;
-                                                                newQuiz[qIndex] = { ...newQuiz[qIndex], options: newOptions };
-                                                                setContentConfig(p => ({ ...p, questionSets: [newQuiz] }));
-                                                            }} className="text-slate-400 hover:text-rose-500 p-1"><SafeIcon name="XCircle" size={16}/></button>
-                                                        </div>
+                                {/* 🌟 Left Side: NEW ICU MONITOR & DYNAMIC VIDEO 🌟 */}
+                                <div className="w-full lg:w-[60%] relative bg-slate-950 flex flex-col shrink-0 border-r border-white/20 h-[50vh] lg:h-full p-4 md:p-8 overflow-hidden">
+                                    {/* ICU Grid Background */}
+                                    <div className="absolute inset-0 icu-grid opacity-20 pointer-events-none"></div>
+                                    {isChaos && <div className="absolute inset-0 bg-rose-500/10 mix-blend-overlay z-10 pointer-events-none animate-pulse"></div>}
+
+                                    {/* ICU Monitor Vitals */}
+                                    <div className="absolute top-4 left-4 text-slate-500 font-bold tracking-widest text-xs flex items-center gap-2 z-10"><SafeIcon icon={Activity} size={16}/> ICU MONITORING SYSTEM</div>
+
+                                    {/* ซ่อนข้อมูล Vitals ไว้ตอนที่ดูวิดีโอเต็มจอ เพื่อความเนียน */}
+                                    {!isFullVideo && (
+                                        <div className="grid grid-cols-1 gap-6 md:gap-8 h-full relative z-10 mt-8">
+                                           {/* ECG Section */}
+                                           <div className="flex flex-col justify-center border-b border-green-500/20 pb-4 relative">
+                                              <div className={`absolute top-0 right-0 font-black text-6xl md:text-8xl font-mono opacity-90 transition-colors duration-500 ${isChaos ? 'text-rose-500 drop-shadow-[0_0_20px_#f43f5e] animate-pulse' : 'text-green-500 drop-shadow-[0_0_15px_#22c55e]'}`}>{hrRate}</div>
+                                              <span className={`${isChaos ? 'text-rose-500' : 'text-green-400'} font-bold text-sm tracking-widest mb-2 transition-colors`}>ECG II</span>
+                                              <div className="h-16 w-full opacity-80" style={{
+                                                  background: `url('data:image/svg+xml;utf8,<svg viewBox="0 0 100 20" xmlns="http://www.w3.org/2000/svg"><polyline points="0,10 20,10 25,5 30,18 35,2 40,15 45,10 100,10" fill="none" stroke="${isChaos ? '%23f43f5e' : '%2322c55e'}" stroke-width="1.5"/></svg>') repeat-x`,
+                                                  backgroundSize: 'auto 100%',
+                                                  animation: `ekg-pan ${isChaos ? '0.7s' : '1.5s'} linear infinite`
+                                              }}></div>
+                                           </div>
+                                           {/* SpO2 Section */}
+                                           <div className="flex flex-col justify-center border-b border-cyan-500/20 pb-4 relative">
+                                              <div className="absolute top-0 right-0 text-cyan-400 font-black text-6xl md:text-8xl font-mono opacity-90 drop-shadow-[0_0_15px_#06b6d4]">{spo2}</div>
+                                              <span className="text-cyan-400 font-bold text-sm tracking-widest mb-2">SpO2 %</span>
+                                              <div className="h-16 w-full opacity-80" style={{
+                                                  background: `url('data:image/svg+xml;utf8,<svg viewBox="0 0 100 20" xmlns="http://www.w3.org/2000/svg"><path d="M0,10 Q10,10 15,5 T30,10 T45,15 T60,10 L100,10" fill="none" stroke="%2306b6d4" stroke-width="1.5"/></svg>') repeat-x`,
+                                                  backgroundSize: 'auto 100%',
+                                                  animation: `ekg-pan 2.5s linear infinite`
+                                              }}></div>
+                                           </div>
+                                           {/* Stress Section */}
+                                           <div className="flex flex-col justify-center pb-4 relative">
+                                              <div className={`absolute top-0 right-0 font-black text-6xl md:text-8xl font-mono opacity-90 transition-colors ${isChaos ? 'text-rose-500 drop-shadow-[0_0_15px_#f43f5e]' : 'text-amber-400 drop-shadow-[0_0_15px_#fbbf24]'}`}>{stressLevel}</div>
+                                              <span className={`${isChaos ? 'text-rose-500' : 'text-amber-400'} font-bold text-sm tracking-widest mb-2 transition-colors`}>STRESS LVL</span>
+                                              <div className="w-1/2 md:w-2/3 h-4 bg-slate-800 rounded-full overflow-hidden mt-4 border border-slate-600 shadow-inner">
+                                                  <div className={`h-full rounded-full transition-all duration-700 ease-in-out ${stressColor}`} style={{ width: `${stressLevel}%` }}></div>
+                                              </div>
+                                           </div>
+                                        </div>
+                                    )}
+
+                                    {/* 🌟 Dynamic Video Container (Full Screen <-> PiP) 🌟 */}
+                                    <div className={`absolute z-50 overflow-hidden transition-all duration-700 ease-in-out
+                                        ${roleplayPhase === 'none' ? 'opacity-0 scale-90 pointer-events-none' : 'opacity-100 scale-100 pointer-events-auto'}
+                                        ${isPiP ? 'bottom-4 right-4 md:bottom-8 md:right-8 w-36 sm:w-48 md:w-64 aspect-[3/4] sm:aspect-video rounded-2xl bg-black border-2 border-slate-600 shadow-[0_10px_40px_rgba(0,0,0,0.5)]' : ''}
+                                        ${isFullVideo ? 'inset-0 w-full h-full bg-black' : ''}`}>
+                                        
+                                        {/* Speaker Indicator (Only in PiP Mode) */}
+                                        {isPiP && (
+                                            <div className="absolute top-2 left-2 z-20 flex items-center gap-1.5 bg-black/60 backdrop-blur-sm px-2 py-0.5 rounded-full border border-slate-500/50">
+                                                <div className={`w-1.5 h-1.5 rounded-full ${isAiSpeaking ? 'bg-emerald-400 animate-pulse shadow-[0_0_8px_#34d399]' : 'bg-slate-500'}`}></div>
+                                                <span className="text-[8px] md:text-[10px] font-bold text-white uppercase tracking-wider">{currentSpeaker === 'BROTHER' ? 'Mek' : currentSpeaker === 'BOYFRIEND' ? 'P\'Ek' : 'Fah'} [AI]</span>
+                                            </div>
+                                        )}
+
+                                        {roleplayPhase === 'playing_scenario' ? 
+                                            <iframe key="vid_scenario" src={`${selectedScenario?.videoUrl}?autoplay=1&muted=0&api=1&player_id=scenario_vid&loop=0`} className="absolute inset-0 w-full h-full border-none pointer-events-auto z-0 object-cover" allow="autoplay; fullscreen" /> 
+                                            : 
+                                            <iframe key={`vid_char_${videoToPlay}`} src={videoToPlay} allow="autoplay; fullscreen" className="absolute top-1/2 left-1/2 min-w-full min-h-full w-auto h-auto -translate-x-1/2 -translate-y-1/2 border-none pointer-events-none z-0" style={{ aspectRatio: '16/9' }}/>
+                                        }
+                                        
+                                        {roleplayPhase === 'playing_scenario' && (
+                                            <button onClick={triggerScenarioNegotiation} className="absolute bottom-6 right-6 z-50 bg-white/20 hover:bg-white/40 backdrop-blur-md text-white px-4 py-2 rounded-full text-xs font-bold border border-white/50 transition-colors shadow-lg">Skip ⏭️</button>
+                                        )}
+
+                                        {/* 🌟 Audio Visualizer Canvas (สีฟ้าธรรมชาติ) 🌟 */}
+                                        {isPiP && <canvas ref={ttsCanvasRef} width="300" height="100" className="absolute bottom-0 left-0 w-full h-1/3 z-20 pointer-events-none opacity-90 mix-blend-screen"></canvas>}
+                                    </div>
+                                </div>
+
+                                {/* Right Side: Chat Interface */}
+                                <div className="w-full lg:w-[40%] flex flex-col h-[60vh] lg:h-full bg-black/40 backdrop-blur-2xl relative z-10 border-t md:border-t-0 border-white/20">
+                                    <div className="p-4 border-b border-white/20 flex items-center justify-between shrink-0 bg-white/5 shadow-md">
+                                        <div className="flex items-center gap-3"><div><h3 className="font-extrabold text-sm text-white drop-shadow-sm">{selectedScenario.title}</h3><p className="text-[10px] text-white/60 font-medium flex items-center gap-1"><SafeIcon icon={Volume2} size={12}/> {currentSpeaker === 'BROTHER' ? 'Charon' : 'Aoede'}</p></div></div>
+                                        <button onClick={() => { stopAudio(); setSelectedScenario(null); setMessages([]); setRoleplayPhase('none'); }} className="p-2 rounded-full hover:bg-rose-500/20 text-white/60 hover:text-rose-400 transition-colors" title="ยกเลิกและออก"><SafeIcon icon={X} size={20} /></button>
+                                    </div>
+                                    
+                                    <div className="flex-1 p-4 overflow-y-auto custom-scrollbar space-y-4 flex flex-col relative">
+                                        {messages.map((m, idx) => (
+                                            <div key={idx} className={`flex gap-2 ${m.sender === 'user' ? 'justify-end' : 'justify-start'} ${m.isHidden ? 'hidden' : ''}`}>
+                                                <div className={`p-3 rounded-2xl max-w-[85%] text-sm leading-relaxed whitespace-pre-wrap ${m.sender === 'ai' ? 'bg-slate-800/80 backdrop-blur-md border border-slate-600/50 text-slate-100 shadow-sm rounded-tl-none' : 'bg-gradient-to-br from-line-500 to-line-600 border border-line-400/50 text-white shadow-md font-medium rounded-tr-none'}`}>{m.image && <img src={m.image} className="w-full rounded-lg mb-2 object-cover" />}{m.text}</div>
+                                            </div>
+                                        ))}
+                                        {isTyping && <div className="flex gap-2 justify-start animate-in fade-in"><div className="p-4 rounded-2xl bg-slate-800/80 backdrop-blur-md border border-slate-600/50 rounded-tl-none flex gap-1.5"><div className="w-1.5 h-1.5 bg-orange-400 rounded-full animate-bounce"></div><div className="w-1.5 h-1.5 bg-amber-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div><div className="w-1.5 h-1.5 bg-orange-500 rounded-full animate-bounce" style={{animationDelay: '0.4s'}}></div></div></div>}
+                                        
+                                        {!isTyping && messages[messages.length-1]?.sender === 'ai' && (
+                                            <div className="flex flex-wrap gap-2 mt-2 animate-in fade-in">
+                                                {roleplayPhase === 'negotiating' && <button onClick={endScenarioAndEvaluate} className="text-xs bg-rose-500/20 backdrop-blur-md border border-rose-500/50 text-rose-300 px-4 py-2 rounded-full hover:bg-rose-500/40 active:scale-95 transition-all font-bold">🛑 จบการเจรจา (ประเมินผล)</button>}
+                                                {roleplayPhase === 'evaluating' && <><button onClick={() => startScenario(selectedScenario)} className="text-xs bg-amber-500/20 backdrop-blur-md border border-amber-500/50 text-amber-300 px-4 py-2 rounded-full hover:bg-amber-500/40 active:scale-95 transition-all font-bold">🔄 ลองฝึกเคสนี้อีกครั้ง</button><button onClick={() => { setSelectedScenario(null); setMessages([]); setRoleplayPhase('none'); }} className="text-xs bg-white/10 border border-white/20 text-white/80 px-4 py-2 rounded-full hover:bg-white/20 transition-all font-bold">🔙 กลับไปเลือกเคสอื่น</button></>}
+                                            </div>
+                                        )}
+                                        <div ref={messagesEndRef} />
+                                    </div>
+                                    
+                                    <div className="shrink-0 p-3 md:p-4 bg-slate-900 border-t border-white/10 relative z-10 pb-safe shadow-[0_-5px_15px_rgba(0,0,0,0.3)]">
+                                        {/* ⏱️ Crisis Countdown Bar */}
+                                        {roleplayPhase === 'negotiating' && !isTyping && messages[messages.length-1]?.sender === 'ai' && (
+                                           <div className="absolute top-0 left-0 w-full h-1 bg-slate-800">
+                                               <div className={`h-full transition-all duration-1000 ${pressureTime > 10 ? 'bg-emerald-500' : pressureTime > 5 ? 'bg-amber-500 shadow-[0_0_8px_#f59e0b]' : 'bg-rose-500 shadow-[0_0_8px_#f43f5e]'}`} style={{ width: `${(pressureTime/20)*100}%` }}></div>
+                                           </div>
+                                        )}
+                                        
+                                        {/* 💡 Smart Suggestions Hooks */}
+                                        {roleplayPhase === 'negotiating' && smartSuggestions.length > 0 && !isTyping && (
+                                            <div className="flex flex-col gap-2 mb-3 px-1 animate-in fade-in slide-in-from-bottom-2">
+                                                <div className="text-[10px] font-bold text-blue-300 flex items-center gap-1 uppercase tracking-widest"><SafeIcon icon={Lightbulb} size={12}/> ทางเลือกอัจฉริยะ (Smart Hooks):</div>
+                                                <div className="flex flex-wrap gap-2">
+                                                    {smartSuggestions.map((sug, i) => (
+                                                        <button key={i} onClick={() => handleSendChat(null, sug)} className="text-xs bg-blue-500/10 hover:bg-blue-500/30 border border-blue-500/30 text-blue-200 px-3 py-1.5 rounded-lg text-left transition-colors active:scale-95 break-words line-clamp-2 shadow-sm">{sug}</button>
                                                     ))}
-                                                    <button onClick={() => {
-                                                        const newQuiz = [...contentConfig.questionSets[0]];
-                                                        newQuiz[qIndex] = { ...newQuiz[qIndex], options: [...newQuiz[qIndex].options, "ตัวเลือกใหม่"] };
-                                                        setContentConfig(p => ({ ...p, questionSets: [newQuiz] }));
-                                                    }} className="text-xs font-bold text-line-600 hover:bg-line-50 py-2 rounded-lg border border-dashed border-line-300 flex items-center justify-center gap-1"><SafeIcon name="Plus" size={14}/> เพิ่มตัวเลือก</button>
                                                 </div>
                                             </div>
-                                        ))}
-                                    </div>
-                                    <div className="pt-4 mt-4 border-t border-slate-100 flex justify-center shrink-0">
-                                        <button onClick={() => {
-                                            const newQuiz = [...(contentConfig.questionSets[0] || [])];
-                                            newQuiz.push({ id: Date.now(), question: "คำถามใหม่...", options: ["ก.", "ข.", "ค.", "ง."], answer: 0 });
-                                            setContentConfig(p => ({ ...p, questionSets: [newQuiz] }));
-                                            setTimeout(() => {
-                                                const container = document.querySelector('.custom-scrollbar');
-                                                if(container) container.scrollTop = container.scrollHeight;
-                                            }, 100);
-                                        }} className="bg-slate-800 text-white px-6 py-2.5 rounded-xl font-bold text-sm shadow-sm hover:bg-slate-700 flex items-center gap-2"><SafeIcon name="Plus" size={16}/> เพิ่มข้อสอบใหม่</button>
+                                        )}
+
+                                        {isVadMode && <div className="absolute -top-1 left-8 right-8 h-1 bg-transparent"><div className="h-full bg-green-500 transition-all duration-100 rounded-full shadow-[0_0_8px_rgba(34,197,94,0.8)]" style={{ width: `${Math.min(100, audioLevel * 2)}%` }}></div></div>}
+                                        {selectedImage && <div className="mb-2 relative inline-block"><img src={selectedImage} alt="Preview" className="h-14 w-14 object-cover rounded-lg border border-white/20 shadow-sm" /><button onClick={() => setSelectedImage(null)} className="absolute -top-2 -right-2 bg-black text-white rounded-full p-0.5 hover:bg-rose-500"><SafeIcon icon={X} size={14} /></button></div>}
+                                        
+                                        <form onSubmit={handleSendChat} className={`flex items-center gap-2 bg-black/60 border border-white/20 rounded-full p-1.5 pl-3 transition-colors backdrop-blur-xl ${isVadMode ? '!border-green-400 bg-green-900/40' : ''}`}>
+                                            <input type="file" id="ai-image-upload" accept="image/*" className="hidden" onChange={handleImageUpload} />
+                                            <label htmlFor="ai-image-upload" className="text-white/60 hover:text-white cursor-pointer p-1.5"><SafeIcon icon={ImageIcon} size={20} /></label>
+                                            <input type="text" value={chatInput} onChange={e => setChatInput(e.target.value)} placeholder={isListening ? "กำลังฟัง..." : "พิมพ์ข้อความ หรือกดไมค์..."} disabled={isTyping || roleplayPhase === 'playing_scenario'} className="flex-1 bg-transparent text-white placeholder-white/40 px-1 outline-none text-sm font-medium" />
+                                            
+                                            {/* Timer Badge */}
+                                            {roleplayPhase === 'negotiating' && !isTyping && messages[messages.length-1]?.sender === 'ai' && (
+                                                <div className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border shrink-0 ${pressureTime <= 5 ? 'text-rose-400 border-rose-500/50 bg-rose-500/10 animate-pulse' : 'text-slate-400 border-slate-600 bg-slate-800'}`}>{pressureTime}s</div>
+                                            )}
+
+                                            <button type="button" onClick={toggleMic} disabled={isTyping || roleplayPhase === 'playing_scenario'} className={`w-9 h-9 rounded-full flex items-center justify-center transition-colors relative shrink-0 ${isListening ? 'bg-rose-500 text-white shadow-md' : 'bg-white/10 text-white/80 hover:bg-white/20'}`}><SafeIcon icon={Mic} size={16} />{isListening && <span className="absolute inset-0 rounded-full border-2 border-rose-500 animate-ping opacity-75"></span>}</button>
+                                            <button type="submit" disabled={(!chatInput.trim() && !selectedImage) || isTyping || roleplayPhase === 'playing_scenario'} className="w-9 h-9 rounded-full bg-line-500 hover:bg-line-600 text-white flex items-center justify-center disabled:opacity-50 transition-colors shadow-sm shrink-0"><SafeIcon icon={Send} size={16} /></button>
+                                        </form>
                                     </div>
                                 </div>
+                                
                             </div>
-                        )}
-
-                        {/* 6. Analytics Dashboard */}
-                        {activeTab === 'analytics' && (
-                             <div className="animate-in fade-in flex flex-col h-[85vh]">
-                                 <div className="flex justify-between items-center mb-6">
-                                     <h2 className="text-2xl font-black text-slate-800 flex items-center gap-2"><SafeIcon name="Activity" className="text-line-600" /> แดชบอร์ดสรุปผลภาพรวม</h2>
-                                 </div>
-                                 
-                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 relative z-10">
-                                     <div onClick={() => window.open('./executive.html', '_blank')} className="bg-gradient-to-br from-blue-900 to-cyan-900 p-6 rounded-2xl border border-blue-500/30 shadow-[0_10px_30px_rgba(59,130,246,0.3)] cursor-pointer hover:scale-[1.02] transition-all flex flex-col items-center justify-center text-center group">
-                                         <div className="w-16 h-16 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform"><SafeIcon name="Globe" size={32} /></div>
-                                         <h3 className="text-xl font-black text-white mb-2">AI Policy Intelligence</h3>
-                                         <p className="text-sm text-blue-200">เปิดหน้าต่างแดชบอร์ดผู้บริหาร (Real-time Map & AI Chat)</p>
-                                     </div>
-                                     
-                                     <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col items-center justify-center text-center">
-                                         <div className="w-16 h-16 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mb-4"><SafeIcon name="Database" size={32} /></div>
-                                         <h3 className="text-xl font-bold text-slate-800 mb-2">Looker Studio (Legacy)</h3>
-                                         <input type="url" value={systemConfig.lookerStudioUrl || ''} onChange={e=>setSystemConfig({...systemConfig, lookerStudioUrl: e.target.value})} onBlur={() => saveSettings({ lookerStudioUrl: systemConfig.lookerStudioUrl })} placeholder="วางลิงก์ Looker Studio Embed..." className="w-full mt-2 p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none text-sm text-slate-700 text-center focus:border-line-500"/>
-                                     </div>
-                                 </div>
-
-                                 <div className="w-full flex-1 bg-slate-50 rounded-2xl border border-slate-200 shadow-inner overflow-hidden relative flex items-center justify-center">
-                                     {systemConfig.lookerStudioUrl ? (
-                                         <iframe src={systemConfig.lookerStudioUrl} className="absolute inset-0 w-full h-full border-none"></iframe>
-                                     ) : (
-                                         <div className="text-center text-slate-400"><SafeIcon name="Activity" size={48} className="mx-auto mb-2 opacity-50" /><p className="font-bold">ยังไม่ได้ตั้งค่าลิงก์ Looker Studio</p></div>
-                                     )}
-                                 </div>
-                             </div>
                         )}
                     </div>
                 </div>
             );
         }
 
-        const root = createRoot(document.getElementById('admin-root'));
-        root.render(<AdminApp />);
+        const root = createRoot(document.getElementById('skilllab-root'));
+        root.render(<SkillLabApp />);
     </script>
 </body>
 </html>
