@@ -403,10 +403,10 @@
             }
 
             const handleExportCSV = () => {
-                const headers = ["ชื่อ-สกุล", "อีเมล", "เบอร์โทร", "ใบประกอบวิชาชีพ", "ตำแหน่ง", "หน่วยงาน", "สิทธิ์การเรียน", "สถานะ", "Pretest", "Posttest", "ความคืบหน้า (%)", "คะแนนเจรจาเฉลี่ย"];
+                const headers = ["ชื่อ-สกุล", "อีเมล", "เบอร์โทร", "ใบประกอบวิชาชีพ", "ตำแหน่ง", "ลักษณะงาน", "หน่วยงาน", "สิทธิ์การเรียน", "สถานะ", "Pretest", "Posttest", "ความคืบหน้า (%)", "คะแนนเจรจาเฉลี่ย"];
                 const csvData = usersList.map(u => {
                     const avgScore = u.skillLabHistory?.length > 0 ? Math.round(u.skillLabHistory.reduce((sum, r) => sum + (r.score || 0), 0) / u.skillLabHistory.length) : 0;
-                    return [u.name, u.email, u.phone, u.licenseId, u.position, u.hospital, u.userType, u.status, u.pretest, u.posttest, u.progress, avgScore];
+                    return [u.name, u.email, u.phone, u.licenseId, u.position, u.workContext || '-', u.hospital, u.userType, u.status, u.pretest, u.posttest, u.progress, avgScore];
                 });
                 const csvContent = [headers, ...csvData].map(e => e.join(",")).join("\n");
                 const blob = new Blob(["\ufeff" + csvContent], { type: 'text/csv;charset=utf-8;' });
