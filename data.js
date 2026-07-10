@@ -1,755 +1,268 @@
-<!DOCTYPE html>
-<html lang="th">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AI Skill Lab - RJ Ailiverse</title>
-    
-    <script src="./data.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-    <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            colors: {
-              line: { 50: '#e5f8e5', 100: '#cbf1cb', 200: '#9ce49c', 300: '#6dd66d', 400: '#3ec93e', 500: '#00B900', 600: '#009400', 700: '#006f00', 800: '#004a00', 900: '#002500' },
-              gold: { 200: '#FDE68A', 300: '#FCD34D', 400: '#FBBF24', 500: '#F59E0B', 600: '#D97706' }
-            },
-            animation: {
-              'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-              'glow': 'glow 2s ease-in-out infinite alternate',
-            },
-            keyframes: {
-              glow: {
-                '0%': { boxShadow: '0 0 5px rgba(59, 130, 246, 0.5)' },
-                '100%': { boxShadow: '0 0 20px rgba(59, 130, 246, 0.8), 0 0 30px rgba(59, 130, 246, 0.6)' }
-              }
-            }
-          }
-        }
-      }
-    </script>
-    
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&display=swap');
-        body { font-family: 'Sarabun', sans-serif; margin: 0; overflow-x: hidden; background-color: #0f172a; color: white; }
-        
-        .sky-bg { position: fixed; inset: 0; z-index: 0; background: linear-gradient(to bottom, #0f172a 0%, #1e40af 30%, #38bdf8 60%, #fcd34d 100%); }
-        .clouds-wrapper { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 2; pointer-events: none; opacity: 0.85; }
-        .cloud-layer { position: absolute; bottom: 0; left: 0; width: 200%; height: 100%; background-repeat: repeat-x; background-size: auto 100%; animation: drift linear infinite; }
-        .layer-1 { opacity: 0.9; background-image: url('https://raw.githubusercontent.com/danielstuart14/CSS_FOG_ANIMATION/master/fog1.png'); animation-duration: 150s; }
-        .layer-2 { opacity: 0.6; background-image: url('https://raw.githubusercontent.com/danielstuart14/CSS_FOG_ANIMATION/master/fog2.png'); animation-duration: 200s; transform: scale(1.1); }
-        .layer-3 { opacity: 0.4; background-image: url('https://raw.githubusercontent.com/danielstuart14/CSS_FOG_ANIMATION/master/fog1.png'); animation-duration: 250s; transform: scale(1.2); }
-        @keyframes drift { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+// ============================================================================
+// แฟ้มเก็บข้อมูล (Static Data) ฉบับสมบูรณ์ 100% สำหรับ RJ Ailiverse
+// ============================================================================
 
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background-color: rgba(255,255,255,0.4); border-radius: 10px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background-color: rgba(255,255,255,0.6); }
-        
-        .pt-safe { padding-top: env(safe-area-inset-top, 20px); }
-        .pb-safe { padding-bottom: env(safe-area-inset-bottom, 20px); }
+window.FAH_IDLE_VIDEO = "https://player.vimeo.com/video/1201677272?background=1&autoplay=1&loop=1&muted=1";
 
-        /* 🚀 ICU Monitor CSS 🚀 */
-        @keyframes ekg-pan {
-            from { background-position: 0 0; }
-            to { background-position: -200px 0; }
-        }
-        .icu-grid {
-            background-image: 
-                linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
-            background-size: 20px 20px;
-        }
-    </style>
+window.CHARACTER_VIDEOS = {
+  FAH: { 
+    ANGRY: "https://player.vimeo.com/video/1201657361?background=1&autoplay=1&loop=1&muted=1", 
+    CONFUSED: "https://player.vimeo.com/video/1201657360?background=1&autoplay=1&loop=1&muted=1", 
+    HESITANT: "https://player.vimeo.com/video/1201657359?background=1&autoplay=1&loop=1&muted=1", 
+    SAD: "https://player.vimeo.com/video/1201657372?background=1&autoplay=1&loop=1&muted=1", 
+    NEUTRAL: "https://player.vimeo.com/video/1201677272?background=1&autoplay=1&loop=1&muted=1", 
+    ADVISING: "https://player.vimeo.com/video/1202358300?background=1&autoplay=1&loop=1&muted=1" 
+  },
+  BROTHER: { 
+    ANGRY: "https://player.vimeo.com/video/1201657665?background=1&autoplay=1&loop=1&muted=1", 
+    CONFUSED: "https://player.vimeo.com/video/1201657667?background=1&autoplay=1&loop=1&muted=1", 
+    HESITANT: "https://player.vimeo.com/video/1201657664?background=1&autoplay=1&loop=1&muted=1", 
+    SAD: "https://player.vimeo.com/video/1201657681?background=1&autoplay=1&loop=1&muted=1", 
+    NEUTRAL: "https://player.vimeo.com/video/1202839934?background=1&autoplay=1&loop=1&muted=1" 
+  }
+};
 
-    <script type="importmap">
-    {
-      "imports": {
-        "react": "https://esm.sh/react@18.2.0",
-        "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
-        "react-dom": "https://esm.sh/react-dom@18.2.0",
-        "lucide-react": "https://esm.sh/lucide-react@0.294.0?external=react",
-        "firebase/app": "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js",
-        "firebase/auth": "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js",
-        "firebase/firestore": "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js"
-      }
-    }
-    </script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-</head>
-<body>
-    <div id="skilllab-root"></div>
+window.FAH_PROFILE_PIC = "https://res.cloudinary.com/djwclucoz/image/upload/v1781599152/%E0%B8%A5%E0%B8%9A%E0%B8%84%E0%B8%99%E0%B8%94%E0%B9%89%E0%B8%B2%E0%B8%99%E0%B8%AB%E0%B8%A5%E0%B8%B1%E0%B8%87%E0%B8%AD%E0%B8%AD%E0%B8%81%E0%B8%97%E0%B8%B1%E0%B9%89%E0%B8%87%E0%B8%AB%E0%B8%A1%E0%B8%94_2K_202606161538_tdnggg.jpg";
 
-    <script type="text/babel" data-type="module">
-        import React, { useState, useEffect, useRef, useCallback } from 'react';
-        import { createRoot } from 'react-dom/client';
-        import * as LucideIcons from 'lucide-react';
-        import { initializeApp, getApps, getApp } from 'firebase/app';
-        import { getAuth, signInAnonymously } from 'firebase/auth';
-        import { getFirestore, doc, setDoc } from 'firebase/firestore';
+window.HOSPITAL_MAPPING = { 
+  "เขตสุขภาพที่ 1": [{ name: "รพ.มหาราชนครเชียงใหม่", prov: "เชียงใหม่" }], "เขตสุขภาพที่ 2": [{ name: "รพ.พุทธชินราช", prov: "พิษณุโลก" }],
+  "เขตสุขภาพที่ 3": [{ name: "รพ.สวรรค์ประชารักษ์", prov: "นครสวรรค์" }], "เขตสุขภาพที่ 4": [{ name: "รพ.สระบุรี", prov: "สระบุรี" }],
+  "เขตสุขภาพที่ 5": [{ name: "รพ.ราชบุรี", prov: "ราชบุรี" }], "เขตสุขภาพที่ 6": [{ name: "รพ.ชลบุรี", prov: "ชลบุรี" }],
+  "เขตสุขภาพที่ 7": [{ name: "รพ.ขอนแก่น", prov: "ขอนแก่น" }], "เขตสุขภาพที่ 8": [{ name: "รพ.อุดรธานี", prov: "อุดรธานี" }],
+  "เขตสุขภาพที่ 9": [{ name: "รพ.มหาราชนครราชสีมา", prov: "นครราชสีมา" }], "เขตสุขภาพที่ 10": [{ name: "รพ.สรรพสิทธิประสงค์", prov: "อุบลราชธานี" }],
+  "เขตสุขภาพที่ 11": [{ name: "รพ.สุราษฎร์ธานี", prov: "สุราษฎร์ธานี" }], "เขตสุขภาพที่ 12": [{ name: "รพ.หาดใหญ่", prov: "สงขลา" }],
+  "กรมการแพทย์": [{ name: "รพ.ราชวิถี", prov: "กรุงเทพมหานคร" }, { name: "รพ.เลิดสิน", prov: "กรุงเทพมหานคร" }, { name: "รพ.นพรัตนราชธานี", prov: "กรุงเทพมหานคร" }],
+  "สำนักการแพทย์ กรุงเทพฯ": [{ name: "รพ.กลาง", prov: "กรุงเทพมหานคร" }, { name: "รพ.ตากสิน", prov: "กรุงเทพมหานคร" }, { name: "รพ.เจริญกรุงประชารักษ์", prov: "กรุงเทพมหานคร" }],
+  "สำนักอนามัย กรุงเทพฯ": [{ name: "ศูนย์บริการสาธารณสุข", prov: "กรุงเทพมหานคร" }], "อื่นๆ": [{ name: "อื่นๆ", prov: "" }]
+};
 
-        const { ArrowLeft, PlayCircle, Bot, Volume2, X, Send, Mic, Image: ImageIcon, Brain, Target, TrendingUp, CheckCircle2, Lock, Clock, Lightbulb, Activity } = LucideIcons;
+// --- บทเรียน 20 บท ---
+window.INITIAL_LESSONS = [
+  { id: 1, title: "ยุทธศาสตร์และเป้าหมายการพัฒนาระบบบริการสุขภาพ (Service plan)", videoId: "1-sX4LnWRMSjoEQmWee-9GuiQ2XMvkSro", documentUrl: "https://drive.google.com/file/d/1FrJt9TCbOy5oewg_eMrRG8pW4dNzJHS9/view?usp=sharing" },
+  { id: 2, title: "แนวทางการประเมินผู้เสียชีวิตเพื่อบริจาคดวงตาและการประสานงานฯ", videoId: "15QOjyhd0hoxpSSO0tZ7Fj4qFaZByiAzT", documentUrl: "https://drive.google.com/file/d/1iJbKaj0VwcsH0AzdyUqrt2jsTjEyhfSg/view?usp=sharing" },
+  { id: 3, title: "จริยธรรม กฎหมายที่เกี่ยวข้องกับการรับบริจาคอวัยวะ และบทบาทของศูนย์ฯ", videoId: "1L5pFZh85OPDz7lWwJCBKlFDXxkTZSxt_", documentUrl: "https://drive.google.com/file/d/1PtfxrqDZrNpX_NDQBGyCqqfZsPnMRg6e/view?usp=sharing" },
+  { id: 4, title: "ความสำคัญของการบริจาคและปลูกถ่ายอวัยวะ และบทบาทของบุคลากรฯ", videoId: "14hnZ80UE0KvCmW2oHE2zBTx8uBCg4rIB", documentUrl: "https://drive.google.com/file/d/1HXXlSqONQ3eq7E1Os0C8OtbZcSGbG6a5/view?usp=sharing" },
+  { id: 5, title: "การประสานงานเมื่อมีผู้บริจาคอวัยวะสมองตาย และหลักเกณฑ์การจัดสรรอวัยวะ", videoId: "1wkE2CCaRgxlzHmho1ijK49SE028vNqcV", documentUrl: "https://drive.google.com/file/d/1w4xefABcn2GRTQevhpvYuybD2kLozlA6/view?usp=sharing" },
+  { id: 6, title: "การเตรียมผู้ป่วยเพื่อเข้ารับการปลูกถ่ายไต และการดูแลหลังปลูกถ่ายไต", videoId: "1pu1O3swHMtTzBXjF3rG_NzfIgjYfgnLm", documentUrl: "https://drive.google.com/file/d/1u_xSPv95dvxXw85QsSx7FYYsKonJbJjj/view?usp=sharing" },
+  { id: 7, title: "การจัดกิจกรรมส่งเสริมและประชาสัมพันธ์ชีวิตใหม่หลังการปลูกถ่ายอวัยวะ", videoId: "1Sc-2Z_MOD85kvWBduEEWbPiGxw1zeTec", documentUrl: "https://drive.google.com/file/d/1RSPtCHRe38si6P75CCA_85djfwJhUrdE/view?usp=sharing" },
+  { id: 8, title: "กลุ่มงานการพยาบาลรับบริจาค ปลูกถ่ายอวัยวะและเนื้อเยื่อ สธ.", videoId: "1vc4b07Ooas4cozJK5cnweIl2KeeKvHbk", documentUrl: "https://drive.google.com/file/d/1WUO677apoQJeJKboj0iOZmrTIybd4_hM/view?usp=sharing" },
+  { id: 9, title: "Identification of Potential Organ Donors and Assessment", videoId: "1TRLOGabpI66ZUEPybGyrpHTN5dNlYP-f", documentUrl: "https://drive.google.com/file/d/14-GXQS4-KHEUraOt8Ey2cGVkhxN12Ump/view?usp=sharing" },
+  { id: 10, title: "Organ Packaging and Transportation สำหรับ รพ Donor", videoId: "1POFnLm_G2BuXWgOojDRpotM5YhBxcCnk", documentUrl: "https://drive.google.com/file/d/1VQk-wMxYRbphaBDkCnOkapwgVdTGShbV/view?usp=sharing" },
+  { id: 11, title: "Family Approach", videoId: "1GpfjRpbDnilV22iL52ZyOyUcRs9MUVbu", documentUrl: "https://drive.google.com/file/d/1aRjlUNctesyliehy5KXLW7VwmGPW2R4h/view?usp=sharing" },
+  { id: 12, title: "Brain Death Diagnosis", videoId: "136Gl3ocDivGYU764t7t9Qvpn_iTJTfs4", documentUrl: "https://drive.google.com/file/d/1TMceKfI3azgRVRo-GtSDluTzq1lhe8-U/view?usp=sharing" },
+  { id: 13, title: "Donor Management", videoId: "1YPyTis-9VzJLPhUvwMp1IC_xs7TLIao0", documentUrl: "https://drive.google.com/file/d/1OeZIm6x3lg_-dFTUPgd9LiombnRrPrQh/view?usp=sharing" },
+  { id: 14, title: "Organ Procurement", videoId: "12lOd6KsekmV0PDbdLVr2wYsz-gNnovHK", documentUrl: "https://drive.google.com/file/d/1e-PwnXUCVScRLg5bmXRjOMSC0dIeDv5r/view?usp=sharing" },
+  { id: 15, title: "การปฏิบัติตัวหลังผ่าตัด", videoId: "1k2bsL3ZT7dG85c63fC7SPCAQlrkWVzHC", documentUrl: "" },
+  { id: 16, title: "ภาพรวมการปลูกถ่ายไต", videoId: "1U5W7QGZm4CQaKIwiwR3mE3FgSeKA3JxS", documentUrl: "" },
+  { id: 17, title: "การปฏิบัติตัวหลังปลูกถ่าย (ยา)", videoId: "1v1QN-Qq1zHRtEYyKt1iJ6XrSfSfy7zuM", documentUrl: "" },
+  { id: 18, title: "โภชนาการอาหาร", videoId: "1Ekf354d86SJ43JRkqAAEH9D-XB9725Dr", documentUrl: "" },
+  { id: 19, title: "ขั้นตอนการเข้ารับบริการคลินิกปลูกถ่ายไต", videoId: "1Om2A00CDS8seta7eiz47-gbXExzzU4RU", documentUrl: "" },
+  { id: 20, title: "ขั้นตอนการดูแลผู้ป่วยปลูกถ่ายไตในระยะต่างๆ", videoId: "15qb9D-gNqw-cEJoLozRY2DW1Dc6huB0e", documentUrl: "" }
+];
 
-        function SafeIcon({ icon: Icon, size = 24, className = "" }) {
-          if (!Icon) return null;
-          return <Icon size={size} className={className} />;
-        }
+// --- ห้องเจรจา (Skill Lab Prompts) ---
+window.SKILL_LAB_SCENARIOS = [
+  { 
+    id: 1, 
+    title: "กรณีศึกษา (Thai Case): Multi-Agent Pressure Test", 
+    description: "สถานการณ์จำลองขั้นสูง รับมือครอบครัว 3 คน (ฟ้า, เมฆ และ พี่เอก แฟนของฟ้า)", 
+    videoUrl: "https://player.vimeo.com/video/1203050393", 
+    characterName: "ฟ้า, เมฆ และ พี่เอก (AI Multi-Persona)", 
+    relation: "ครอบครัวผู้ป่วย", 
+    language: "th", 
+    systemPrompt: `### 1. ROLE & SYSTEM INSTRUCTIONS\nคุณคือสุดยอด AI Roleplay Simulator รับบทเป็น "ครอบครัวผู้ป่วย 3 คน" หน้าห้อง ICU ห้ามหลุดจากบทบาทเด็ดขาด และห้ามใช้ภาษาเชิงชู้สาว\n- [ฟ้า] (อายุ 22): ลูกสาวคนโต จบป.ตรี กำลังเรียนป.โท และทำงานที่บริษัท Google มีวุฒิภาวะ เป็นแก่นหลักของครอบครัว มีเหตุผล แต่เสียใจมากที่รู้ว่าพ่อสมองตายพยายามเข้มแข็งเพื่อเป็นที่พึ่งให้ "เมฆ" (น้องชาย) ไม่งอแงอ้อนแฟนแบบเด็กๆ แต่จะพึ่งพา "พี่เอก" เป็นฐานความมั่นคงทางใจ หากสับสนจะหันไปถามความเห็นพี่เอก **(สำคัญมาก: หากผู้เรียนแนะนำตัว ฟ้าต้องตอบรับและแนะนำตัวเอง พร้อมแนะนำ "เมฆ" และ "พี่เอก" อย่างสุภาพให้ผู้เรียนรู้จักทันที เช่น 'สวัสดีค่ะ หนูชื่อฟ้านะคะ นี่เมฆน้องชายหนู และนี่พี่เอกแฟนหนูค่ะ')**\n- [เมฆ] (อายุ 18): น้องชาย นักศึกษามหาวิทยาลัยเอกชน ปี 2 อารมณ์ร้อน ปกป้องพี่สาวและพ่อ ใช้ภาษาปาก (ครับ/ผม) โกรธและไม่ยอมรับความจริง แต่มีความเกรงใจตามมารยาทคนไทย ห้ามใช้คำหยาบเด็ดขาด เน้นใช้การตั้งคำถามและกดดันด้วยความเสียใจแทน\n- [พี่เอก] (อายุ 32): แฟนของฟ้า จบป.โท รับราชการ สุภาพ นุ่มนวล ใจเย็น เป็นผู้ใหญ่ เป็นที่พึ่งทางใจให้ฟ้าคอยยึดเหนี่ยว ไม่ก้าวก่ายสิทธิ์ตัดสินใจทางการแพทย์ของครอบครัว (เพราะเป็นคนนอก) แต่คอยประคองอารมณ์ของฟ้าและเมฆ\n\n### 2. CONTEXT\nสถานการณ์: ผู้ป่วย {{PATIENT_RELATION}} ({{PATIENT_GENDER}} {{PATIENT_AGE}} เสียชีวิตจาก{{PATIENT_CAUSE}}) สมองตาย\nประวัติครอบครัวเสริม: ภรรยาของผู้ป่วยเสียชีวิตไปนานแล้ว ผู้ป่วยเป็นพ่อเลี้ยงเดี่ยว (Single Dad) ที่ทำงานหนักส่งลูกเรียน ฟ้าและเมฆจึงรักพ่อมาก\nคู่สนทนา: {{USER_POSITION}} (ผู้เรียน)\n\n### 3. STRICT RULES FOR HUMAN-LIKE BEHAVIOR\n1. ทฤษฎีความโศกเศร้า: ในช่วงแรกห้ามยอมรับความจริง เมฆจะโกรธ/จับผิด ฟ้าจะพยายามประคองสติตัวเองและน้อง จนกว่าผู้เรียนจะใช้ Empathy ได้ดี\n2. ภาษาที่พังทลาย: ห้ามพิมพ์ยาวเป็นเรียงความ ใช้คำสร้อย (ฮึก, เอ่อ...)\n3. ปฏิกิริยาสามเส้า: เมฆอาจจะโกรธหมอ พี่เอกจะช่วยปรามและปลอบฟ้าอย่างเงียบๆ ฟ้าจะเป็นคนกลางที่สื่อสารกับหมอ หากฟ้าสับสนจะถามพี่เอก แต่พี่เอกจะไม่ฟันธงเรื่องการรักษา จะบอกให้ฟ้าตั้งสติและลองฟังหมออธิบาย\n4. ห้ามสมมติเวลาเกิดเหตุเอง ให้ใช้คำว่า "เพิ่งได้รับโทรศัพท์แจ้ง"\n5. The Identity Check: ถ้าผู้เรียนเปิดมาคุยเรื่องอาการเลยโดยไม่แนะนำตัว เมฆจะถามแทรกทันทีว่า "ขอโทษนะครับ พวกคุณคือใครครับ? หมอเจ้าของไข้หรือเปล่า"\n6. ห้ามเรียกผู้เรียนว่าหมอเว้นแต่เขาจะแนะนำตัวว่าเป็นหมอ และ ห้ามเอ่ยเรื่อง "บริจาคอวัยวะ" ก่อนเด็ดขาด\n\n### 4. FORMAT (สำคัญมาก)\n- [กฎเหล็กขั้นสูงสุด]: ให้คุณเลือกสวมบทบาทตอบกลับเพียง 1 ตัวละครต่อ 1 ครั้งเท่านั้น! ห้ามพิมพ์บทพูดของหลายคนออกมาพร้อมกันในข้อความเดียวเด็ดขาด!\n- ตอบขึ้นต้นด้วย Tag อารมณ์และชื่อเสมอ เช่น [SAD] [ฟ้า] ข้อความ... หรือ [ANGRY] [เมฆ] ข้อความ... หรือ [NEUTRAL] [พี่เอก] ข้อความ...\n(อารมณ์ที่ใช้ได้: SAD, ANGRY, CONFUSED, HESITANT, NEUTRAL, ADVISING)` 
+  },
+  { 
+    id: 2, 
+    title: "กรณีศึกษา (Foreign Case): Cross-Cultural", 
+    description: "สถานการณ์จำลอง รับมือญาติชาวต่างชาติ", 
+    videoUrl: "https://player.vimeo.com/video/1203050393", 
+    characterName: "Fah and Mek (Foreign Tourists)", 
+    relation: "ครอบครัวผู้ป่วย (ต่างชาติ)", 
+    language: "en", 
+    systemPrompt: `### 1. ROLE & SYSTEM INSTRUCTIONS\nคุณคือสุดยอด AI Roleplay Simulator รับบทเป็น "ญาติผู้ป่วยชาวต่างชาติ 2 คน" ที่เพิ่งทราบว่าคุณพ่อสมองตาย ห้ามหลุดจากบทบาทเด็ดขาด และต้องใช้ **ภาษาอังกฤษ** เท่านั้น\n- [Fah] (Age 22): Daughter. Highly emotional. Starts in Denial.\n- [Mek] (Age 18): Son. Hot-headed, protective. Starts in Anger.\n\n### 2. CONTEXT\nSituation: The patient {{PATIENT_RELATION}} ({{PATIENT_GENDER}} {{PATIENT_AGE}} died from {{PATIENT_CAUSE}}) is brain dead.\nInterlocutor: {{USER_POSITION}}.\n\n### 3. FORMAT (CRITICAL)\n- [STRICT RULE]: You must output ONLY ONE character's response per turn! NEVER output both characters in a single message!\n- Always start with an Emotion Tag and Name, e.g., [SAD] [Fah] text... or [ANGRY] [Mek] text...` 
+  }
+];
 
-        const FAH_IDLE_VIDEO = window.FAH_IDLE_VIDEO || "";
-        const CHARACTER_VIDEOS = window.CHARACTER_VIDEOS || {};
-        const SKILL_LAB_SCENARIOS = window.SKILL_LAB_SCENARIOS || [];
+// --- ข้อสอบ 40 ข้อ ---
+window.QUIZ_QUESTIONS_RAW = [
+  "เป้าหมายหลักของ Service Plan สาขาการรับบริจาคและปลูกถ่ายอวัยวะคือข้อใด?|ลดค่าใช้จ่ายในการดูแลผู้ป่วยวิกฤต|เพิ่มจำนวนผู้บริจาคอวัยวะสมองตายและผู้ได้รับการปลูกถ่ายอวัยวะให้เพียงพอ|ลดภาระงานของบุคลากรทางการแพทย์ในห้องICU|สร้างศูนย์ปลูกถ่ายอวัยวะในทุกชุมชน|1",
+  "การจัดเก็บดวงตา (Eye procurement) ควรดำเนินการให้แล้วเสร็จอย่างช้าที่สุดภายในกี่ชั่วโมงหลังผู้ป่วยเสียชีวิต?|ภายใน 2 ชั่วโมง|ภายใน 24-48 ชั่วโมง|ภายใน 3 วัน|ภายใน 6-8 ชั่วโมง (หากมีการประคบเย็นอาจยืดได้)|3",
+  "ประโยชน์สูงสุดของการปลูกถ่ายไตเมื่อเทียบกับการฟอกเลือด (Dialysis) คืออะไร?|ผู้ป่วยไม่ต้องทานยากดภูมิคุ้มกันอีกเลย|แพทย์ทำงานง่ายขึ้นโดยไม่ต้องตรวจติดตามผล|สามารถรับประทานอาหารได้ทุกชนิดโดยไม่มีข้อจำกัด|ผู้ป่วยมีคุณภาพชีวิตที่ดีขึ้น อัตราการรอดชีวิตสูง และลดภาระค่าใช้จ่ายระยะยาว|3",
+  "การบรรจุไตเพื่อขนส่ง (Kidney Packaging) ต้องรักษาอุณหภูมิให้อยู่ในช่วงใด?|แช่แข็งในน้ำแข็งแห้ง (-20 องศาเซลเซียส)|อุณหภูมิห้อง (25 องศาเซลเซียส)|2-4 องศาเซลเซียส (แช่ในน้ำแข็งเกล็ดที่กำลังละลาย)|แช่ในน้ำอุ่น (37 องศาเซลเซียส)|2",
+  "การทำ Decoupling หมายถึงการแยกเรื่องใดออกจากเรื่องใด?|แยกการทำงานของหัวใจออกจากปอด|แยกหมอออกจากพยาบาล|แยกการแจ้งข่าวสมองตาย ออกจากการเจรจาขอรับบริจาคอวัยวะ|แยกญาติผู้ชายออกจากญาติผู้หญิง|2",
+  "การทำ Apnea Test เป็นขั้นตอนสำคัญเพื่อพิสูจน์สิ่งใด?|เพื่อดูว่าหัวใจยังเต้นอยู่หรือไม่|เพื่อพิสูจน์ว่าศูนย์ควบคุมการหายใจที่ก้านสมองสูญเสียการทำงานอย่างถาวร|เพื่อกระตุ้นให้ผู้ป่วยฟื้นคืนสติ|เพื่อดูการทำงานของปอดก่อนบริจาค|1",
+  "ข้อใดคือเกณฑ์อายุขั้นต่ำในการแสดงความจำนงบริจาคอวัยวะได้ด้วยตนเองตามกฎหมายไทย?|15 ปีบริบูรณ์|18 ปีบริบูรณ์|20 ปีบริบูรณ์|ไม่มีข้อจำกัดหากได้รับความยินยอมจากผู้ปกครอง|1",
+  "อวัยวะใดต่อไปนี้ไม่สามารถปลูกถ่ายได้?|สมอง|หัวใจ|ปอด|ตับอ่อน|0",
+  "ข้อใดคือสาเหตุการเสียชีวิตที่พบได้บ่อยที่สุดในกลุ่มผู้บริจาคอวัยวะสมองตาย?|โรคมะเร็งระยะสุดท้าย|อุบัติเหตุทางศีรษะ (Traumatic Brain Injury)|โรคติดเชื้อในกระแสเลือด|โรคหัวใจล้มเหลวเฉียบพลัน|1",
+  "ในการเจรจาขอรับบริจาคอวัยวะ หากญาติมีความเชื่อว่า 'บริจาคแล้วชาติหน้าอวัยวะจะไม่ครบ' บุคลากรทางการแพทย์ควรตอบสนองอย่างไร?|อธิบายว่าตามหลักพุทธศาสนา การเสียสละร่างกายเป็นทานบารมีขั้นสูง|เพิกเฉยและเปลี่ยนไปคุยเรื่องอื่น|บอกว่าเป็นความเชื่อที่ผิดและไม่มีเหตุผล|ยุติการเจรจาทันที|0",
+  "ระยะเวลาทอง (Golden Period) ในการนำหัวใจที่ได้จากการจัดเก็บไปปลูกถ่ายให้ผู้รับคือเท่าใด?|ไม่เกิน 4 ชั่วโมง|ไม่เกิน 12 ชั่วโมง|ไม่เกิน 24 ชั่วโมง|ไม่เกิน 48 ชั่วโมง|0",
+  "ข้อใดไม่ใช่ข้อห้ามเด็ดขาด (Absolute Contraindication) ในการบริจาคอวัยวะ?|ติดเชื้อ HIV|มะเร็งแพร่กระจาย|ความดันโลหิตสูง|ไม่ทราบสาเหตุการเสียชีวิตที่แน่ชัด|2",
+  "การประเมินผู้ป่วยสมองตาย ต้องทำการทดสอบทางคลินิก (Clinical Test) อย่างน้อยกี่ครั้ง?|1 ครั้ง|2 ครั้ง ห่างกันอย่างน้อย 6 ชั่วโมง (สำหรับผู้ใหญ่)|3 ครั้ง|ไม่จำเป็นต้องทดสอบซ้ำหากทำ Apnea Test ผ่าน|1",
+  "ใครเป็นผู้มีอำนาจลงนามรับรองการตายด้วยภาวะสมองตายตามกฎหมาย?|พยาบาลวิชาชีพที่ดูแลผู้ป่วย|แพทย์ผู้ทำการรักษาและแพทย์ผู้เชี่ยวชาญรวม 3 ท่าน|ญาติสายตรงลำดับแรก|ผู้อำนวยการโรงพยาบาล|1",
+  "ศูนย์รับบริจาคอวัยวะสภากาชาดไทย (ODC) มีบทบาทหน้าที่ใด?|ผ่าตัดปลูกถ่ายอวัยวะให้ผู้ป่วยทุกคน|เป็นศูนย์กลางจัดสรรอวัยวะให้โรงพยาบาลเครือข่ายอย่างยุติธรรม|บังคับให้ผู้เสียชีวิตทุกคนต้องบริจาคอวัยวะ|เก็บรักษาอวัยวะไว้ใช้ในยามขาดแคลน|1",
+  "เนื้อเยื่อ (Tissue) ชนิดใดที่สามารถเก็บรักษาไว้ได้นานที่สุดหลังการจัดเก็บ?|ดวงตา|ลิ้นหัวใจ (หากผ่านกระบวนการแช่แข็ง)|ตับ|ปอด|1",
+  "ข้อใดอธิบายหลักการของ 'The Rule of Rescue' ในบริบทของการปลูกถ่ายอวัยวะได้ดีที่สุด?|การให้ความสำคัญกับการช่วยชีวิตผู้ป่วยที่วิกฤตที่สุดก่อน|การให้ความสำคัญกับผู้ป่วยที่รอคิวนานที่สุด|การให้ความสำคัญกับผู้ที่สามารถจ่ายค่ารักษาได้|การให้ความสำคัญกับผู้ที่มีโอกาสรอดชีวิตระยะยาวสูงสุด|0",
+  "ผู้ประสานงานการรับบริจาคอวัยวะ (Transplant Coordinator) ไม่มีหน้าที่ใด?|ดูแลผู้บริจาคอวัยวะสมองตาย|เจรจาขอรับบริจาคกับญาติผู้เสียชีวิต|ทำการผ่าตัดจัดเก็บอวัยวะ|ประสานงานระหว่างโรงพยาบาลผู้บริจาคและผู้รับ|2",
+  "การตรวจความเข้ากันได้ของเนื้อเยื่อ (HLA Typing) มีความสำคัญสูงสุดในการปลูกถ่ายอวัยวะใด?|หัวใจ|ตับ|ไต|ปอด|2",
+  "เมื่อพบผู้ป่วยเข้าข่ายภาวะสมองตาย (Potential Donor) ขั้นตอนแรกที่ต้องทำคืออะไร?|แจ้งศูนย์รับบริจาคอวัยวะสภากาชาดไทยทันที|รีบแจ้งญาติให้บริจาคอวัยวะ|ประเมินและรักษาสัญญาณชีพ (Donor Management) ให้คงที่|หยุดการให้ยาและสารน้ำทั้งหมดเพื่อรอสมองตายสมบูรณ์|2",
+  "ยาตัวใดมักถูกใช้เพื่อควบคุมภาวะเบาจืด (Diabetes Insipidus) ในผู้ป่วยสมองตาย?|Epinephrine|Desmopressin (DDAVP)|Insulin|Dopamine|1",
+  "ภาวะใดที่มักเกิดขึ้นและเป็นปัญหาสำคัญในการดูแลผู้ป่วยสมองตาย?|อุณหภูมิร่างกายสูงขึ้น (Hyperthermia)|ความดันโลหิตต่ำ (Hypotension)|ระดับน้ำตาลในเลือดต่ำ (Hypoglycemia)|อัตราการเต้นของหัวใจช้าลง (Bradycardia)|1",
+  "การเจรจาขอรับบริจาคอวัยวะด้วยหลัก B.A.L.I. ตัวอักษร 'L' หมายถึงอะไร?|Listen (รับฟังความรู้สึกญาติ)|Legal (การตรวจสอบเอกสารและข้อกฎหมาย)|Love (การแสดงความเห็นอกเห็นใจ)|Leave (การให้เวลาญาติในการตัดสินใจ)|1",
+  "ในกรณีที่ผู้เสียชีวิตมีบัตรแสดงความจำนงบริจาคอวัยวะ แต่ญาติคัดค้านอย่างรุนแรง ควรดำเนินการอย่างไร?|ดำเนินการผ่าตัดทันทีเพราะมีเอกสารยืนยัน|ยุติการจัดเก็บอวัยวะเพื่อหลีกเลี่ยงความขัดแย้งและผลกระทบทางจิตใจของญาติ|ฟ้องร้องญาติที่ขัดขวางกระบวนการทางกฎหมาย|แอบทำการผ่าตัดโดยไม่ให้ญาติทราบ|1",
+  "ข้อใดคือสัญญาณตอบสนองที่อาจพบได้ในผู้ป่วยสมองตาย ซึ่งเป็นเพียงรีเฟล็กซ์จากไขสันหลัง (Spinal Reflex) และมักทำให้ญาติเข้าใจผิด?|การลืมตาเมื่อเรียกชื่อ|การหายใจเฮือก (Gasping)|การเคลื่อนไหวของแขนขาเมื่อถูกกระตุ้น (Lazarus Sign)|การมีน้ำตาไหล|2",
+  "องค์กรใดทำหน้าที่รับบริจาคดวงตาในประเทศไทย?|ศูนย์รับบริจาคอวัยวะสภากาชาดไทย|ศูนย์ดวงตาสภากาชาดไทย|กระทรวงสาธารณสุข|ราชวิทยาลัยจักษุแพทย์แห่งประเทศไทย|1",
+  "การบริจาคอวัยวะแบบ Donation after Circulatory Death (DCD) คืออะไร?|การบริจาคอวัยวะขณะที่หัวใจยังเต้นอยู่|การบริจาคอวัยวะหลังจากหัวใจหยุดเต้นอย่างถาวรแล้ว|การบริจาคอวัยวะจากผู้บริจาคที่มีชีวิต|การบริจาคอวัยวะที่เน้นเฉพาะการบริจาคเนื้อเยื่อ|1",
+  "การประเมิน Glasgow Coma Scale (GCS) ในผู้ป่วยที่สงสัยภาวะสมองตาย จะต้องมีคะแนนเท่าใด?|GCS = 15|GCS < 8|GCS = 3|GCS = 0|2",
+  "ขั้นตอนสุดท้ายของกระบวนการบริจาคอวัยวะคือข้อใด?|การผ่าตัดจัดเก็บอวัยวะ|การส่งมอบอวัยวะให้ผู้รับ|การดูแลตกแต่งศพผู้บริจาคให้เรียบร้อยสมบูรณ์ที่สุด|การส่งจดหมายขอบคุณครอบครัวผู้บริจาค|2",
+  "สิ่งสำคัญที่สุดในการดูแลสภาพจิตใจของญาติผู้เสียชีวิต (Bereavement Care) คืออะไร?|การให้เงินช่วยเหลือเยียวยา|การให้ข้อมูลที่ตรงไปตรงมา ชัดเจน และแสดงความเห็นอกเห็นใจ|การโน้มน้าวให้บริจาคอวัยวะให้สำเร็จ|การปล่อยให้ญาติอยู่ตามลำพังโดยไม่รบกวน|1",
+  "ยาปฏิชีวนะ (Antibiotics) จะถูกให้ในผู้ป่วยสมองตายเพื่อวัตถุประสงค์ใด?|เพื่อกระตุ้นให้สมองฟื้นตัว|เพื่อป้องกันหรือรักษาการติดเชื้อที่อาจทำลายอวัยวะที่จะบริจาค|เพื่อรักษาสภาพผิวหนังของผู้ป่วย|เพื่อระงับความเจ็บปวด|1",
+  "ข้อใดไม่ใช่อวัยวะที่สามารถนำไปบริจาคได้จากผู้ป่วยสมองตาย?|ตับ|ลำไส้เล็ก|กระเพาะอาหาร|ไขกระดูก|3",
+  "ผู้ป่วยอายุ 70 ปี มีภาสมองตาย สามารถเป็นผู้บริจาคอวัยวะได้หรือไม่?|ไม่ได้ เพราะอายุเกินเกณฑ์|ได้ หากการทำงานของอวัยวะที่จะบริจาคยังอยู่ในเกณฑ์ดีและไม่มีข้อห้าม|ได้เฉพาะดวงตาเท่านั้น|ได้เฉพาะบริจาคเพื่อการศึกษา (เป็นอาจารย์ใหญ่)|1",
+  "การแจ้งข่าวร้าย (Breaking Bad News) ตามหลัก SPIKES Protocol ตัวอักษร 'S' ตัวแรกหมายถึงอะไร?|Setting (การเตรียมสถานที่และความพร้อม)|Strategy (การวางแผนการพูดคุย)|Sorrow (การแสดงความเสียใจ)|Support (การให้ความช่วยเหลือ)|0",
+  "การตรวจคลื่นไฟฟ้าสมอง (EEG) เพื่อยืนยันภาวะสมองตาย ในประเทศไทยมีความจำเป็นหรือไม่?|จำเป็นต้องทำในทุกราย|เป็นทางเลือกเสริม ไม่จำเป็นต้องทำหากผลตรวจทางคลินิกและ Apnea Test ชัดเจน|ทำเฉพาะในผู้ป่วยเด็กเท่านั้น|ทำเฉพาะในผู้ป่วยที่ได้รับยากดประสาท|1",
+  "หลังจากอวัยวะถูกนำออกจากร่างกายผู้บริจาค กระบวนการที่ต้องทำทันทีคืออะไร?|การนำไปปลูกถ่ายให้ผู้รับทันทีโดยไม่ต้องล้าง|การทำความสะอาดด้วยน้ำเปล่า|การล้างและแช่ด้วยน้ำยาถนอมอวัยวะ (Preservation Solution) ที่อุณหภูมิต่ำ|การนำไปแช่แข็งในช่องฟรีซ|2",
+  "ใครมีสิทธิ์ในการตัดสินใจสูงสุดเกี่ยวกับการจัดสรรอวัยวะให้ผู้ป่วยที่รอคอย?|แพทย์ผู้ทำการผ่าตัดจัดเก็บ|ผู้อำนวยการศูนย์รับบริจาคอวัยวะ|ระบบคอมพิวเตอร์ที่ใช้เกณฑ์จัดสรรอย่างเป็นธรรมของ ODC|ญาติผู้บริจาคอวัยวะ|2",
+  "หากญาติสอบถามว่า 'จะทราบได้อย่างไรว่าอวัยวะถูกนำไปให้ใคร' คำตอบที่เหมาะสมที่สุดคือข้อใด?|จะแจ้งชื่อและที่อยู่ของผู้รับให้ทราบอย่างละเอียด|ข้อมูลผู้บริจาคและผู้รับเป็นความลับตามจริยธรรมทางการแพทย์ แต่จะแจ้งภาพรวมให้ทราบว่านำไปช่วยใครได้บ้าง|ให้ญาติไปสืบหาข้อมูลเอาเอง|จะจัดให้ผู้บริจาคและผู้รับได้พบกันในอนาคต|1",
+  "การใช้เครื่องพยุงการทำงานของหัวใจและปอด (ECMO) ในผู้ป่วยสมองตาย มีประโยชน์อย่างไร?|เพื่อรักษาผู้ป่วยให้หายจากภาวะสมองตาย|เพื่อช่วยรักษาสภาพอวัยวะ (เช่น หัวใจ ปอด ตับ ไต) ให้มีเลือดไปเลี้ยงเพียงพอรอการจัดเก็บ|เพื่อให้ญาติรู้สึกว่าแพทย์ยังทำการรักษาอยู่|เพื่อใช้แทนการทำ Apnea test|1",
+  "จริยธรรมที่สำคัญที่สุดในกระบวนการบริจาคอวัยวะคืออะไร?|Autonomy (การเคารพสิทธิ์การตัดสินใจของผู้ป่วย/ญาติ)|Beneficence (การทำประโยชน์สูงสุด)|Non-maleficence (การไม่ทำอันตราย)|Justice (ความยุติธรรมในการจัดสรรอวัยวะ)|0"
+];
 
-        let app, auth, db, appId = 'fah-elearning-prod';
-        try {
-          const fbP1 = "AIzaSyBs275"; const fbP2 = "NY99gdv1uZdAnb"; const fbP3 = "mx3UlWO8K4o5a0";
-          let fbConfig = (typeof __firebase_config !== 'undefined' && __firebase_config) 
-            ? JSON.parse(__firebase_config) : { apiKey: fbP1 + fbP2 + fbP3, authDomain: "e-learning-with-fah-ai.firebaseapp.com", projectId: "e-learning-with-fah-ai", storageBucket: "e-learning-with-fah-ai.firebasestorage.app", messagingSenderId: "418946105960", appId: "1:418946105960:web:728e28070790975df231dd" };
-          app = getApps().length === 0 ? initializeApp(fbConfig) : getApp();
-          auth = getAuth(app); db = getFirestore(app);
-          appId = typeof __app_id !== 'undefined' && __app_id ? String(__app_id).replace(/\//g, '-') : 'fah-elearning-prod';
-        } catch (error) { console.warn("Firebase init error", error); }
+// --- 📍 ข้อมูลพิกัดแผนที่ 13 เขต ---
+window.BASE_REGIONS = [
+  { id: 'R1', name: 'เขตสุขภาพที่ 1', desc: 'เชียงใหม่และภาคเหนือตอนบน', x: 28, y: 15 },
+  { id: 'R2', name: 'เขตสุขภาพที่ 2', desc: 'พิษณุโลกและภาคเหนือตอนล่าง', x: 34, y: 32 },
+  { id: 'R3', name: 'เขตสุขภาพที่ 3', desc: 'นครสวรรค์และภาคกลางตอนบน', x: 38, y: 44 },
+  { id: 'R4', name: 'เขตสุขภาพที่ 4', desc: 'สระบุรีและภาคกลางตอนบน', x: 44, y: 50 },
+  { id: 'R5', name: 'เขตสุขภาพที่ 5', desc: 'ราชบุรีและภาคตะวันตก', x: 32, y: 58 },
+  { id: 'R6', name: 'เขตสุขภาพที่ 6', desc: 'ชลบุรีและภาคตะวันออก', x: 58, y: 60 },
+  { id: 'R7', name: 'เขตสุขภาพที่ 7', desc: 'ขอนแก่นและอีสานตอนกลาง', x: 62, y: 38 },
+  { id: 'R8', name: 'เขตสุขภาพที่ 8', desc: 'อุดรธานีและอีสานตอนบน', x: 74, y: 26 },
+  { id: 'R9', name: 'เขตสุขภาพที่ 9', desc: 'นครราชสีมาและอีสานตอนล่าง', x: 62, y: 48 },
+  { id: 'R10', name: 'เขตสุขภาพที่ 10', desc: 'อุบลราชธานีและอีสานตอนล่าง', x: 82, y: 48 },
+  { id: 'R11', name: 'เขตสุขภาพที่ 11', desc: 'สุราษฎร์ธานีและภาคใต้ตอนบน', x: 28, y: 78 },
+  { id: 'R12', name: 'เขตสุขภาพที่ 12', desc: 'สงขลาและภาคใต้ตอนล่าง', x: 38, y: 92 },
+  { id: 'BKK', name: 'กรุงเทพมหานคร', desc: 'ศูนย์กลางการแพทย์และสาธารณสุข', x: 48, y: 56 }
+];
 
-        const appsScriptUrl = 'https://script.google.com/macros/s/AKfycbwt9H-GVs2aijX_sgzjlpGP9314ereuA9ZECNs4Uc00VLz5rFcJm7aYmkduEMiFVKjA/exec';
+// --- 📝 ลิงก์สำหรับดึงรายงานผู้บริหารแบบ Real-time ---
+window.LIVE_REPORT_URL = "https://raw.githubusercontent.com/danielstuart14/CSS_FOG_ANIMATION/master/report.txt"; 
 
-        const fetchAppsScript = async (payload) => { 
-            try { const res = await fetch(appsScriptUrl, { method: 'POST', body: JSON.stringify(payload) }); return await res.json(); } catch(e) { return { status: 'error', message: e.message }; } 
-        };
+window.AI_INSIGHT_TEXT = `📊 AI Policy Intelligence Report:\n\n[1] มิติบุคลากร (Status Quo):\n• เข้าร่วมโครงการ {{USERS}} ราย | ผ่านเกณฑ์ {{PASSED}} ราย\n• กำลังรักษาระดับการฝึกเจรจา (Skill Lab) เพื่อปิดช่องว่างการขาดแคลนทีมภูมิภาค\n\n[2] มิติความเหลื่อมล้ำเชิงพื้นที่ (Geo-Equity):\n• ภูมิภาคนำร่องสูงสุด: {{MAX_REG_NAME}} ({{MAX_REG_USERS}} ราย)\n• พื้นที่เฝ้าระวัง: {{MIN_REG_NAME}} ({{MIN_REG_USERS}} ราย)\n\n[3] มิติวิกฤตระดับชาติ (National Crisis Benchmark):\n• ปัจจุบันไทยมีผู้รออวัยวะสะสมกว่า 8,019 ราย\n• คอขวดหลัก: "ขาดทักษะการเจรจาในห้อง ICU" ระบบ RJ Ailiverse จึงเป็นเครื่องมือเร่งด่วนในการแก้ปัญหานี้`;
 
-        const callGeminiAPI = async (prompt, systemInstruction, base64Image = null) => {
-            try {
-                const res = await fetchAppsScript({ action: 'callGemini', prompt: prompt, systemInstruction: systemInstruction, base64Image: base64Image });
-                if (res.status === 'success' && res.text) return res.text;
-                throw new Error(res.message || "ไม่มีข้อมูลตอบกลับจาก AI");
-            } catch (e) { return `[ระบบขัดข้อง] ${e.message}`; }
-        };
+window.POLICY_SPEECH = `สวัสดีค่ะท่านผู้บริหาร ทำการสังเคราะห์ข้อมูลล่าสุดพบว่า ขณะนี้เรามีบุคลากรในระบบ {{USERS}} ท่าน สอบผ่านแล้ว {{PASSED}} ท่านค่ะ จากมิติเชิงพื้นที่พบว่า {{MAX_REG_NAME}} มีความตื่นตัวสูงสุดค่ะ อย่างไรก็ตาม ปัจจุบันผู้ป่วยชาวไทยที่รออวัยวะพุ่งสูงกว่าแปดพันราย คอขวดสำคัญคือการขาดทีมเจรจาในภูมิภาค ขอเสนอให้เร่งนโยบายจัดเก็บในเขตปลูกถ่ายในเขต และใช้ระบบของเราเป็นเกณฑ์มาตรฐานแห่งชาติในการประเมินทักษะค่ะ ท่านสามารถดูรายละเอียดรายงานเชิงนโยบายบนหน้าจอได้เลยค่ะ`;
 
-        const callGeminiTTS = async (text, voiceName = "Aoede") => {
-            for (let i = 0; i < 3; i++) {
-                try {
-                    const res = await fetchAppsScript({ action: 'callGeminiTTS', text: text, voiceName: voiceName });
-                    if (res.status === 'success' && res.inlineData) return res.inlineData;
-                    throw new Error(res.message || 'TTS Error');
-                } catch (e) { if (i < 2) await new Promise(r => setTimeout(r, 2000)); else throw e; }
-            }
-        };
+// --- ฐานข้อมูลวิชาชีพ (Clinical Knowledge Base) ---
+window.CLINICAL_KNOWLEDGE_BASE = `ทีมบุคลากรทางการแพทย์ (ทีมสหสาขาวิชาชีพ) ในกระบวนการบริจาคและปลูกถ่ายอวัยวะ แบ่งออกเป็น 3 ทีมหลัก ที่ทำงานสอดประสานกันตลอด 24 ชั่วโมง เพื่อให้การส่งต่ออวัยวะสำเร็จภายในเวลาที่จำกัด
 
-        const pcm16ToWav = (base64PCM, sampleRate = 24000) => {
-          const binaryString = window.atob(base64PCM); const bytes = new Uint8Array(binaryString.length); for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
-          const buffer = new ArrayBuffer(44 + bytes.length); const view = new DataView(buffer);
-          const writeStr = (offset, str) => { for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i)); };
-          writeStr(0, 'RIFF'); view.setUint32(4, 36 + bytes.length, true); writeStr(8, 'WAVE'); writeStr(12, 'fmt '); view.setUint32(16, 16, true); view.setUint16(20, 1, true); view.setUint16(22, 1, true); view.setUint32(24, sampleRate, true); view.setUint32(28, sampleRate * 2, true); view.setUint16(32, 2, true); view.setUint16(34, 16, true); writeStr(36, 'data'); view.setUint32(40, bytes.length, true);
-          new Uint8Array(buffer, 44).set(bytes); return URL.createObjectURL(new Blob([buffer], { type: 'audio/wav' }));
-        };
+1. ทีมจัดหาและประสานงาน (Donor & Coordination Team)
+พยาบาลผู้ประสานงานการรับบริจาค (Organ Donation Coordinator): หรือเรียกว่า TC
+ค้นหาผู้ป่วย: คัดกรองและประเมินผู้ป่วยที่มีเกณฑ์ภาวะสมองตายในตึกผู้ป่วยวิกฤต
+เจรจาญาติ: ให้คำปรึกษาประคับประคองจิตใจ และขอความยินยอมในการบริจาคอวัยวะจากครอบครัว
+ประสานงานระบบ: แจ้งข้อมูลผู้บริจาคไปยัง ศูนย์รับบริจาคอวัยวะสภากาชาดไทย เพื่อจับคู่อวัยวะกับผู้รับ
+เก็บตัวอย่าง: เจาะเลือด ตรวจสอบเนื้อเยื่อ และตรวจหาเชื้อติดเชื้อต่าง ๆ
+แพทย์ผู้ประเมินภาวะสมองตาย (Brain Death Diagnosis Physicians):
+ตรวจวินิจฉัย: แพทย์อย่างน้อย 2 คน (ต้องไม่เกี่ยวข้องกับทีมปลูกถ่าย) ร่วมตรวจร่างกายตามเกณฑ์กฎหมายเพื่อยืนยันภาวะสมองตาย
+เซ็นใบรับรอง: ออกเอกสารยืนยันการเสียชีวิตของผู้บริจาคอย่างถูกต้องทางกฎหมาย
+ทีมวิกฤตบำบัด (ICU Team - แพทย์และพยาบาล):
+รักษาสัญญาณชีพ: ควบคุมความดันโลหิต ออกซิเจน และสารน้ำให้คงที่เพื่อไม่ให้อวัยวะเสียหาย
+ป้องกันการติดเชื้อ: ให้ยาและดูแลระบบทางเดินหายใจจนกว่าจะถึงเวลาผ่าตัด
 
-        function GlassCard({ children, className = "", onClick, ...rest }) {
-          let radiusClass = 'rounded-[2rem]'; const m = className.match(/rounded-(?:\[.*?\]|\w+)/); if (m) radiusClass = m[0];
-          let bgClass = className.replace(/\bbg-(?:white|slate-[12]00)(?:\/\d+)?\b/g, '').replace(/\bborder-white(?:\/\d+)?\b/g, '').replace(/\bbackdrop-blur-(?:sm|md|lg|xl|2xl|3xl)\b/g, '').replace(/\b!border-none\b/g, '').replace(/\bborder-none\b/g, '');
-          return (
-            <div onClick={onClick} className={`relative overflow-hidden bg-white/10 backdrop-blur-xl border border-white/20 shadow-xl ${radiusClass} transition-all duration-300 ${onClick ? 'cursor-pointer hover:-translate-y-1 hover:bg-white/20' : ''} ${bgClass}`} {...rest}>
-              <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-white/5 to-transparent pointer-events-none z-0" />
-              <div className="relative z-10 w-full h-full text-white">{children}</div>
-            </div>
-          );
-        }
+2. ทีมผ่าตัดนำอวัยวะออก (Procurement Team)
+ศัลยแพทย์จัดเก็บอวัยวะ (Procurement Surgeon):
+ผ่าตัดนำอวัยวะออก: เดินทางไปโรงพยาบาลผู้บริจาค ทำการผ่าตัดแยกอวัยวะ (เช่น หัวใจ ตับ ไต) ออกจากร่างอย่างประณีต
+ประเมินสภาพหน้างาน: ตรวจสอบด้วยสายตาว่าอวัยวะมีความสมบูรณ์พร้อมนำไปปลูกถ่ายหรือไม่
+พยาบาลห้องผ่าตัด (OR Nurse):
+เตรียมเครื่องมือพิเศษ: จัดเตรียมน้ำยาละลายลิ่มเลือด ยาปฏิชีวนะ และน้ำยาแช่แข็งอวัยวะ (Preservation Solution)
+บรรจุอวัยวะ: ช่วยบรรจุอวัยวะลงในภาชนะควบคุมอุณหภูมิความเย็นปลอดเชื้อเพื่อการขนส่ง
+เจ้าหน้าที่ขนส่งอวัยวะ (Logistics Team):
+วางแผนเส้นทาง: ประสบการณ์ประสานงานกับตำรวจทางหลวง ท่าอากาศยาน หรือสายการบิน
+ขนส่งด่วน: นำส่งอวัยวะให้ถึงโรงพยาบาลปลายทางภายในเวลาจำกัด (เช่น หัวใจต้องปลูกถ่ายภายใน 4 ชั่วโมง)
 
-        function SkillLabApp() {
-            const [user, setUser] = useState(null);
-            const [selectedScenario, setSelectedScenario] = useState(null);
-            const [accessDenied, setAccessDenied] = useState(false); 
-            
-            // Chatbot States
-            const [chatInput, setChatInput] = useState(''); 
-            const [isTyping, setIsTyping] = useState(false); 
-            const [messages, setMessages] = useState([]); 
-            const [isListening, setIsListening] = useState(false); 
-            const [isVadMode, setIsVadMode] = useState(false); 
-            const [audioLevel, setAudioLevel] = useState(0); 
-            const [selectedImage, setSelectedImage] = useState(null);
-            const [uiMessage, setUiMessage] = useState({ show: false, text: '', type: 'success' });
-            
-            // 🚀 Next-Gen Features States 🚀
-            const [smartSuggestions, setSmartSuggestions] = useState([]); 
-            const [pressureTime, setPressureTime] = useState(20); 
-            
-            // 🌟 TTS & Waveform States 🌟
-            const [isAiSpeaking, setIsAiSpeaking] = useState(false);
-            
-            // Roleplay States
-            const [roleplayPhase, setRoleplayPhase] = useState('none'); 
-            const [currentEmotion, setCurrentEmotion] = useState('NEUTRAL');
-            const [currentSpeaker, setCurrentSpeaker] = useState('FAH');
-            const [scenarioLang, setScenarioLang] = useState('th');
-            const [currentScenarioPrompt, setCurrentScenarioPrompt] = useState('');
+3. ทีมปลูกถ่ายอวัยวะ (Transplant Team)
+ศัลยแพทย์ปลูกถ่ายอวัยวะ (Transplant Surgeon):
+เตรียมอวัยวะ: ตกแต่งและเตรียมเส้นเลือดของอวัยวะใหม่ให้พร้อมก่อนใส่ในตัวผู้รับ
+ผ่าตัดปลูกถ่าย: ทำหัตถการผ่าตัดใหญ่ เชื่อมต่อเส้นเลือดหลักและระบบท่อต่าง ๆ เข้ากับร่างกายผู้รับบริจาค
+อายุรแพทย์เฉพาะทาง (Transplant Physician เช่น หมอโรคไต/โรคตับ/โรคหัวใจ):
+เตรียมผู้รับ: ประเมินความพร้อมทางร่างกายของผู้ป่วยที่รอรับอวัยวะก่อนเข้าห้องผ่าตัด
+ปรับยากดภูมิ: วางแผนและสั่งยากดภูมิคุ้มกัน (Immunosuppressants) เพื่อป้องกันร่างกายปฏิเสธอวัยวะใหม่
+วิสัญญีแพทย์ (Anesthesiologist):
+ระงับความรู้สึก: ให้ยาสลบและควบคุมการหายใจตลอดการผ่าตัดที่ยาวนานหลายชั่วโมง
+ให้เลือดและสารน้ำ: เฝ้าระวังสัญญาณชีพและทดแทนเลือดที่เสียไปอย่างใกล้ชิด
+พยาบาลประสานงานการปลูกถ่าย (Transplant Coordinator):
+เรียกตัวผู้รับ: โทรศัพท์นัดหมายผู้ป่วยในรายชื่อรอคอยทันทีเมื่อได้อวัยวะที่เข้ากันได้
+ติดตามผลระยะยาว: นัดหมายเจาะเลือด ตรวจค่าตับ/ไต และดูแลสภาพจิตใจผู้ป่วยหลังผ่าตัด
+เภสัชกรคลินิก (Clinical Pharmacist):
+จัดการยาอันตราย: คำนวณโดสยากดภูมิคุ้มกันซึ่งต้องแม่นยำสูงมาก
+สอนการใช้ยา: แนะนำผู้ป่วยเกี่ยวกับการกินยาตรงเวลาและผลข้างเคียง
+นักโภชนาการ (Dietitian) & นักสังคมสงเคราะห์ (Social Worker):
+นักโภชนาการ: วางแผนอาหารที่สะอาด ปลอดเชื้อ และเหมาะสมกับอวัยวะใหม่
+นักสังคมสงเคราะห์: ประเมินความพร้อมด้านทุนทรัพย์ สิทธิการรักษา และระบบซัพพอร์ตของครอบครัวผู้ป่วย
 
-            // Refs
-            const audioContextRef = useRef(null); const analyserRef = useRef(null); const microphoneRef = useRef(null); const vadSilenceTimerRef = useRef(null); const isSpeakingRef = useRef(false); const latestTranscriptRef = useRef('');
-            const recognitionRef = useRef(null); const messagesEndRef = useRef(null); const audioRef = useRef(null); const currentSpeechIdRef = useRef(0);
-            
-            // 🌟 TTS Refs 🌟
-            const ttsCanvasRef = useRef(null);
-            const ttsAudioCtxRef = useRef(null);
-            const ttsAnalyserRef = useRef(null);
-            const ttsAnimFrameRef = useRef(null);
+ขั้นตอนการทำงานร่วมกันของทั้ง 3 ทีม เป็นกระบวนการที่ต้องแข่งกับเวลา (Race against time) โดยทุกทีมจะทำงานสอดประสานกันเป็นวงจรตลอด 24 ชั่วโมงตามลำดับขั้นตอนดังนี้
+1. ขั้นตอนการแจ้งเหตุและเตรียมความพร้อม (Trigger & Evaluation)
+ทีมจัดหาฯ (ICU): พบผู้ป่วยที่เข้าเกณฑ์ภาวะสมองตาย ทำการตรวจวินิจฉัยยืนยันตามกฎหมาย และดูแลรักษาอวัยวะให้สมบูรณ์ที่สุด
+ทีมจัดหาฯ (พยาบาลประสานงาน): เข้าพูดคุยกับญาติเพื่อขอความยินยอม เมื่อยินยอมแล้วจะส่งข้อมูลไปยังสภากาชาดไทยเพื่อจับคู่กับผู้รับอวัยวะที่เหมาะสมที่สุด
+ทีมปลูกถ่ายฯ: เมื่อระบบสภากาชาดไทยแจ้งผลการจับคู่ พยาบาลประสานงานฝั่งผู้รับจะรีบโทรศัพท์เรียกตัวผู้ป่วยที่สแตนด์บายอยู่ให้เดินทางมาโรงพยาบาลทันที
 
-            const showMsg = (text, type = 'success') => {
-                setUiMessage({ show: true, text, type });
-                setTimeout(() => setUiMessage({ show: false, text: '', type }), 3500);
-            };
+2. ขั้นตอนการตรวจสอบและเตรียมผู้รับ (Matching & Preparation)
+ทีมจัดหาฯ: ทำการเจาะเลือดผู้บริจาคเพื่อตรวจซ้ำ (Cross-matching) เพื่อยืนยันว่าเนื้อเยื่อเข้ากันได้ดีกับผู้รับบริจาคอย่างแน่นอน
+ทีมปลูกถ่ายฯ (อายุรแพทย์/วิสัญญี): ตรวจร่างกายผู้รับบริจาคที่เดินทางมาถึงโรงพยาบาล เพื่อประเมินความพร้อมในการเข้ารับการผ่าตัดใหญ่ และเริ่มให้ยากดภูมิคุ้มกันงวดแรก
 
-            const safeRedirect = (url) => {
-                try { window.location.href = url; } catch (e) { console.warn("Redirect blocked:", url); }
-            };
+3. ขั้นตอนการผ่าตัดนำอวัยวะออกและขนส่ง (Procurement & Logistics)
+ทีมผ่าตัดนำออก: ออกเดินทางไปยังโรงพยาบาลของผู้บริจาค ทำการผ่าตัดนำอวัยวะออกมาแช่น้ำยาพิเศษและบรรจุลงกล่องควบคุมอุณหภูมิ
+ทีมจัดหาฯ (ขนส่ง): นำกล่องอวัยวะเดินทางกลับโรงพยาบาลปลายทางด้วยเส้นทางที่เร็วที่สุด (มีการประสานงานเปิดไฟเขียว หรือใช้เครื่องบินเล็กในกรณีข้ามจังหวัด)
+ทีมปลูกถ่ายฯ: ระหว่างที่อวัยวะกำลังเดินทาง ทีมผ่าตัดจะเริ่มเปิดแผลผ่าตัดผู้รับรอไว้ล่วงหน้า เพื่อให้สามารถวางอวัยวะใหม่เข้าได้ทันทีเมื่อมาถึง
 
-            // ตรวจสอบการล็อกอิน และ สิทธิ์จาก LocalStorage
-            useEffect(() => {
-                try {
-                    const saved = localStorage.getItem('elearning_app_state');
-                    if (saved) {
-                        const parsed = JSON.parse(saved);
-                        if (parsed.loggedInUser) {
-                            const uType = parsed.loggedInUser.userType;
-                            // กำแพงเหล็ก รับเฉพาะ Masterclass เท่านั้น
-                            if (uType !== 'Masterclass') {
-                                setAccessDenied(true);
-                                return;
-                            }
-                            setUser(parsed.loggedInUser);
-                            signInAnonymously(auth).catch(e => console.warn(e));
-                        } else {
-                            safeRedirect('./index.html');
-                        }
-                    } else {
-                        safeRedirect('./index.html');
-                    }
-                } catch (e) { safeRedirect('./index.html'); }
-            }, []);
+4. ขั้นตอนการปลูกถ่ายและดูแลหลังผ่าตัด (Transplantation & Recovery)
+ทีมปลูกถ่ายฯ (ศัลยแพทย์/วิสัญญี): รับกล่องอวัยวะในห้องผ่าตัด นำอวัยวะใหม่ต่อเข้ากับเส้นเลือดหลักของตัวผู้รับอย่างรวดเร็ว (ต้องเสร็จสิ้นภายในเวลาที่อวัยวะทนได้ เช่น หัวใจภายใน 4 ชั่วโมง, ตับ 12 ชั่วโมง, ไต 24 ชั่วโมง)
+ทีมปลูกถ่ายฯ (อายุรแพทย์/เภสัชกร): ย้ายผู้ป่วยเข้าตึก ICU ปลูกถ่ายอวัยวะ ปรับโดสยากดภูมิคุ้มกันอย่างใกล้ชิดเพื่อป้องกันการปฏิเสธอวัยวะ และเฝ้าระวังการติดเชื้อ
 
-            // Scroll to bottom
-            useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, smartSuggestions]);
+การเตรียมตัวเพื่อเข้าเป็นหนึ่งในทีมสหสาขาวิชาชีพด้านการบริจาคและปลูกถ่ายอวัยวะ จำเป็นต้องเริ่มต้นจากคุณวุฒิการศึกษาตามสายวิชาชีพ จากนั้นจึงเข้ารับการฝึกอบรมเฉพาะทางเพิ่มเติม
+1. สายแพทย์และศัลยแพทย์ (Medical Doctors)
+ศัลยแพทย์ปลูกถ่ายอวัยวะ: ต้องจบแพทยศาสตรบัณฑิต (เรียน 6 ปี) -> ต่อแพทย์ประจำบ้านสาขาศัลยศาสตร์ทั่วไป หรือศัลยศาสตร์ตกแต่ง/ศัลยศาสตร์ทรวงอก (3-5 ปี) -> เรียนต่อยอด แพทย์ประจำบ้านต่อยอด (Fellowship) สาขาศัลยศาสตร์ปลูกถ่ายอวัยวะ (Transplant Surgery) อีก 1-2 ปี
+อายุรแพทย์โรคไต/โรคตับ/โรคหัวใจ: จบแพทยศาสตรบัณฑิต -> ต่อแพทย์ประจำบ้านสาขาอายุรศาสตร์ทั่วไป (3 ปี) -> เรียนต่อยอดอนุสาขาเฉพาะทาง เช่น อายุรศาสตร์โรคไต (Nephrology) เพื่อดูแลผู้รับไตใหม่
+วิสัญญีแพทย์: จบแพทยศาสตรบัณฑิต -> ต่อแพทย์ประจำบ้านสาขาวิสัญญีวิทยา (3 ปี) -> ฝึกอบรมเพิ่มเติมหรือสะสมประสบการณ์ในการดมยาสลบผู้ป่วยผ่าตัดใหญ่และผู้ป่วยวิกฤต
 
-            // ⏱️ ระบบบีบคั้น (The Crisis Countdown) - แก้ไขบั๊กตัดบท AI ⏱️
-            useEffect(() => {
-                let timer;
-                // เพิ่มเงื่อนไข !isAiSpeaking เข้าไป เพื่อให้ระบบนับถอยหลังเฉพาะตอนที่ AI หยุดพูดแล้วเท่านั้น
-                if (roleplayPhase === 'negotiating' && !isTyping && !isAiSpeaking && messages.length > 0 && messages[messages.length-1].sender === 'ai') {
-                    timer = setInterval(() => {
-                        setPressureTime(p => {
-                            if (isListening || chatInput.length > 0 || isAiSpeaking) return p; 
-                            if (p <= 1) {
-                                clearInterval(timer);
-                                handleAutoTimeout(); 
-                                return 20;
-                            }
-                            return p - 1;
-                        });
-                    }, 1000);
-                } else {
-                    setPressureTime(20); // รีเซ็ตเวลาเป็น 20 วิ เสมอถ้า AI กำลังพิมพ์ กำลังพูด หรือเรากำลังพิมพ์
-                }
-                return () => clearInterval(timer);
-            }, [roleplayPhase, isTyping, messages, isListening, chatInput, isAiSpeaking]);
+2. สายพยาบาลผู้ประสานงาน (Transplant / Organ Donation Coordinator)
+คุณวุฒิพื้นฐาน: สำเร็จการศึกษาพยาบาลศาสตรบัณฑิต (เรียน 4 ปี) และมีใบอนุญาตประกอบวิชาชีพการพยาบาลและการผดุงครรภ์
+ประสบการณ์ที่จำเป็น: มักคัดเลือกจากพยาบาลวิชาชีพที่มีประสบการณ์ทำงานใน หอผู้ป่วยวิกฤต (ICU) หรือ ห้องผ่าตัด (OR) อย่างน้อย 2-5 ปี เพื่อให้มีทักษะในการประเมินผู้ป่วยวิกฤตขั้นสูง
+การอบรมเฉพาะทาง: ต้องผ่านวิชาปฏิบัติหรือหลักสูตรอบรมผู้ประสานงานการรับบริจาค/ปลูกถ่ายอวัยวะ ซึ่งจัดโดย ศูนย์รับบริจาคอวัยวะสภากาชาดไทย หรือโรงพยาบาลมหาวิทยาลัยหลัก ๆ
 
-            const handleAutoTimeout = () => { handleSendChat(null, "[ผู้เรียนเงียบ ไม่ตอบสนองทันเวลา]"); };
+3. สายเภสัชกรคลินิกและสหสาขาวิชาชีพอื่น ๆ
+เภสัชกรคลินิก (Transplant Pharmacist): สำเร็จการศึกษาเภสัชศาสตรบัณฑิต (เรียน 6 ปี) -> มักต้องต่อวุฒิบัตรผู้เชี่ยวชาญชำนาญการ สาขาภิบาลเภสัชศาสตร์ (Board Certified) หรือฝึกอบรมระยะสั้นด้านการจัดการยากดภูมิคุ้มกัน
+นักสังคมสงเคราะห์และนักโภชนาการ: สำเร็จการศึกษาปริญญาตรีในสายงานของตนเอง และเข้าทำงานในโรงพยาบาลระดับตติยภูมิ (โรงพยาบาลศูนย์ หรือโรงพยาบาลมหาวิทยาลัย) เพื่อสะสมประสบการณ์ในทีมดูแลผู้ป่วยโรคเรื้อรังระยะสุดท้าย
 
-            // VAD Logic
-            useEffect(() => {
-                const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-                if (SR) {
-                    recognitionRef.current = new SR(); recognitionRef.current.continuous = true; recognitionRef.current.interimResults = true; recognitionRef.current.lang = 'th-TH'; 
-                    recognitionRef.current.onresult = (e) => { let finalT = ''; let interT = ''; for (let i = e.resultIndex; i < e.results.length; ++i) { if (e.results[i].isFinal) finalT += e.results[i][0].transcript; else interT += e.results[i][0].transcript; } setChatInput(p => { const newText = p + finalT; latestTranscriptRef.current = newText || interT; return newText || interT; }); };
-                    recognitionRef.current.onend = () => { if (isVadMode && isListening) { try { recognitionRef.current.start(); } catch(err){} } else { setIsListening(false); setChatInput(curr => { const corText = curr.trim(); if (corText && corText !== 'พร้อม') handleSendChat(null, corText); return curr; }); } };
-                    recognitionRef.current.onerror = (e) => { if(e.error !== 'no-speech') setIsListening(false); };
-                }
-            }, [selectedScenario, messages, isVadMode, isListening]);
+4. ซอฟต์สกิล (Soft Skills) ที่จำเป็นสำหรับทุกตำแหน่ง
+ความยืดหยุ่นเรื่องเวลา (High Flexibility): ต้องพร้อมปฏิบัติงานระบบ On-call ตลอด 24 ชั่วโมง เพราะอวัยวะจากผู้บริจาคสมองตายสามารถเกิดขึ้นได้ทุกเมื่อ
+ทักษะการสื่อสารในภาวะวิกฤต (Crisis Communication): โดยเฉพาะทีมประสานงาน ที่ต้องคุยกับญาติผู้เสียชีวิตในเวลาที่เศร้าโศกที่สุดเพื่อขอรับบริจาคอวัยวะ
+การทำงานภายใต้ความกดดัน (Stress Management): ต้องทำงานแข่งกับเวลา (Ischemic Time) ของอวัยวะที่จำกัดมาก
 
-            const processAudio = useCallback(() => {
-                if (!analyserRef.current || !isListening || !isVadMode) return;
-                const dataArr = new Uint8Array(analyserRef.current.frequencyBinCount); analyserRef.current.getByteFrequencyData(dataArr);
-                let sum = 0; for (let i = 0; i < dataArr.length; i++) sum += dataArr[i]; const avg = sum / dataArr.length; setAudioLevel(avg);
-                if (avg > 15) { if (!isSpeakingRef.current) isSpeakingRef.current = true; if (vadSilenceTimerRef.current) { clearTimeout(vadSilenceTimerRef.current); vadSilenceTimerRef.current = null; } } else { if (isSpeakingRef.current && !vadSilenceTimerRef.current) { vadSilenceTimerRef.current = setTimeout(() => { isSpeakingRef.current = false; const finalSp = latestTranscriptRef.current.trim(); if (finalSp) { handleSendChat(null, finalSp); setChatInput(''); latestTranscriptRef.current = ''; } vadSilenceTimerRef.current = null; }, 800); } }
-                if (isListening && isVadMode) requestAnimationFrame(processAudio);
-            }, [isListening, isVadMode]);
+เทคนิคการเจรจาของพยาบาลผู้ประสานงาน (Organ Donation Coordinator) เพื่อขอรับบริจาคอวัยวะและลดความขัดแย้งกับญาติ จำเป็นต้องใช้ หลักจิตวิทยาขั้นสูง ความเห็นอกเห็นใจ (Empathy) และความโปร่งใส เพื่อช่วยให้ครอบครัวที่กำลังเผชิญภาวะวิกฤตสามารถตัดสินใจได้อย่างสงบและไม่รู้สึกถูกกดดัน โดยมีเทคนิคสำคัญหน้างานดังนี้
+1. การแยกแยะบทบาทเพื่อความโปร่งใส (Decoupling Technique)
+แยกคนรักษาออกจากคนขออวัยวะ: พยาบาลผู้ประสานงานจะไม่เข้าไปคุยเรื่องขอบริจาคอวัยวะจนกว่า แพทย์เจ้าของไข้จะแจ้งผลการวินิจฉัยภาวะสมองตาย หรือแจ้งว่าผู้ป่วยไม่มีทางรักษาหายแล้วอย่างชัดเจน
+ป้องกันผลประโยชน์ทับซ้อน: เพื่อไม่ให้ญาติรู้สึกระแวงว่าโรงพยาบาลไม่ตั้งใจรักษาผู้ป่วยเพื่อหวังเอาอวัยวะ การเจรจาขอบริจาคจะเริ่มขึ้นเมื่อญาติยอมรับความจริงเรื่องการเสียชีวิตแล้วเท่านั้น
 
-            const startVAD = async () => { try { if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) throw new Error("NotSupportedError"); const stream = await navigator.mediaDevices.getUserMedia({ audio: true }); audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)(); analyserRef.current = audioContextRef.current.createAnalyser(); microphoneRef.current = audioContextRef.current.createMediaStreamSource(stream); microphoneRef.current.connect(analyserRef.current); analyserRef.current.fftSize = 256; setIsVadMode(true); setIsListening(true); recognitionRef.current?.start(); processAudio(); showMsg('🎙️ เปิดโหมด VAD'); } catch (err) { showMsg('ไมค์ไม่ทำงาน', 'error'); } };
-            const stopVAD = () => { setIsVadMode(false); setIsListening(false); recognitionRef.current?.stop(); if (audioContextRef.current) audioContextRef.current.close(); if (vadSilenceTimerRef.current) clearTimeout(vadSilenceTimerRef.current); showMsg('ปิดไมโครโฟนแล้ว', 'success'); };
-            const toggleMic = () => { if (isListening) stopVAD(); else { setChatInput(''); latestTranscriptRef.current = ''; startVAD(); } };
+2. การสร้างพื้นที่ปลอดภัยและการประเมินความพร้อม (Setting & Assessing)
+เลือกสถานที่มิดชิด: การเจรจาต้องทำในห้องให้คำปรึกษาที่เป็นส่วนตัว เงียบสงบ ไม่พูดคุยกันข้างเตียงผู้ป่วยหรือในหอผู้ป่วยวิกฤต (ICU) ที่มีเสียงเครื่องมือแพทย์รบกวน
+ค้นหาผู้มีอำนาจตัดสินใจสูงสุด (Decision Maker): สังเกตและสอบถามความสัมพันธ์ในครอบครัว เพื่อเข้าหาผู้ที่มีอิทธิพลต่อการตัดสินใจหลักของบ้าน (เช่น คู่สมรส พ่อแม่ หรือลูกที่บรรลุนิติภาวะ) ป้องกันความขัดแย้งจากเสียงของญาติสายรองคนอื่น ๆ ในภายหลัง
 
-            const stopAudio = useCallback(() => { 
-                currentSpeechIdRef.current += 1; 
-                setIsAiSpeaking(false);
-                if(ttsAnimFrameRef.current) cancelAnimationFrame(ttsAnimFrameRef.current);
-                if(ttsCanvasRef.current) ttsCanvasRef.current.getContext('2d').clearRect(0, 0, ttsCanvasRef.current.width, ttsCanvasRef.current.height);
-                if (audioRef.current) { audioRef.current.pause(); audioRef.current.removeAttribute('src'); audioRef.current.load(); audioRef.current = null; } 
-            }, []);
-            
-            // 🌟 ระบบเล่นเสียงพร้อมคลื่น Web Audio API 🌟
-            const speakThai = async (text, onEndCallback = null, speaker = 'FAH', isSystemVoice = false) => {
-                stopAudio(); currentSpeechIdRef.current += 1; const speechId = currentSpeechIdRef.current; 
-                
-                let targetVoice = "Aoede"; 
-                let cleanSpeakText = text.replace(/\[.*?\]/g, '').replace(/\(.*?\)/g, '').replace(/\*.*?\*/g, '').replace(/#.*?#/g, '').replace(/^(ฟ้า|เมฆ|พี่เอก|เอก|น้องชาย|ลูกสาว|แฟน|แฟนของฟ้า|Fah|Mek|Brother|Sister|Boyfriend|AI)\s*:\s*/i, '').trim();
-                let emotionPrompt = "";
-                
-                if (isListening) { recognitionRef.current?.stop(); setIsListening(false); }
-                
-                if (isSystemVoice) {
-                    targetVoice = "Aoede";
-                    emotionPrompt = `[พูดด้วยเสียงผู้ประกาศหญิง น้ำเสียงเป็นทางการ สุภาพ นุ่มนวล ใจดี ให้กำลังใจ ไม่ร้องไห้]: ${cleanSpeakText}`;
-                } else {
-                    if (speaker === 'BROTHER') { targetVoice = "Charon"; emotionPrompt = `[พูดด้วยเสียงผู้ชายวัยรุ่น 18 ปี กำลังอารมณ์เสียและเศร้าเสียใจ]: ${cleanSpeakText}`; } 
-                    else if (speaker === 'BOYFRIEND') { targetVoice = "Charon"; emotionPrompt = `[พูดด้วยเสียงผู้ชายวัยผู้ใหญ่ นุ่มนวล อบอุ่น ใจเย็น สุภาพ และคอยให้กำลังใจ]: ${cleanSpeakText}`; } 
-                    else { targetVoice = "Aoede"; emotionPrompt = `[พูดด้วยเสียงผู้หญิงวัยรุ่น 22 ปี กำลังร้องไห้และสับสน]: ${cleanSpeakText}`; }
-                }
+3. การเช็กความเข้าใจและการรับรู้ของญาติ (Perception Check)
+ทบทวนข้อมูล: ใช้คำถามเปิดเพื่อเช็กว่าญาติเข้าใจสิ่งที่แพทย์เพิ่งแจ้งไปอย่างไรบ้าง เช่น "หลังจากที่คุณหมอได้คุยเรื่องอาการล่าสุด คุณแม่เข้าใจว่าอย่างไรบ้างคะ?"
+อธิบายเรื่องสมองตายอย่างย้ำคิดย้ำทำ: ญาติมักสับสนว่าทำไมร่างกายยังอุ่นและหัวใจยังเต้นอยู่ (ซึ่งเกิดจากเครื่องช่วยหายใจ) พยาบาลจะค่อย ๆ อธิบายด้วยภาษาที่เข้าใจง่ายว่า "ภาวะสมองตายคือการเสียชีวิตทางกฎหมายและทางการแพทย์แล้ว" หากถอดเครื่องช่วยหายใจทุกอย่างจะหยุดทำงานทันที
 
-                try {
-                    const inlineData = await callGeminiTTS(emotionPrompt, targetVoice); 
-                    if (speechId !== currentSpeechIdRef.current) return;
-                    const sampleRate = parseInt(inlineData.mimeType.match(/rate=(\d+)/)?.[1] ?? "24000", 10); 
-                    const audioUrl = pcm16ToWav(inlineData.data, sampleRate);
-                    const audio = new Audio(audioUrl); 
-                    audio.crossOrigin = "anonymous";
-                    audioRef.current = audio; 
+4. การใช้คำพูดเชิงบวกและการให้เกียรติ (Positive Framing & Altruism)
+ชวนคิดถึงเจตจำนงหรือความดี: ไม่ใช้คำว่า "ขออวัยวะ" ในลักษณะของการร้องขอแบบกดดัน แต่จะเปลี่ยนมุมมองให้เป็น "โอกาสในการสร้างกุศลครั้งใหญ่ครั้งสุดท้าย" เช่น "ถ้าผู้ป่วยรับรู้ได้ คิดว่าเขาอยากจะส่งต่อบุญนี้เพื่อช่วยชีวิตคนอื่นอีก 6-7 คนไหมคะ?"
+ตรวจสอบสิทธิ์ก่อนล่วงหน้า: หากผู้ป่วยเคยลงทะเบียนออนไลน์หรือแอปพลิเคชันไว้ พยาบาลจะนำหลักฐานมาแสดงให้ญาติเห็น เพื่อชี้ให้เห็นว่านี่คือ "การทำตามความปรารถนาสูงสุดของผู้เสียชีวิต" ซึ่งช่วยลดความรู้สึกผิดและลดความขัดแย้งในใจของญาติได้ดีที่สุด
 
-                    // --- Setup Audio Analyser for Hologram Wave ---
-                    if (!ttsAudioCtxRef.current) {
-                        ttsAudioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
-                        ttsAnalyserRef.current = ttsAudioCtxRef.current.createAnalyser();
-                        ttsAnalyserRef.current.fftSize = 128;
-                    }
-                    if (ttsAudioCtxRef.current.state === 'suspended') ttsAudioCtxRef.current.resume();
+5. การรับรองความปลอดภัยและการดูแลร่างหลังผ่าตัด (Reassurance)
+รับรองความเคารพต่อร่าง: ยืนยันกับญาติอย่างหนักแน่นว่า ทีมศัลยแพทย์จะทำการผ่าตัดเย็บแผลอย่างประณีตและให้เกียรติร่างผู้เสียชีวิตเสมือนการผ่าตัดคนไข้ทั่วไป ร่างกายภายนอกจะไม่เสียรูปทรงเมื่อใส่เสื้อผ้าผ้าคลุม
+แจ้งสิทธิ์และเงินช่วยเหลือ: อธิบายสิทธิประโยชน์ที่สภากาชาดไทยมอบให้ เช่น พิธีพระราชทานเพลิงศพ (เป็นกรณีพิเศษ) หรือการช่วยค่าจัดพิธีศพเบื้องต้น เพื่อให้ญาติรู้สึกคลายกังวลด้านภาระค่าใช้จ่าย
 
-                    const source = ttsAudioCtxRef.current.createMediaElementSource(audio);
-                    source.connect(ttsAnalyserRef.current);
-                    ttsAnalyserRef.current.connect(ttsAudioCtxRef.current.destination);
-
-                    setIsAiSpeaking(true);
-
-                    // Waveform Animation Loop (สีธรรมชาติ ไม่หลอน)
-                    const drawWave = () => {
-                        if (!ttsCanvasRef.current || !ttsAnalyserRef.current) return;
-                        const canvas = ttsCanvasRef.current;
-                        const ctx = canvas.getContext('2d');
-                        const dataArray = new Uint8Array(ttsAnalyserRef.current.frequencyBinCount);
-                        ttsAnalyserRef.current.getByteFrequencyData(dataArray);
-
-                        ctx.clearRect(0, 0, canvas.width, canvas.height);
-                        const barWidth = (canvas.width / dataArray.length) * 2.5;
-                        let x = 0;
-                        for(let i = 0; i < dataArray.length; i++) {
-                            const barHeight = Math.min(canvas.height, (dataArray[i] / 255) * canvas.height * 1.2); 
-                            // ใช้สีฟ้าธรรมชาติ ไม่ใช้โฮโลแกรมไซอัน
-                            const hue = 210; 
-                            ctx.fillStyle = `hsla(${hue}, 100%, 70%, 0.8)`;
-                            ctx.shadowBlur = 10;
-                            ctx.shadowColor = `hsla(${hue}, 100%, 70%, 0.6)`;
-                            ctx.fillRect(x, canvas.height - barHeight, barWidth - 1, barHeight);
-                            x += barWidth;
-                        }
-                        ttsAnimFrameRef.current = requestAnimationFrame(drawWave);
-                    };
-
-                    audio.onplay = () => {
-                        if(ttsAnimFrameRef.current) cancelAnimationFrame(ttsAnimFrameRef.current);
-                        drawWave();
-                    };
-
-                    audio.onended = () => { 
-                        setIsAiSpeaking(false);
-                        if(ttsAnimFrameRef.current) cancelAnimationFrame(ttsAnimFrameRef.current);
-                        if(ttsCanvasRef.current) ttsCanvasRef.current.getContext('2d').clearRect(0, 0, ttsCanvasRef.current.width, ttsCanvasRef.current.height);
-                        if (onEndCallback) onEndCallback(); 
-                    }; 
-                    audio.onerror = () => { 
-                        setIsAiSpeaking(false);
-                        showMsg('ระบบเสียงเล่นไม่ได้', 'error'); 
-                        if (onEndCallback) onEndCallback(); 
-                    }; 
-                    
-                    audio.play().catch(e => { console.error("Audio Play Error:", e); showMsg('กรุณาแตะหน้าจอเพื่ออนุญาตเล่นเสียง', 'error'); if (onEndCallback) onEndCallback(); }); 
-                } catch (error) { 
-                    if (speechId === currentSpeechIdRef.current) { 
-                        showMsg(`เสียงขัดข้อง: ${error.message}`, 'error'); 
-                        if (onEndCallback) onEndCallback(); 
-                    } 
-                }
-            };
-
-            const handleVimeoMessage = useCallback((event) => {
-                if (!event.origin.includes('vimeo.com')) return;
-                try {
-                    const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
-                    if (data.event === 'ready' && data.player_id === 'scenario_vid') { 
-                        event.source.postMessage(JSON.stringify({method: 'addEventListener', value: 'finish'}), 'https://player.vimeo.com'); 
-                        event.source.postMessage(JSON.stringify({method: 'play'}), 'https://player.vimeo.com'); 
-                    } else if (data.event === 'finish' && roleplayPhase === 'playing_scenario') {
-                        triggerScenarioNegotiation();
-                    }
-                } catch (e) {}
-            }, [roleplayPhase, selectedScenario]);
-            
-            useEffect(() => { window.addEventListener('message', handleVimeoMessage); return () => window.removeEventListener('message', handleVimeoMessage); }, [handleVimeoMessage]);
-
-            const triggerScenarioNegotiation = () => {
-                const contextText = selectedScenario?.language === 'en' ? "Scenario ended. Patient is a 46yo male, brain dead from car accident. Relatives: Fah (22), Mek (18), and P'Ek (Fah's Boyfriend, 32). Let's start the roleplay." : "ข้อมูลเบื้องต้น: คนไข้ชาย อายุ 46 ปี ประสบอุบัติเหตุรถยนต์ แพทย์ประเมินก้านสมองและทดสอบการหายใจแล้ว ยืนยันภาวะสมองตาย ญาติหน้าห้อง ICU มี ฟ้า (ลูกสาว), เมฆ (น้องชาย) และ แฟนของฟ้า เริ่มการเจรจาได้เลยค่ะ";
-                setRoleplayPhase('giving_context'); setCurrentEmotion('SAD'); setCurrentSpeaker('FAH');
-                const contextMsgId = Date.now(); 
-                setMessages(prev => [...prev, { id: contextMsgId, sender: 'ai', text: contextText, isVoiceOnly: false, speakerName: 'ระบบ', isContext: true }]);
-                speakThai(contextText, () => setRoleplayPhase('negotiating'), 'FAH', true);
-            };
-
-            const startScenario = (sc) => {
-                setSelectedScenario(sc); setRoleplayPhase('speaking_intro'); setMessages([]); setSmartSuggestions([]); setScenarioLang(sc.language || 'th'); setPressureTime(20);
-                const userPosition = user?.position || "บุคลากรทางการแพทย์";
-                const dynamicPrompt = sc.systemPrompt.replace(/{{USER_POSITION}}/g, userPosition).replace(/{{PATIENT_GENDER}}/g, 'ชาย').replace(/{{PATIENT_AGE}}/g, `46 ปี`).replace(/{{PATIENT_CAUSE}}/g, 'อุบัติเหตุรถยนต์').replace(/{{PATIENT_RELATION}}/g, 'คนไข้').replace(/{{REL1_ROLE}}/g, sc.language === 'en' ? 'Fah' : 'ฟ้า').replace(/{{REL2_ROLE}}/g, sc.language === 'en' ? 'Mek' : 'เมฆ'); 
-                setCurrentScenarioPrompt(dynamicPrompt); setCurrentEmotion('SAD'); setCurrentSpeaker('FAH');
-                
-                const introMsg = `โหมดจำลองสถานการณ์วิกฤต ที่นี่คือพื้นที่ปลอดภัยสำหรับฝึกเจรจา ระบบจะเริ่มจับเวลาหากคุณไม่ตอบสนอง เตรียมชมวิดีโอปูเรื่องราวได้เลยค่ะ พร้อมนะคะ?`;
-                const introMsgId = Date.now(); 
-                setMessages([{ id: introMsgId, sender: 'ai', text: introMsg, isVoiceOnly: true, speakerName: 'ระบบ', isContext: true }]);
-                speakThai(introMsg, () => { 
-                    setMessages(prev => prev.map(m => m.id === introMsgId ? { ...m, isVoiceOnly: false } : m)); 
-                    setRoleplayPhase('playing_scenario'); 
-                }, 'FAH', true);
-            };
-
-            const handleSendChat = async (e, quickActionText = null) => {
-                if (e) e.preventDefault(); const userMsg = quickActionText ?? chatInput.trim(); if ((!userMsg && !selectedImage) || isTyping) return;
-                stopAudio(); if (['speaking_intro', 'playing_scenario'].includes(roleplayPhase)) return; 
-                
-                setMessages(prev => [...prev, { id: Date.now(), sender: 'user', text: userMsg, image: selectedImage }]); setChatInput(''); const imageToSend = selectedImage; setSelectedImage(null); setIsTyping(true); setSmartSuggestions([]); setPressureTime(20);
-                
-                const historyContext = messages.filter(m => !m.isContext).slice(-10).map(m => `${m.sender === 'user' ? 'ผู้เรียน' : 'ครอบครัว'}: ${m.text}`).join('\n');
-                let introGuideline = "";
-                if (userMsg.match(/(ชื่อ|แนะนำตัว|พยาบาล|หมอ|แพทย์|สวัสดี)/i) && messages.length <= 3) {
-                    introGuideline = `\n[กฎระบบแนะนำตัวเพิ่มเติม]: ให้ตัวละคร "ฟ้า" แนะนำตัวเธอและทุกคนในครอบครัวทีเดียวพร้อมกัน คือ 1.ฟ้า 2.เมฆ 3.พี่เอก โดยไม่มีคำพูดชู้สาว`;
-                }
-                
-                const suggestionInstruction = `\n\n[ข้อบังคับพิเศษ: SMART HOOKS]\nในตอนท้ายสุดของข้อความ ให้คุณประเมินอารมณ์และเสนอ 'ตัวเลือกการตอบกลับเบื้องต้น' ให้ผู้เรียน 2 ทางเลือก โดยต้องจัดรูปแบบให้เป๊ะดังนี้ ห้ามผิดเพี้ยนเด็ดขาด:\n[DIALOGUE]\n(บทสนทนาของญาติ)\n[SUGGESTION 1] (ทางเลือกที่ 1)\n[SUGGESTION 2] (ทางเลือกที่ 2)`;
-
-                // 🌟 อัปเกรด: ฝังโครงสร้างทีมแพทย์เข้าไปให้ AI รู้ทันทีว่าใครมีหน้าที่อะไร 🌟
-                const roleplayPrompt = `[ข้อมูลพื้นฐานสำหรับ AI ทำความเข้าใจบทบาทของผู้เรียน]:\n${window.CLINICAL_KNOWLEDGE_BASE || ''}\n\n${currentScenarioPrompt}${introGuideline}${suggestionInstruction}\n\nประวัติ:\n${historyContext}\nผู้เรียน: ${userMsg}\nญาติ (ใส่ Tag อารมณ์และชื่อคนพูดก่อนเสมอ):`;
-                
-                try {
-                    let rawResponse = await callGeminiAPI(userMsg, roleplayPrompt, imageToSend); 
-                    
-                    if (rawResponse.startsWith('[ระบบขัดข้อง]')) {
-                        setMessages(prev => [...prev, { id: Date.now(), sender: 'ai', text: rawResponse, isVoiceOnly: false, speakerName: 'ระบบ' }]);
-                        showMsg(rawResponse, 'error');
-                        setIsTyping(false);
-                        return; 
-                    }
-
-                    let aiText = rawResponse;
-                    let sug1 = "", sug2 = "";
-                    const sug1Match = aiText.match(/\[SUGGESTION 1\](.*?)(?=\[SUGGESTION 2\]|$)/is);
-                    const sug2Match = aiText.match(/\[SUGGESTION 2\](.*?)$/is);
-                    if (sug1Match) sug1 = sug1Match[1].trim();
-                    if (sug2Match) sug2 = sug2Match[1].trim();
-                    aiText = aiText.replace(/\[SUGGESTION 1\].*$/is, '').replace(/\[DIALOGUE\]/i, '').trim();
-                    setSmartSuggestions([sug1, sug2].filter(Boolean));
-                    
-                    let spk = 'FAH'; let visualSpeaker = 'FAH'; let cleanText = aiText; const checkStr = cleanText.substring(0, 150).toLowerCase();
-                    
-                    if (checkStr.match(/\[\s*(เมฆ|น้องชาย|mek|brother)\s*\]|(^|\s)(เมฆ|น้องชาย|mek|brother)\s*:/)) { spk = 'BROTHER'; visualSpeaker = 'BROTHER'; } 
-                    else if (checkStr.match(/\[\s*(พี่เอก|เอก|แฟน|แฟนของฟ้า|แฟนหนุ่ม|boyfriend)\s*\]|(^|\s)(พี่เอก|เอก|แฟน|แฟนของฟ้า|แฟนหนุ่ม|boyfriend)\s*:/)) { spk = 'BOYFRIEND'; visualSpeaker = 'FAH'; } 
-                    else { spk = 'FAH'; visualSpeaker = 'FAH'; }
-                    
-                    let foundEmotion = "SAD"; const emotionsList = ["SAD", "HESITANT", "CONFUSED", "ANGRY", "ADVISING", "NEUTRAL"]; 
-                    for (const em of emotionsList) { if (new RegExp(`\\[\\s*${em}\\s*\\]`, 'i').test(checkStr)) { foundEmotion = em; break; } }
-                    
-                    setCurrentSpeaker(visualSpeaker); setCurrentEmotion(foundEmotion);
-                    
-                    cleanText = cleanText.replace(/\[.*?\]/g, '').replace(/\(.*?\)/g, '').replace(/^(ฟ้า|เมฆ|พี่เอก|เอก|น้องชาย|ลูกสาว|แฟน|แฟนของฟ้า|Fah|Mek|Brother|Sister|Boyfriend)\s*:\s*/i, '').replace(/[*#]/g, '').trim();
-                    
-                    const isVoiceOnly = roleplayPhase === 'negotiating'; 
-                    const speakerName = spk === 'BROTHER' ? 'เมฆ' : spk === 'BOYFRIEND' ? 'พี่เอก' : 'ฟ้า'; 
-                    const msgId = Date.now() + 1;
-                    const displayChatText = (roleplayPhase === 'negotiating') ? `(${speakerName}) ${cleanText}` : cleanText;
-                    
-                    setMessages(prev => [...prev, { id: msgId, sender: 'ai', text: displayChatText, isVoiceOnly, speakerName }]); setIsTyping(false); 
-                    
-                    speakThai(cleanText, () => setMessages(prev => prev.map(m => m.id === msgId ? { ...m, isVoiceOnly: false } : m)), spk, false);
-                } catch (err) { 
-                    setIsTyping(false); 
-                    setMessages(prev => [...prev, { id: Date.now(), sender: 'ai', text: `ข้อผิดพลาด (${err.message})`, isVoiceOnly: false, speakerName: 'ระบบ' }]); 
-                }
-            };
-
-            const endScenarioAndEvaluate = async () => {
-                stopAudio(); setIsTyping(true); setRoleplayPhase('evaluating'); setCurrentEmotion('ADVISING'); setCurrentSpeaker('FAH'); setSmartSuggestions([]);
-                setMessages(prev => [...prev, { id: Date.now(), sender: 'user', text: "🛑 จบการจำลองสถานการณ์ ช่วยประเมินให้หน่อยค่ะ" }]);
-                
-                const history = messages.slice(-15).map(m => `${m.sender === 'ai' ? 'ญาติ' : 'ผู้เรียน'}: ${m.text}`).join('\n');
-                
-                // 🌟 อัปเกรดการประเมินด้วย 5W1H และ 5 Core Techniques 🌟
-                const evalPrompt = `คุณคือ "ปรมาจารย์ด้านจิตวิทยาการแพทย์ (Cognitive Profiler)" ประเมินการเจรจานี้อ้างอิงจากบทบาททีมแพทย์และ 5 เทคนิคการเจรจาในคู่มือนี้: ${window.CLINICAL_KNOWLEDGE_BASE || ''}\n\nประวัติการสนทนา:\n${history}\n\n1. ให้คะแนนความเห็นอกเห็นใจ (Empathy Score) จาก 0-100 (ระบุแท็ก [EMPATHY: คะแนน] เสมอ)\n2. หากคะแนนเกิน 60 ถือว่าผ่าน พิมพ์ [PASS] ไม่ผ่านพิมพ์ [FAIL]\n3. [สำคัญ] วิเคราะห์การเจรจาตามหลัก 5W1H และตรวจสอบว่าผู้เรียนนำ "เทคนิคเจรจา 5 ข้อ (เช่น Decoupling, Perception Check, Positive Framing)" มาใช้ได้อย่างเหมาะสมกับบริบทสังคมไทยหรือไม่\n4. สรุป จุดแข็ง และ จุดอ่อน ที่ผู้เรียนต้องนำไปปรับปรุงให้ชัดเจนและเป็นมืออาชีพ`;
-                
-                try {
-                    const aiResponse = await callGeminiAPI("ประเมินการเจรจาหน่อย", evalPrompt); 
-                    if (aiResponse.startsWith('[ระบบขัดข้อง]')) {
-                        setMessages(prev => [...prev, { id: Date.now(), sender: 'ai', text: aiResponse, isVoiceOnly: false, speakerName: 'ระบบ' }]);
-                        showMsg(aiResponse, 'error'); setIsTyping(false); return; 
-                    }
-                    
-                    const isPass = aiResponse.includes('[PASS]'); 
-                    const empathyMatch = aiResponse.match(/\[EMPATHY:\s*(\d+)\]/i);
-                    const empathyScore = empathyMatch ? parseInt(empathyMatch[1]) : (isPass ? 80 : 40);
-                    let cleanResponse = aiResponse.replace(/\[PASS\]/g, '').replace(/\[FAIL\]/g, '').replace(/\[EMPATHY:\s*\d+\]/gi, '').trim();
-                    
-                    setMessages(prev => [...prev, { id: Date.now()+1, sender: 'ai', text: cleanResponse, isVoiceOnly: false, speakerName: 'ระบบ' }]); 
-                    
-                    const evalRecord = { timestamp: new Date().toISOString(), scenarioId: selectedScenario.id, passed: isPass, score: empathyScore, evaluation: cleanResponse, chatLog: history }; 
-                    const upUser = { ...user, skillLabPassed: true, skillLabHistory: [...(user.skillLabHistory || []), evalRecord] }; 
-                    setUser(upUser);
-                    try {
-                        await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_users', upUser.id), upUser, { merge: true });
-                        const lState = JSON.parse(localStorage.getItem('elearning_app_state') || '{}');
-                        lState.loggedInUser = upUser; localStorage.setItem('elearning_app_state', JSON.stringify(lState));
-                    } catch(e) {}
-                    
-                    showMsg(`บันทึกผลเรียบร้อย (Empathy Score: ${empathyScore})`, 'success'); 
-                    speakThai(cleanResponse.replace(/[*#]/g, ''), null, 'FAH', true);
-                } catch (e) { setMessages(prev => [...prev, { id: Date.now(), sender: 'ai', text: `ข้อผิดพลาด: ${e.message}`, isVoiceOnly: false, speakerName: 'ระบบ' }]); }
-                setIsTyping(false);
-            };
-
-            const handleImageUpload = (e) => { const file = e.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onloadend = () => setSelectedImage(reader.result); reader.readAsDataURL(file); };
-
-            // ==========================================
-            // UI RENDERING VALUES
-            // ==========================================
-            const isChaos = currentEmotion === 'ANGRY' || currentEmotion === 'CONFUSED' || currentEmotion === 'HESITANT';
-            const hrRate = selectedScenario ? (isChaos ? (Math.floor(Math.random() * 20) + 115) : (Math.floor(Math.random() * 10) + 75)) : 0; 
-            const spo2 = selectedScenario ? (isChaos ? 94 : 98) : 0;
-            const emotionStressMap = { ANGRY: 95, CONFUSED: 75, HESITANT: 60, SAD: 50, NEUTRAL: 20, ADVISING: 10 };
-            const stressLevel = selectedScenario ? (emotionStressMap[currentEmotion] || 20) : 0;
-            const stressColor = stressLevel > 70 ? 'bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.8)]' : stressLevel > 40 ? 'bg-amber-400 shadow-[0_0_10px_rgba(251,191,36,0.8)]' : 'bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.8)]';
-
-            let videoToPlay = CHARACTER_VIDEOS?.['FAH']?.['NEUTRAL'] || "";
-            if (currentSpeaker === 'BROTHER') videoToPlay = CHARACTER_VIDEOS?.['BROTHER']?.[currentEmotion] || CHARACTER_VIDEOS?.['BROTHER']?.['NEUTRAL'] || "";
-            else videoToPlay = CHARACTER_VIDEOS?.['FAH']?.[currentEmotion] || CHARACTER_VIDEOS?.['FAH']?.['NEUTRAL'] || "";
-
-            // 🚀 แสดงหน้าจอ Access Denied หากไม่ใช่ Masterclass 🚀
-            if (accessDenied) return (
-                <div className="min-h-screen sky-bg flex items-center justify-center p-4 relative z-50">
-                    <div className="bg-slate-900/80 backdrop-blur-xl border border-white/20 p-8 rounded-[2.5rem] text-center shadow-2xl max-w-md w-full animate-in zoom-in fade-in duration-500">
-                        <div className="w-20 h-20 bg-rose-500/10 rounded-full flex items-center justify-center mx-auto mb-6 border border-rose-500/30 shadow-[0_0_20px_rgba(244,63,94,0.3)]">
-                            <SafeIcon icon={Lock} size={40} className="text-rose-400" />
-                        </div>
-                        <h2 className="text-2xl font-black text-white mb-3 drop-shadow-md">สงวนสิทธิ์เฉพาะกลุ่ม</h2>
-                        <p className="text-slate-300 font-medium text-sm mb-8 leading-relaxed drop-shadow-sm">ขณะนี้ห้องจำลอง AI Skill Lab (Beta) เปิดให้ทดสอบเฉพาะสิทธิ์ <b>Masterclass</b> เท่านั้นค่ะ สำหรับสิทธิ์อื่นๆ จะเปิดให้ใช้งานในเฟสถัดไป ขออภัยในความไม่สะดวกนะคะ 💙</p>
-                        <button onClick={() => safeRedirect('./index.html#dashboard')} className="w-full py-4 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-bold transition-all border border-white/20 shadow-sm active:scale-95">กลับสู่ห้องเรียนหลัก</button>
-                    </div>
-                </div>
-            );
-
-            if (!user) return (
-                <div className="min-h-screen sky-bg flex items-center justify-center relative">
-                    <div className="bg-black/50 backdrop-blur-xl border border-white/20 p-8 rounded-3xl text-center shadow-2xl animate-in fade-in zoom-in">
-                        <div className="w-16 h-16 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-6"></div>
-                        <h2 className="text-2xl font-black text-white mb-2">ตรวจสอบสิทธิ์การเข้าถึง...</h2>
-                        <p className="text-white/60">หากไม่เปลี่ยนหน้าอัตโนมัติ กรุณากลับไปล็อกอินที่หน้าหลัก (index.html)</p>
-                    </div>
-                </div>
-            );
-
-            // 🌟 ตัวแปรคุมสถานะหน้าจอ 🌟
-            const isPiP = roleplayPhase === 'giving_context' || roleplayPhase === 'negotiating' || roleplayPhase === 'evaluating';
-            const isFullVideo = roleplayPhase === 'speaking_intro' || roleplayPhase === 'playing_scenario';
-
-            return (
-                <div className="min-h-screen w-full font-sans antialiased overflow-hidden relative">
-                    <div className="sky-bg"></div><div className="clouds-wrapper"><div className="cloud-layer layer-1"></div><div className="cloud-layer layer-2"></div><div className="cloud-layer layer-3"></div></div>
-                    
-                    {uiMessage.show && <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-[100] px-6 py-3 rounded-full font-bold shadow-xl animate-in slide-in-from-top-4 border backdrop-blur-md ${uiMessage.type === 'error' ? 'bg-rose-500/20 text-rose-300 border-rose-500/50' : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/50'}`}>{uiMessage.text}</div>}
-
-                    {/* Navbar */}
-                    <div className="px-6 py-4 border-b border-white/10 bg-black/40 backdrop-blur-md flex justify-between items-center z-20 relative shadow-md">
-                        <div className="flex items-center gap-4">
-                            <button onClick={() => { stopAudio(); safeRedirect('./index.html#dashboard'); }} className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors border border-white/20 shadow-sm text-white"><SafeIcon icon={ArrowLeft} size={20} /></button>
-                            <h1 className="text-xl md:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-500 flex items-center gap-2"><SafeIcon icon={Bot} className="text-orange-400" size={24} /> AI Skill Lab</h1>
-                        </div>
-                        <div className="text-white/80 font-bold text-sm bg-white/10 px-4 py-1.5 rounded-full border border-white/20 shadow-sm hidden sm:flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> {user.name}</div>
-                    </div>
-
-                    <div className="p-4 md:p-6 lg:p-8 h-[calc(100vh-73px)] w-full relative z-10 flex">
-                        
-                        {!selectedScenario ? (
-                            <div className="w-full max-w-6xl mx-auto flex flex-col lg:flex-row gap-6 h-full animate-in fade-in zoom-in-95">
-                                <div className="w-full lg:w-1/3 flex flex-col gap-6 h-full">
-                                    <GlassCard className="!p-0 overflow-hidden h-full max-h-[600px] w-full max-w-[350px] mx-auto relative bg-black/60 shadow-2xl flex items-center justify-center border border-white/20">
-                                        <iframe src={FAH_IDLE_VIDEO} className="absolute inset-0 w-full h-full border-none pointer-events-none" allow="autoplay; fullscreen" />
-                                    </GlassCard>
-                                </div>
-                                <div className="w-full lg:w-2/3 flex flex-col gap-4">
-                                    <div className="p-4 bg-blue-500/10 border border-blue-500/30 rounded-xl mb-4 backdrop-blur-md">
-                                        <p className="text-sm md:text-base font-bold text-blue-200 flex gap-2 leading-relaxed"><SafeIcon icon={Target} size={24} className="shrink-0 text-blue-400 mt-0.5" /><span><strong>คำชี้แจง:</strong> พื้นที่นี้คือสถานการณ์จำลอง AI ไม่มีผลต่อการตัดคะแนนสอบ ขอให้ผู้เรียนนำความรู้เรื่องการเจรจา (B.A.L.I.) มาประยุกต์ใช้อย่างเต็มที่ค่ะ</span></p>
-                                    </div>
-                                    <h2 className="text-2xl font-black text-white mb-4 drop-shadow-sm text-center lg:text-left">เลือกกรณีศึกษาเพื่อเริ่มฝึกเจรจา</h2>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 overflow-y-auto custom-scrollbar pb-10">
-                                        {SKILL_LAB_SCENARIOS.map((sc, idx) => (
-                                            <GlassCard key={sc.id} onClick={() => startScenario(sc)} className="p-6 text-center border-t-4 border-t-orange-500 hover:border-t-orange-400 group">
-                                                <div className={`w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center text-white shadow-[0_0_20px_rgba(0,0,0,0.5)] ${sc.language === 'en' ? 'bg-gradient-to-br from-indigo-500 to-purple-600' : 'bg-gradient-to-br from-amber-500 to-orange-600'}`}>
-                                                    <span className="text-xl font-black">{sc.language === 'en' ? 'EN' : 'TH'}</span>
-                                                </div>
-                                                <div className="text-xs font-black text-white/80 bg-white/10 px-3 py-1 rounded-full mx-auto w-fit mb-3 border border-white/20">เคสที่ {idx + 1}</div>
-                                                <h3 className="font-extrabold text-xl text-white mb-3 group-hover:text-orange-400 transition-colors">{sc.title}</h3>
-                                                <p className="text-sm text-white/60 line-clamp-3">{sc.description}</p>
-                                            </GlassCard>
-                                        ))}
-                                    </div>
-                                </div>
-                            </div>
-                        ) : (
-                        
-                            <div className="w-full max-w-[1400px] mx-auto animate-in fade-in zoom-in-95 h-full flex flex-col lg:flex-row relative rounded-[2.5rem] overflow-hidden shadow-2xl border border-white/20 bg-white/10 backdrop-blur-md">
-                                
-                                {/* 🌟 Left Side: NEW ICU MONITOR & DYNAMIC VIDEO 🌟 */}
-                                <div className="w-full lg:w-[60%] relative bg-slate-950 flex flex-col shrink-0 border-r border-white/20 h-[50vh] lg:h-full p-4 md:p-8 overflow-hidden">
-                                    {/* ICU Grid Background */}
-                                    <div className="absolute inset-0 icu-grid opacity-20 pointer-events-none"></div>
-                                    {isChaos && <div className="absolute inset-0 bg-rose-500/10 mix-blend-overlay z-10 pointer-events-none animate-pulse"></div>}
-
-                                    {/* ICU Monitor Vitals */}
-                                    <div className="absolute top-4 left-4 text-slate-500 font-bold tracking-widest text-xs flex items-center gap-2 z-10"><SafeIcon icon={Activity} size={16}/> ICU MONITORING SYSTEM</div>
-
-                                    {/* ซ่อนข้อมูล Vitals ไว้ตอนที่ดูวิดีโอเต็มจอ เพื่อความเนียน */}
-                                    {!isFullVideo && (
-                                        <div className="grid grid-cols-1 gap-6 md:gap-8 h-full relative z-10 mt-8">
-                                           {/* ECG Section */}
-                                           <div className="flex flex-col justify-center border-b border-green-500/20 pb-4 relative">
-                                              <div className={`absolute top-0 right-0 font-black text-6xl md:text-8xl font-mono opacity-90 transition-colors duration-500 ${isChaos ? 'text-rose-500 drop-shadow-[0_0_20px_#f43f5e] animate-pulse' : 'text-green-500 drop-shadow-[0_0_15px_#22c55e]'}`}>{hrRate}</div>
-                                              <span className={`${isChaos ? 'text-rose-500' : 'text-green-400'} font-bold text-sm tracking-widest mb-2 transition-colors`}>ECG II</span>
-                                              <div className="h-16 w-full opacity-80" style={{
-                                                  background: `url('data:image/svg+xml;utf8,<svg viewBox="0 0 100 20" xmlns="http://www.w3.org/2000/svg"><polyline points="0,10 20,10 25,5 30,18 35,2 40,15 45,10 100,10" fill="none" stroke="${isChaos ? '%23f43f5e' : '%2322c55e'}" stroke-width="1.5"/></svg>') repeat-x`,
-                                                  backgroundSize: 'auto 100%',
-                                                  animation: `ekg-pan ${isChaos ? '0.7s' : '1.5s'} linear infinite`
-                                              }}></div>
-                                           </div>
-                                           {/* SpO2 Section */}
-                                           <div className="flex flex-col justify-center border-b border-cyan-500/20 pb-4 relative">
-                                              <div className="absolute top-0 right-0 text-cyan-400 font-black text-6xl md:text-8xl font-mono opacity-90 drop-shadow-[0_0_15px_#06b6d4]">{spo2}</div>
-                                              <span className="text-cyan-400 font-bold text-sm tracking-widest mb-2">SpO2 %</span>
-                                              <div className="h-16 w-full opacity-80" style={{
-                                                  background: `url('data:image/svg+xml;utf8,<svg viewBox="0 0 100 20" xmlns="http://www.w3.org/2000/svg"><path d="M0,10 Q10,10 15,5 T30,10 T45,15 T60,10 L100,10" fill="none" stroke="%2306b6d4" stroke-width="1.5"/></svg>') repeat-x`,
-                                                  backgroundSize: 'auto 100%',
-                                                  animation: `ekg-pan 2.5s linear infinite`
-                                              }}></div>
-                                           </div>
-                                           {/* Stress Section */}
-                                           <div className="flex flex-col justify-center pb-4 relative">
-                                              <div className={`absolute top-0 right-0 font-black text-6xl md:text-8xl font-mono opacity-90 transition-colors ${isChaos ? 'text-rose-500 drop-shadow-[0_0_15px_#f43f5e]' : 'text-amber-400 drop-shadow-[0_0_15px_#fbbf24]'}`}>{stressLevel}</div>
-                                              <span className={`${isChaos ? 'text-rose-500' : 'text-amber-400'} font-bold text-sm tracking-widest mb-2 transition-colors`}>STRESS LVL</span>
-                                              <div className="w-1/2 md:w-2/3 h-4 bg-slate-800 rounded-full overflow-hidden mt-4 border border-slate-600 shadow-inner">
-                                                  <div className={`h-full rounded-full transition-all duration-700 ease-in-out ${stressColor}`} style={{ width: `${stressLevel}%` }}></div>
-                                              </div>
-                                           </div>
-                                        </div>
-                                    )}
-
-                                    {/* 🌟 Dynamic Video Container (Full Screen <-> PiP) 🌟 */}
-                                    <div className={`absolute z-50 overflow-hidden transition-all duration-700 ease-in-out
-                                        ${roleplayPhase === 'none' ? 'opacity-0 scale-90 pointer-events-none' : 'opacity-100 scale-100 pointer-events-auto'}
-                                        ${isPiP ? 'bottom-4 right-4 md:bottom-8 md:right-8 w-36 sm:w-48 md:w-64 aspect-[3/4] sm:aspect-video rounded-2xl bg-black border-2 border-slate-600 shadow-[0_10px_40px_rgba(0,0,0,0.5)]' : ''}
-                                        ${isFullVideo ? 'inset-0 w-full h-full bg-black' : ''}`}>
-                                        
-                                        {/* Speaker Indicator (Only in PiP Mode) */}
-                                        {isPiP && (
-                                            <div className="absolute top-2 left-2 z-20 flex items-center gap-1.5 bg-black/60 backdrop-blur-sm px-2 py-0.5 rounded-full border border-slate-500/50">
-                                                <div className={`w-1.5 h-1.5 rounded-full ${isAiSpeaking ? 'bg-emerald-400 animate-pulse shadow-[0_0_8px_#34d399]' : 'bg-slate-500'}`}></div>
-                                                <span className="text-[8px] md:text-[10px] font-bold text-white uppercase tracking-wider">{currentSpeaker === 'BROTHER' ? 'Mek' : currentSpeaker === 'BOYFRIEND' ? 'P\'Ek' : 'Fah'} [AI]</span>
-                                            </div>
-                                        )}
-
-                                        {roleplayPhase === 'playing_scenario' ? 
-                                            <iframe key="vid_scenario" src={`${selectedScenario?.videoUrl}?autoplay=1&muted=0&api=1&player_id=scenario_vid&loop=0`} className="absolute inset-0 w-full h-full border-none pointer-events-auto z-0 object-cover" allow="autoplay; fullscreen" /> 
-                                            : 
-                                            <iframe key={`vid_char_${videoToPlay}`} src={videoToPlay} allow="autoplay; fullscreen" className="absolute top-1/2 left-1/2 min-w-full min-h-full w-auto h-auto -translate-x-1/2 -translate-y-1/2 border-none pointer-events-none z-0" style={{ aspectRatio: '16/9' }}/>
-                                        }
-                                        
-                                        {roleplayPhase === 'playing_scenario' && (
-                                            <button onClick={triggerScenarioNegotiation} className="absolute bottom-6 right-6 z-50 bg-white/20 hover:bg-white/40 backdrop-blur-md text-white px-4 py-2 rounded-full text-xs font-bold border border-white/50 transition-colors shadow-lg">Skip ⏭️</button>
-                                        )}
-
-                                        {/* 🌟 Audio Visualizer Canvas (สีฟ้าธรรมชาติ) 🌟 */}
-                                        {isPiP && <canvas ref={ttsCanvasRef} width="300" height="100" className="absolute bottom-0 left-0 w-full h-1/3 z-20 pointer-events-none opacity-90 mix-blend-screen"></canvas>}
-                                    </div>
-                                </div>
-
-                                {/* Right Side: Chat Interface */}
-                                <div className="w-full lg:w-[40%] flex flex-col h-[60vh] lg:h-full bg-black/40 backdrop-blur-2xl relative z-10 border-t md:border-t-0 border-white/20">
-                                    <div className="p-4 border-b border-white/20 flex items-center justify-between shrink-0 bg-white/5 shadow-md">
-                                        <div className="flex items-center gap-3"><div><h3 className="font-extrabold text-sm text-white drop-shadow-sm">{selectedScenario.title}</h3><p className="text-[10px] text-white/60 font-medium flex items-center gap-1"><SafeIcon icon={Volume2} size={12}/> {currentSpeaker === 'BROTHER' ? 'Charon' : 'Aoede'}</p></div></div>
-                                        <button onClick={() => { stopAudio(); setSelectedScenario(null); setMessages([]); setRoleplayPhase('none'); }} className="p-2 rounded-full hover:bg-rose-500/20 text-white/60 hover:text-rose-400 transition-colors" title="ยกเลิกและออก"><SafeIcon icon={X} size={20} /></button>
-                                    </div>
-                                    
-                                    <div className="flex-1 p-4 overflow-y-auto custom-scrollbar space-y-4 flex flex-col relative">
-                                        {messages.map((m, idx) => (
-                                            <div key={idx} className={`flex gap-2 ${m.sender === 'user' ? 'justify-end' : 'justify-start'} ${m.isHidden ? 'hidden' : ''}`}>
-                                                <div className={`p-3 rounded-2xl max-w-[85%] text-sm leading-relaxed whitespace-pre-wrap ${m.sender === 'ai' ? 'bg-slate-800/80 backdrop-blur-md border border-slate-600/50 text-slate-100 shadow-sm rounded-tl-none' : 'bg-gradient-to-br from-line-500 to-line-600 border border-line-400/50 text-white shadow-md font-medium rounded-tr-none'}`}>{m.image && <img src={m.image} className="w-full rounded-lg mb-2 object-cover" />}{m.text}</div>
-                                            </div>
-                                        ))}
-                                        {isTyping && <div className="flex gap-2 justify-start animate-in fade-in"><div className="p-4 rounded-2xl bg-slate-800/80 backdrop-blur-md border border-slate-600/50 rounded-tl-none flex gap-1.5"><div className="w-1.5 h-1.5 bg-orange-400 rounded-full animate-bounce"></div><div className="w-1.5 h-1.5 bg-amber-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div><div className="w-1.5 h-1.5 bg-orange-500 rounded-full animate-bounce" style={{animationDelay: '0.4s'}}></div></div></div>}
-                                        
-                                        {!isTyping && messages[messages.length-1]?.sender === 'ai' && (
-                                            <div className="flex flex-wrap gap-2 mt-2 animate-in fade-in">
-                                                {roleplayPhase === 'negotiating' && <button onClick={endScenarioAndEvaluate} className="text-xs bg-rose-500/20 backdrop-blur-md border border-rose-500/50 text-rose-300 px-4 py-2 rounded-full hover:bg-rose-500/40 active:scale-95 transition-all font-bold">🛑 จบการเจรจา (ประเมินผล)</button>}
-                                                {roleplayPhase === 'evaluating' && <><button onClick={() => startScenario(selectedScenario)} className="text-xs bg-amber-500/20 backdrop-blur-md border border-amber-500/50 text-amber-300 px-4 py-2 rounded-full hover:bg-amber-500/40 active:scale-95 transition-all font-bold">🔄 ลองฝึกเคสนี้อีกครั้ง</button><button onClick={() => { setSelectedScenario(null); setMessages([]); setRoleplayPhase('none'); }} className="text-xs bg-white/10 border border-white/20 text-white/80 px-4 py-2 rounded-full hover:bg-white/20 transition-all font-bold">🔙 กลับไปเลือกเคสอื่น</button></>}
-                                            </div>
-                                        )}
-                                        <div ref={messagesEndRef} />
-                                    </div>
-                                    
-                                    <div className="shrink-0 p-3 md:p-4 bg-slate-900 border-t border-white/10 relative z-10 pb-safe shadow-[0_-5px_15px_rgba(0,0,0,0.3)]">
-                                        {/* ⏱️ Crisis Countdown Bar */}
-                                        {roleplayPhase === 'negotiating' && !isTyping && messages[messages.length-1]?.sender === 'ai' && (
-                                           <div className="absolute top-0 left-0 w-full h-1 bg-slate-800">
-                                               <div className={`h-full transition-all duration-1000 ${pressureTime > 10 ? 'bg-emerald-500' : pressureTime > 5 ? 'bg-amber-500 shadow-[0_0_8px_#f59e0b]' : 'bg-rose-500 shadow-[0_0_8px_#f43f5e]'}`} style={{ width: `${(pressureTime/20)*100}%` }}></div>
-                                           </div>
-                                        )}
-                                        
-                                        {/* 💡 Smart Suggestions Hooks */}
-                                        {roleplayPhase === 'negotiating' && smartSuggestions.length > 0 && !isTyping && (
-                                            <div className="flex flex-col gap-2 mb-3 px-1 animate-in fade-in slide-in-from-bottom-2">
-                                                <div className="text-[10px] font-bold text-blue-300 flex items-center gap-1 uppercase tracking-widest"><SafeIcon icon={Lightbulb} size={12}/> ทางเลือกอัจฉริยะ (Smart Hooks):</div>
-                                                <div className="flex flex-wrap gap-2">
-                                                    {smartSuggestions.map((sug, i) => (
-                                                        <button key={i} onClick={() => handleSendChat(null, sug)} className="text-xs bg-blue-500/10 hover:bg-blue-500/30 border border-blue-500/30 text-blue-200 px-3 py-1.5 rounded-lg text-left transition-colors active:scale-95 break-words line-clamp-2 shadow-sm">{sug}</button>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        )}
-
-                                        {isVadMode && <div className="absolute -top-1 left-8 right-8 h-1 bg-transparent"><div className="h-full bg-green-500 transition-all duration-100 rounded-full shadow-[0_0_8px_rgba(34,197,94,0.8)]" style={{ width: `${Math.min(100, audioLevel * 2)}%` }}></div></div>}
-                                        {selectedImage && <div className="mb-2 relative inline-block"><img src={selectedImage} alt="Preview" className="h-14 w-14 object-cover rounded-lg border border-white/20 shadow-sm" /><button onClick={() => setSelectedImage(null)} className="absolute -top-2 -right-2 bg-black text-white rounded-full p-0.5 hover:bg-rose-500"><SafeIcon icon={X} size={14} /></button></div>}
-                                        
-                                        <form onSubmit={handleSendChat} className={`flex items-center gap-2 bg-black/60 border border-white/20 rounded-full p-1.5 pl-3 transition-colors backdrop-blur-xl ${isVadMode ? '!border-green-400 bg-green-900/40' : ''}`}>
-                                            <input type="file" id="ai-image-upload" accept="image/*" className="hidden" onChange={handleImageUpload} />
-                                            <label htmlFor="ai-image-upload" className="text-white/60 hover:text-white cursor-pointer p-1.5"><SafeIcon icon={ImageIcon} size={20} /></label>
-                                            <input type="text" value={chatInput} onChange={e => setChatInput(e.target.value)} placeholder={isListening ? "กำลังฟัง..." : "พิมพ์ข้อความ หรือกดไมค์..."} disabled={isTyping || roleplayPhase === 'playing_scenario'} className="flex-1 bg-transparent text-white placeholder-white/40 px-1 outline-none text-sm font-medium" />
-                                            
-                                            {/* Timer Badge */}
-                                            {roleplayPhase === 'negotiating' && !isTyping && messages[messages.length-1]?.sender === 'ai' && (
-                                                <div className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border shrink-0 ${pressureTime <= 5 ? 'text-rose-400 border-rose-500/50 bg-rose-500/10 animate-pulse' : 'text-slate-400 border-slate-600 bg-slate-800'}`}>{pressureTime}s</div>
-                                            )}
-
-                                            <button type="button" onClick={toggleMic} disabled={isTyping || roleplayPhase === 'playing_scenario'} className={`w-9 h-9 rounded-full flex items-center justify-center transition-colors relative shrink-0 ${isListening ? 'bg-rose-500 text-white shadow-md' : 'bg-white/10 text-white/80 hover:bg-white/20'}`}><SafeIcon icon={Mic} size={16} />{isListening && <span className="absolute inset-0 rounded-full border-2 border-rose-500 animate-ping opacity-75"></span>}</button>
-                                            <button type="submit" disabled={(!chatInput.trim() && !selectedImage) || isTyping || roleplayPhase === 'playing_scenario'} className="w-9 h-9 rounded-full bg-line-500 hover:bg-line-600 text-white flex items-center justify-center disabled:opacity-50 transition-colors shadow-sm shrink-0"><SafeIcon icon={Send} size={16} /></button>
-                                        </form>
-                                    </div>
-                                </div>
-                                
-                            </div>
-                        )}
-                    </div>
-                </div>
-            );
-        }
-
-        const root = createRoot(document.getElementById('skilllab-root'));
-        root.render(<SkillLabApp />);
-    </script>
-</body>
-</html>
+หลักการ 5W1H คือ "การเก็บข้อมูลและวิเคราะห์เรื่องราวให้ครบถ้วนทุกมิติในเวลาที่สั้นที่สุด" เพื่อป้องกันความผิดพลาด การสื่อสารคลาดเคลื่อน หรือการมองข้ามประเด็นสำคัญไป โครงสร้างหลักประกอบด้วย 6 คำถามสำคัญดังนี้:
+1. Who (ใคร) เป้าหมาย: ระบุบุคคลที่เกี่ยวข้อง คำถาม: ใครคือผู้รับผิดชอบ? ใครคือกลุ่มเป้าหมาย? ใครได้รับผลกระทบ?
+2. What (อะไร) เป้าหมาย: ระบุการกระทำหรือวัตถุประสงค์ คำถาม: เกิดอะไรขึ้น? กำลังทำอะไร? สิ่งที่ต้องการคืออะไร?
+3. Where (ที่ไหน) เป้าหมาย: ระบุสถานที่หรือช่องทาง คำถาม: เหตุการณ์เกิดขึ้นที่ไหน? ต้องไปทำที่ไหน? ปัญหาเกิดที่จุดใด?
+4. When (เมื่อไหร่) เป้าหมาย: ระบุเวลาหรือกำหนดการ คำถาม: ทำเมื่อไหร่? เหตุการณ์เกิดตอนไหน? กำหนดส่งคือวันใด?
+5. Why (ทำไม) เป้าหมาย: ระบุเหตุผล วัตถุประสงค์ หรือสาเหตุ (ถือเป็นข้อที่สำคัญที่สุดในการวิเคราะห์) คำถาม: ทำไมต้องทำสิ่งนี้? ทำไมปัญหานี้ถึงเกิดขึ้น?
+6. How (อย่างไร) เป้าหมาย: ระบุวิธีการ ขั้นตอน หรือมูลค่า คำถาม: ต้องทำอย่างไรบ้าง? มีขั้นตอนอะไร? ต้องใช้เงินหรือทรัพยากรเท่าไหร่?`;
