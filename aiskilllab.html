@@ -78,7 +78,7 @@
         import { getAuth, signInAnonymously } from 'firebase/auth';
         import { getFirestore, doc, setDoc } from 'firebase/firestore';
 
-        const { ArrowLeft, PlayCircle, Bot, Volume2, X, Send, Mic, Image: ImageIcon, Brain, Target, TrendingUp, CheckCircle2 } = LucideIcons;
+        const { ArrowLeft, PlayCircle, Bot, Volume2, X, Send, Mic, Image: ImageIcon, Brain, Target, TrendingUp, CheckCircle2, Lock } = LucideIcons;
 
         function SafeIcon({ icon: Icon, size = 24, className = "" }) {
           if (!Icon) return null;
@@ -124,8 +124,7 @@
             for (let i = 0; i < 3; i++) {
                 try {
                     const res = await fetchAppsScript({ action: 'callGeminiTTS', text: text, voiceName: voiceName });
-                    // แก้ไขบั๊กข้อมูลซ้อนทับ: ส่งคืน inlineData ที่อยู่ชั้นในสุดออกไปตรงๆ
-                    if (res.status === 'success' && res.inlineData) return res.inlineData; 
+                    if (res.status === 'success' && res.inlineData) return res.inlineData;
                     throw new Error(res.message || 'TTS Error');
                 } catch (e) { if (i < 2) await new Promise(r => setTimeout(r, 2000)); else throw e; }
             }
@@ -159,6 +158,7 @@
         function SkillLabApp() {
             const [user, setUser] = useState(null);
             const [selectedScenario, setSelectedScenario] = useState(null);
+            const [accessDenied, setAccessDenied] = useState(false); // 🌟 ตัวแปรใหม่คุมกำแพงเหล็ก
             
             // Chatbot States
             const [chatInput, setChatInput] = useState(''); 
@@ -186,20 +186,23 @@
             };
 
             const safeRedirect = (url) => {
-                try {
-                    window.location.href = url;
-                } catch (e) {
-                    console.warn("Redirect blocked in this environment (Canvas/Iframe):", url);
-                }
+                try { window.location.href = url; } catch (e) { console.warn("Redirect blocked:", url); }
             };
 
-            // ตรวจสอบการล็อกอินจาก LocalStorage
+            // ตรวจสอบการล็อกอิน และ สิทธิ์จาก LocalStorage
             useEffect(() => {
                 try {
                     const saved = localStorage.getItem('elearning_app_state');
                     if (saved) {
                         const parsed = JSON.parse(saved);
                         if (parsed.loggedInUser) {
+                            const uType = parsed.loggedInUser.userType;
+                            // 🚀 กำแพงเหล็กขั้นสุดยอด (Strict Masterclass Gate) 🚀
+                            // เตะทุกคนที่ไม่ใช่ Masterclass ออกไปหน้าจอแดงทันที
+                            if (uType !== 'Masterclass') {
+                                setAccessDenied(true);
+                                return;
+                            }
                             setUser(parsed.loggedInUser);
                             signInAnonymously(auth).catch(e => console.warn(e)); // Ensure firebase auth
                         } else {
@@ -246,16 +249,18 @@
             // ==========================================
             const speakThai = async (text, onEndCallback = null, speaker = 'FAH', isSystemVoice = false) => {
                 stopAudio(); currentSpeechIdRef.current += 1; const speechId = currentSpeechIdRef.current; 
-                // ใช้เสียง Aoede เป็นค่าเริ่มต้นสำหรับน้องฟ้าเสมอตามคำสั่งของกัปตัน
+                
                 let targetVoice = "Aoede"; 
-                // เพิ่มการลบข้อความในวงเล็บ (...) ออกจากการอ่านออกเสียง
+                // 🌟 Filter ตัดคำสั่งในวงเล็บและตัวอักษรพิเศษออก 🌟
                 let cleanSpeakText = text.replace(/\[.*?\]/g, '').replace(/\(.*?\)/g, '').replace(/\*.*?\*/g, '').replace(/#.*?#/g, '').replace(/^(ฟ้า|เมฆ|พี่เอก|เอก|น้องชาย|ลูกสาว|แฟน|แฟนของฟ้า|Fah|Mek|Brother|Sister|Boyfriend|AI)\s*:\s*/i, '').trim();
                 let emotionPrompt = "";
+                
                 if (isListening) { recognitionRef.current?.stop(); setIsListening(false); }
                 
+                // 🌟 แยกประสาทเสียง (System vs Roleplay) 🌟
                 if (isSystemVoice) {
                     targetVoice = "Aoede";
-                    emotionPrompt = `[พูดด้วยเสียงผู้ประกาศหญิง สุภาพ ชัดเจน นุ่มนวล เป็นทางการ ไม่แสดงอารมณ์เศร้า]: ${cleanSpeakText}`;
+                    emotionPrompt = `[พูดด้วยเสียงผู้ประกาศหญิง น้ำเสียงเป็นทางการ สุภาพ นุ่มนวล ใจดี ให้กำลังใจ ไม่ร้องไห้]: ${cleanSpeakText}`;
                 } else {
                     if (speaker === 'BROTHER') { targetVoice = "Charon"; emotionPrompt = `[พูดด้วยเสียงผู้ชายวัยรุ่น 18 ปี กำลังอารมณ์เสียและเศร้าเสียใจ]: ${cleanSpeakText}`; } 
                     else if (speaker === 'BOYFRIEND') { targetVoice = "Charon"; emotionPrompt = `[พูดด้วยเสียงผู้ชายวัยผู้ใหญ่ นุ่มนวล อบอุ่น ใจเย็น สุภาพ และคอยให้กำลังใจ]: ${cleanSpeakText}`; } 
@@ -296,7 +301,8 @@
                 const contextText = selectedScenario?.language === 'en' ? "Scenario ended. Patient is a 46yo male, brain dead from car accident. Relatives: Fah (22), Mek (18), and P'Ek (Fah's Boyfriend, 32). Let's start the roleplay." : "ข้อมูลเบื้องต้น: คนไข้ชาย อายุ 46 ปี ประสบอุบัติเหตุรถยนต์ แพทย์ประเมินก้านสมองและทดสอบการหายใจแล้ว ยืนยันภาวะสมองตาย ญาติหน้าห้อง ICU มี ฟ้า (ลูกสาว), เมฆ (น้องชาย) และ แฟนของฟ้า เริ่มการเจรจาได้เลยค่ะ";
                 setRoleplayPhase('giving_context'); setCurrentEmotion('SAD'); setCurrentSpeaker('FAH');
                 const contextMsgId = Date.now(); 
-                setMessages(prev => [...prev, { id: contextMsgId, sender: 'ai', text: contextText, isVoiceOnly: false, speakerName: 'ฟ้า', isContext: true }]);
+                setMessages(prev => [...prev, { id: contextMsgId, sender: 'ai', text: contextText, isVoiceOnly: false, speakerName: 'ระบบ', isContext: true }]);
+                // ใช้เสียงระบบ (ไม่ร้องไห้) สำหรับบริบท
                 speakThai(contextText, () => setRoleplayPhase('negotiating'), 'FAH', true);
             };
 
@@ -311,8 +317,9 @@
                 
                 const introMsg = `โหมดจำลองสถานการณ์ ที่นี่คือพื้นที่ปลอดภัยสำหรับฝึกเจรจานะคะ ไม่มีผลต่อคะแนนสอบ เตรียมชมวิดีโอปูเรื่องราวได้เลยค่ะ พร้อมนะคะ?`;
                 const introMsgId = Date.now(); 
-                setMessages([{ id: introMsgId, sender: 'ai', text: introMsg, isVoiceOnly: true, speakerName: 'ฟ้า', isContext: true }]);
+                setMessages([{ id: introMsgId, sender: 'ai', text: introMsg, isVoiceOnly: true, speakerName: 'ระบบ', isContext: true }]);
                 
+                // ใช้เสียงระบบ (ไม่ร้องไห้) สำหรับเกริ่นนำ
                 speakThai(introMsg, () => { 
                     setMessages(prev => prev.map(m => m.id === introMsgId ? { ...m, isVoiceOnly: false } : m)); 
                     setRoleplayPhase('playing_scenario'); 
@@ -336,12 +343,11 @@
                 try {
                     let rawResponse = await callGeminiAPI(userMsg, roleplayPrompt, imageToSend); 
                     
-                    // 🚨 ดักจับ Error ขั้นเด็ดขาด หากระบบหลังบ้านส่งข้อความแจ้งเตือนความผิดพลาดมา
                     if (rawResponse.startsWith('[ระบบขัดข้อง]')) {
-                        setMessages(prev => [...prev, { id: Date.now(), sender: 'ai', text: rawResponse, isVoiceOnly: false, speakerName: 'ฟ้า' }]);
+                        setMessages(prev => [...prev, { id: Date.now(), sender: 'ai', text: rawResponse, isVoiceOnly: false, speakerName: 'ระบบ' }]);
                         showMsg(rawResponse, 'error');
                         setIsTyping(false);
-                        return; // หยุดการทำงาน ไม่ต้องดึงเสียงต่อ
+                        return; 
                     }
                     
                     let spk = 'FAH'; let visualSpeaker = 'FAH'; let cleanText = rawResponse; const checkStr = cleanText.substring(0, 150).toLowerCase();
@@ -355,7 +361,7 @@
                     
                     setCurrentSpeaker(visualSpeaker); setCurrentEmotion(foundEmotion);
                     
-                    // อัปเดตการคลีนข้อความ: สั่งลบข้อความในวงเล็บ (แอคติ้งเวที) ออกจากหน้าจอแชท
+                    // 🌟 กำจัด Tag และคำสั่งเวทีในวงเล็บออกให้หมด ก่อนโชว์ขึ้นจอ 🌟
                     cleanText = cleanText.replace(/\[.*?\]/g, '').replace(/\(.*?\)/g, '').replace(/^(ฟ้า|เมฆ|พี่เอก|เอก|น้องชาย|ลูกสาว|แฟน|แฟนของฟ้า|Fah|Mek|Brother|Sister|Boyfriend)\s*:\s*/i, '').replace(/[*#]/g, '').trim();
                     
                     const isVoiceOnly = roleplayPhase === 'negotiating'; 
@@ -364,8 +370,12 @@
                     const displayChatText = (roleplayPhase === 'negotiating') ? `(${speakerName}) ${cleanText}` : cleanText;
                     
                     setMessages(prev => [...prev, { id: msgId, sender: 'ai', text: displayChatText, isVoiceOnly, speakerName }]); setIsTyping(false); 
-                    speakThai(cleanText, () => setMessages(prev => prev.map(m => m.id === msgId ? { ...m, isVoiceOnly: false, isHidden: roleplayPhase === 'negotiating' } : m)), spk, false);
-                } catch (err) { setIsTyping(false); setMessages(prev => [...prev, { id: Date.now(), sender: 'ai', text: `ข้อผิดพลาด (${err.message})`, isVoiceOnly: false, speakerName: 'ฟ้า' }]); }
+                    
+                    speakThai(cleanText, () => setMessages(prev => prev.map(m => m.id === msgId ? { ...m, isVoiceOnly: false } : m)), spk, false);
+                } catch (err) { 
+                    setIsTyping(false); 
+                    setMessages(prev => [...prev, { id: Date.now(), sender: 'ai', text: `ข้อผิดพลาด (${err.message})`, isVoiceOnly: false, speakerName: 'ระบบ' }]); 
+                }
             };
 
             const endScenarioAndEvaluate = async () => {
@@ -373,14 +383,13 @@
                 setMessages(prev => [...prev, { id: Date.now(), sender: 'user', text: "🛑 จบการจำลองสถานการณ์ ช่วยประเมินให้หน่อยค่ะ" }]);
                 
                 const history = messages.slice(-12).map(m => `${m.sender === 'ai' ? 'ญาติ' : 'ผู้เรียน'}: ${m.text}`).join('\n');
-                const evalPrompt = `คุณคือฟ้า ประเมินการเจรจาผู้เรียน ประวัติ:\n${history}\nให้คะแนนความเห็นอกเห็นใจ (Empathy Score) จาก 0-100 บอกข้อดี ข้อเสนอแนะ หากคะแนนเกิน 60 ถือว่าผ่านให้พิมพ์ [PASS] ถ้าไม่ผ่านพิมพ์ [FAIL] และต้องแนบแท็ก [EMPATHY: ระบุคะแนน] มาด้วยเสมอ`;
+                const evalPrompt = `คุณคือระบบประเมินผลการเจรจา ประเมินการเจรจาผู้เรียน ประวัติ:\n${history}\nให้คะแนนความเห็นอกเห็นใจ (Empathy Score) จาก 0-100 บอกข้อดี ข้อเสนอแนะ หากคะแนนเกิน 60 ถือว่าผ่านให้พิมพ์ [PASS] ถ้าไม่ผ่านพิมพ์ [FAIL] และต้องแนบแท็ก [EMPATHY: ระบุคะแนน] มาด้วยเสมอ`;
                 
                 try {
                     const aiResponse = await callGeminiAPI("ประเมินการเจรจาหน่อย", evalPrompt); 
                     
-                    // 🚨 ดักจับ Error
                     if (aiResponse.startsWith('[ระบบขัดข้อง]')) {
-                        setMessages(prev => [...prev, { id: Date.now(), sender: 'ai', text: aiResponse, isVoiceOnly: false, speakerName: 'ฟ้า' }]);
+                        setMessages(prev => [...prev, { id: Date.now(), sender: 'ai', text: aiResponse, isVoiceOnly: false, speakerName: 'ระบบ' }]);
                         showMsg(aiResponse, 'error');
                         setIsTyping(false);
                         return; 
@@ -391,9 +400,8 @@
                     const empathyScore = empathyMatch ? parseInt(empathyMatch[1]) : (isPass ? 80 : 40);
                     let cleanResponse = aiResponse.replace(/\[PASS\]/g, '').replace(/\[FAIL\]/g, '').replace(/\[EMPATHY:\s*\d+\]/gi, '').trim();
                     
-                    setMessages(prev => [...prev, { id: Date.now()+1, sender: 'ai', text: cleanResponse, isVoiceOnly: false }]); 
+                    setMessages(prev => [...prev, { id: Date.now()+1, sender: 'ai', text: cleanResponse, isVoiceOnly: false, speakerName: 'ระบบ' }]); 
                     
-                    // อัปเดตสถิติกลับไปที่ Firebase และ LocalStorage 
                     const evalRecord = { timestamp: new Date().toISOString(), scenarioId: selectedScenario.id, passed: isPass, score: empathyScore, evaluation: cleanResponse, chatLog: history }; 
                     const upUser = { ...user, skillLabPassed: true, skillLabHistory: [...(user.skillLabHistory || []), evalRecord] }; 
                     setUser(upUser);
@@ -404,8 +412,9 @@
                     } catch(e) {}
                     
                     showMsg(`บันทึกผลเรียบร้อย (Empathy Score: ${empathyScore})`, 'success'); 
-                    speakThai(cleanResponse.replace(/[*#]/g, '').replace(/\(.*?\)/g, ''), null, 'FAH', true);
-                } catch (e) { setMessages(prev => [...prev, { id: Date.now(), sender: 'ai', text: `ข้อผิดพลาด: ${e.message}`, isVoiceOnly: false }]); }
+                    // ประเมินผลให้ใช้เสียงแบบระบบ ไม่ต้องร้องไห้
+                    speakThai(cleanResponse.replace(/[*#]/g, ''), null, 'FAH', true);
+                } catch (e) { setMessages(prev => [...prev, { id: Date.now(), sender: 'ai', text: `ข้อผิดพลาด: ${e.message}`, isVoiceOnly: false, speakerName: 'ระบบ' }]); }
                 setIsTyping(false);
             };
 
@@ -424,6 +433,20 @@
             let videoToPlay = CHARACTER_VIDEOS?.['FAH']?.['NEUTRAL'] || "";
             if (currentSpeaker === 'BROTHER') videoToPlay = CHARACTER_VIDEOS?.['BROTHER']?.[currentEmotion] || CHARACTER_VIDEOS?.['BROTHER']?.['NEUTRAL'] || "";
             else videoToPlay = CHARACTER_VIDEOS?.['FAH']?.[currentEmotion] || CHARACTER_VIDEOS?.['FAH']?.['NEUTRAL'] || "";
+
+            // 🚀 แสดงหน้าจอ Access Denied หากไม่ใช่ Masterclass 🚀
+            if (accessDenied) return (
+                <div className="min-h-screen sky-bg flex items-center justify-center p-4 relative z-50">
+                    <div className="bg-slate-900/80 backdrop-blur-xl border border-white/20 p-8 rounded-[2.5rem] text-center shadow-2xl max-w-md w-full animate-in zoom-in fade-in duration-500">
+                        <div className="w-20 h-20 bg-rose-500/10 rounded-full flex items-center justify-center mx-auto mb-6 border border-rose-500/30 shadow-[0_0_20px_rgba(244,63,94,0.3)]">
+                            <SafeIcon icon={Lock} size={40} className="text-rose-400" />
+                        </div>
+                        <h2 className="text-2xl font-black text-white mb-3 drop-shadow-md">สงวนสิทธิ์เฉพาะกลุ่ม</h2>
+                        <p className="text-slate-300 font-medium text-sm mb-8 leading-relaxed drop-shadow-sm">ขณะนี้ห้องจำลอง AI Skill Lab (Beta) เปิดให้ทดสอบเฉพาะสิทธิ์ <b>Masterclass</b> เท่านั้นค่ะ สำหรับสิทธิ์อื่นๆ จะเปิดให้ใช้งานในเฟสถัดไป ขออภัยในความไม่สะดวกนะคะ 💙</p>
+                        <button onClick={() => safeRedirect('./index.html#dashboard')} className="w-full py-4 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-bold transition-all border border-white/20 shadow-sm active:scale-95">กลับสู่ห้องเรียนหลัก</button>
+                    </div>
+                </div>
+            );
 
             if (!user) return (
                 <div className="min-h-screen sky-bg flex items-center justify-center relative">
@@ -521,7 +544,7 @@
                                 {/* Right Side: Chat Interface */}
                                 <div className="w-full lg:w-[40%] flex flex-col h-[60vh] lg:h-full bg-black/40 backdrop-blur-2xl relative z-10">
                                     <div className="p-4 border-b border-white/20 flex items-center justify-between shrink-0 bg-white/5">
-                                        <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-full overflow-hidden border border-white/40 shadow-md"><img src={FAH_PROFILE_PIC} className="w-full h-full object-cover object-top" /></div><div><h3 className="font-extrabold text-sm text-white drop-shadow-sm">{selectedScenario.title}</h3><p className="text-[10px] text-white/60 font-medium flex items-center gap-1"><SafeIcon icon={Volume2} size={12}/> {currentSpeaker === 'BROTHER' ? 'Charon' : 'Aoede'}</p></div></div>
+                                        <div className="flex items-center gap-3"><div><h3 className="font-extrabold text-sm text-white drop-shadow-sm">{selectedScenario.title}</h3><p className="text-[10px] text-white/60 font-medium flex items-center gap-1"><SafeIcon icon={Volume2} size={12}/> {currentSpeaker === 'BROTHER' ? 'Charon' : 'Aoede'}</p></div></div>
                                         <button onClick={() => { stopAudio(); setSelectedScenario(null); setMessages([]); setRoleplayPhase('none'); }} className="p-2 rounded-full hover:bg-rose-500/20 text-white/60 hover:text-rose-400 transition-colors" title="ยกเลิกและออก"><SafeIcon icon={X} size={20} /></button>
                                     </div>
                                     
@@ -549,7 +572,7 @@
                                             <label htmlFor="ai-image-upload" className="text-white/60 hover:text-white cursor-pointer p-1.5"><SafeIcon icon={ImageIcon} size={20} /></label>
                                             <input type="text" value={chatInput} onChange={e => setChatInput(e.target.value)} placeholder={isListening ? "กำลังฟัง..." : "พิมพ์ข้อความ หรือกดไมค์..."} disabled={isTyping || roleplayPhase === 'playing_scenario'} className="flex-1 bg-transparent text-white placeholder-white/40 px-1 outline-none text-sm font-medium" />
                                             <button type="button" onClick={toggleMic} disabled={isTyping || roleplayPhase === 'playing_scenario'} className={`w-9 h-9 rounded-full flex items-center justify-center transition-colors relative ${isListening ? 'bg-rose-500 text-white shadow-md' : 'bg-white/10 text-white/80 hover:bg-white/20'}`}><SafeIcon icon={Mic} size={16} />{isListening && <span className="absolute inset-0 rounded-full border-2 border-rose-500 animate-ping opacity-75"></span>}</button>
-                                            <button type="submit" disabled={(!chatInput.trim() && !selectedImage) || isTyping || roleplayPhase === 'playing_scenario'} className="w-9 h-9 rounded-full bg-orange-500 text-white flex items-center justify-center disabled:opacity-50 transition-colors shadow-sm"><SafeIcon icon={Send} size={16} /></button>
+                                            <button type="submit" disabled={(!chatInput.trim() && !selectedImage) || isTyping || roleplayPhase === 'playing_scenario'} className="w-9 h-9 rounded-full bg-line-500 hover:bg-line-600 text-white flex items-center justify-center disabled:opacity-50 transition-colors shadow-sm"><SafeIcon icon={Send} size={16} /></button>
                                         </form>
                                     </div>
                                 </div>
