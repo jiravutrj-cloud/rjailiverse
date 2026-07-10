@@ -186,10 +186,9 @@
         };
 
         const globalStore = createGlobalStore({
-          currentScreen: 'landing', 
+          currentScreen: 'landing', // หน้าแรกเป็น Landing (โลโก้)
           uiMessage: { type: '', text: '', visible: false }, tempLicense: '', authStep: 'check_license', adminClickCount: 0,
-          // 🌟 อัปเดต Model: เพิ่ม workContext (ลักษณะงานปัจจุบัน) 🌟
-          registrationData: { name: '', email: '', phone: '', position: '', workContext: '', licenseId: '', department: '', hospital: '', customHospital: '', province: '', userType: '', isPrefilled: false },
+          registrationData: { name: '', email: '', phone: '', position: '', licenseId: '', department: '', hospital: '', customHospital: '', province: '', userType: '', isPrefilled: false },
           otpData: { input: '', isSending: false, error: '' }, fallbackOtp: null, loggedInUser: null, currentSessionId: null, studySeconds: 0,
           quizData: { type: 'pretest', questions: FULL_EXAMS[0] || [], currentIndex: 0, answers: {}, score: 0, isFinished: false },
           activeTab: 'video', currentVideoId: 1, isLiveCheckedIn: false,
@@ -288,7 +287,7 @@
         // 6. SCREENS (หน้าจอต่างๆ)
         // ============================================================================
 
-        // 🌟 หน้า Landing 🌟
+        // 🌟 หน้า Landing: โลโก้อย่างเดียว (สร้าง Authority) 🌟
         function LandingScreen({ store, actions }) {
           return (
             <div className="flex min-h-screen w-full relative overflow-hidden items-center justify-center bg-transparent z-50">
@@ -303,6 +302,7 @@
                    </div>
                </div>
                
+               {/* ปุ่มลับ Admin */}
                <button onClick={actions.handleAdminClick} className="fixed bottom-4 left-4 z-50 text-white/80 hover:text-white bg-black/30 hover:bg-black/50 backdrop-blur-md p-3 rounded-full transition-all no-print cursor-pointer shadow-lg border border-white/30">
                    <SafeIcon name="Settings" size={24} />
                </button>
@@ -310,7 +310,7 @@
           );
         }
 
-        // 🌟 หน้า Intro 🌟
+        // 🌟 หน้า Intro: วิดีโอห้องผ่าตัด + ปุ่มผู้บริหารสีทอง 🌟
         function IntroScreen({ store, actions }) {
           useEffect(() => { 
             const handleMessage = (event) => { 
@@ -347,6 +347,7 @@
                             <div className="pt-4 w-full relative z-10 flex flex-col gap-3 md:gap-4 animate-in slide-in-from-bottom-4 fade-in no-print">
                               <GradientButton onClick={() => { actions.nav('auth_wizard'); }} className="w-full py-4 px-4 text-base md:text-lg rounded-2xl !shadow-[0_10px_25px_rgba(0,185,0,0.3)] border border-line-400">เข้าสู่ระบบ e-Learning <SafeIcon name="ArrowRight" size={20} /></GradientButton>
                               
+                              {/* 🌟 ปุ่มผู้บริหาร (AI Policy Report) สีทองหรูหรา 🌟 */}
                               <button onClick={() => window.open('./executive.html', '_blank')} className="w-full py-3.5 px-4 bg-slate-900/80 hover:bg-black/90 backdrop-blur-2xl border border-yellow-500/50 rounded-2xl text-[13px] md:text-sm font-bold transition-all shadow-[0_10px_30px_rgba(0,0,0,0.4)] flex items-center justify-center gap-2 group mt-2 relative overflow-hidden">
                                  <div className="absolute inset-0 bg-gradient-to-r from-yellow-600/10 via-yellow-400/20 to-yellow-600/10 group-hover:via-yellow-400/30 transition-all"></div>
                                  <SafeIcon name="Globe" size={18} className="text-yellow-400 drop-shadow-[0_0_8px_rgba(250,204,21,0.8)] group-hover:scale-110 transition-transform relative z-10" />
@@ -375,6 +376,7 @@
           const renderForm = () => {
             if (authStep === 'check_license') {
               
+              // 🚀 1. ดึงสิทธิ์จาก Firestore โดยตรง (แก้บั๊กค้างให้สมบูรณ์แบบ) 🚀
               const handleVerify = async (e) => {
                 e.preventDefault(); 
                 const cleanLicense = tempLicense.trim().replace(/[^a-zA-Z0-9]/g, '');
@@ -382,6 +384,7 @@
                 setIsChecking(true);
                 
                 try {
+                    // ดึงข้อมูลสิทธิ์ผู้ใช้จากตู้เซฟ Firestore (โดยมี timeout ป้องกันการค้าง)
                     let existUser = null;
                     try {
                         const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'elearning_users', cleanLicense);
@@ -393,11 +396,13 @@
                         console.warn("Firestore fetch error, checking cache fallback");
                     }
                     
+                    // หาก DB ล่ม หรือหาไม่เจอ ให้เช็คจาก Cache ใน State (Fallback)
                     if (!existUser) {
                         existUser = store.dbUsers.find(u => String(u.id) === cleanLicense || String(u.license) === cleanLicense);
                     }
                     
                     if (existUser) {
+                        // เจอชื่อพยาบาลคนนี้แล้ว! ทำ Auto-refill ทันที
                         const prefill = { 
                           ...store.registrationData, 
                           licenseId: cleanLicense, 
@@ -405,7 +410,6 @@
                           email: existUser.email || '', 
                           phone: existUser.phone || '', 
                           position: existUser.position || '',
-                          workContext: existUser.workContext || '',
                           department: existUser.department || '', 
                           hospital: existUser.hospital || '', 
                           province: existUser.province || '', 
@@ -414,6 +418,7 @@
                         }; 
                         globalStore.setState({ registrationData: prefill }); 
                     } else {
+                        // ผู้เรียนใหม่แกะกล่อง 100% (ไม่มีในระบบ) ทะลุไปกรอกข้อมูลใหม่ได้เลย
                         const prefill = { 
                           ...store.registrationData, 
                           licenseId: cleanLicense, 
@@ -423,7 +428,7 @@
                     }
                     
                     setIsChecking(false); 
-                    globalStore.setState({ authStep: 'register' }); 
+                    globalStore.setState({ authStep: 'register' }); // สไลด์ไปหน้ากรอกข้อมูล
                 } catch(err) {
                     setIsChecking(false);
                     actions.showMsg('ระบบขัดข้อง กรุณาลองใหม่', 'error');
@@ -474,16 +479,6 @@
                        <FormInput label="เบอร์โทรศัพท์" type="tel" value={d.phone || ''} onChange={e => globalStore.setState(p => ({ registrationData: {...p.registrationData, phone: e.target.value} }))} placeholder="08xxxxxxxx" />
                        <FormInput label="อีเมล (สำหรับรับ OTP)" type="email" value={d.email || ''} onChange={e => globalStore.setState(p => ({ registrationData: {...p.registrationData, email: e.target.value} }))} placeholder="email@example.com" />
                        <FormInput label="ตำแหน่ง" value={d.position || ''} onChange={e => globalStore.setState(p => ({ registrationData: {...p.registrationData, position: e.target.value} }))} placeholder="ระบุตำแหน่ง" />
-                       
-                       {/* 🌟 ช่องคัดกรองลักษณะงานปัจจุบัน (Seamless Filter) 🌟 */}
-                       <FormSelect 
-                           label="ลักษณะงานปัจจุบัน" 
-                           value={d.workContext || ''} 
-                           onChange={e => globalStore.setState(p => ({ registrationData: {...p.registrationData, workContext: e.target.value} }))} 
-                           options={['ปฏิบัติงานรับบริจาค/ปลูกถ่ายอวัยวะโดยตรง', 'ปฏิบัติงานในหอผู้ป่วยวิกฤต (ICU/OR)', 'ไม่ได้ปฏิบัติงานด้านนี้โดยตรง แต่สนใจศึกษา', 'อื่นๆ']} 
-                           placeholder="-- เลือกลักษณะงาน --" 
-                       />
-
                        <FormSelect label="สังกัด" value={d.department || ''} onChange={(e) => globalStore.setState(p => ({ registrationData: { ...p.registrationData, department: e.target.value, hospital: '', province: '', customHospital: '' } }))} options={deptList} placeholder="-- เลือกสังกัด --" />
                        <div className="w-full relative z-10">
                            <FormSelect label="หน่วยงาน / โรงพยาบาล" value={d.hospital || ''} onChange={(e) => { const hosp = e.target.value; let foundProv = ''; if (hosp !== 'อื่นๆ' && d.department) { const match = HOSPITAL_MAPPING[d.department].find(h => h.name === hosp); if (match) { foundProv = match.prov; } } globalStore.setState(p => ({ registrationData: { ...p.registrationData, hospital: hosp, province: foundProv || p.registrationData.province, customHospital: '' } })); }} options={hospList} placeholder="-- เลือกหน่วยงาน --" disabled={!d.department} />
@@ -503,7 +498,7 @@
             
             if (authStep === 'verify_otp') {
               
-              // 🚀 2. เข้าสู่ห้องเรียน (สร้าง User ลงฐานข้อมูล และคำนวณสิทธิ์ 4 ระดับ) 🚀
+              // 🚀 2. เข้าสู่ห้องเรียน (สร้าง User ลงฐานข้อมูล) 🚀
               const handleVerifyOTP = async (e) => { 
                  e.preventDefault(); globalStore.setState(p => ({ otpData: { ...p.otpData, isSending: true, error: '' } }));
                  try {
@@ -512,35 +507,25 @@
                      
                      const license = d.licenseId; 
                      const existingUser = store.dbUsers.find(u => String(u.license || '').trim() === String(license).trim() || String(u.id || '').trim() === String(license).trim()); 
+                     const isOnsite = d.userType === 'Onsite' || (existingUser && existingUser.userType === 'Onsite');
                      
-                     // กำหนดสิทธิ์สุดท้าย (ถ้าแอดมินยัด Masterclass มาให้ จะใช้ของแอดมินเป็นหลัก)
-                     const finalUserType = existingUser ? existingUser.userType : d.userType;
-                     const isMasterclass = finalUserType === 'Masterclass';
-                     const isOnsite = finalUserType === 'Onsite';
-                     const isOnline = finalUserType === 'Online';
-                     
-                     // 🚀 ตรรกะเป้าหมายเวลา (Target Time)
-                     let targetSeconds = 28800; // เรียนใหม่ 8 ชั่วโมง (28,800 วินาที)
-                     if (isOnsite || isMasterclass) targetSeconds = 36000; // Onsite, Masterclass 10 ชั่วโมง
-                     if (isOnline) targetSeconds = (store.liveConfig?.hours || 10) * 3600; // Online ตามแอดมินตั้ง
-                     
-                     // 🚀 ตรรกะเวลาเริ่มต้น (Initial Time)
-                     const initialSeconds = existingUser?.studySeconds ?? ((isOnsite || isMasterclass) ? 36000 : 0); 
+                     // ให้คะแนนเต็ม 10 ชั่วโมงทันทีถ้าเป็น Onsite
+                     const initialSeconds = existingUser?.studySeconds ?? (isOnsite ? 36000 : 0); 
                      const finalHosp = d.hospital === 'อื่นๆ' ? d.customHospital : (d.hospital === 'ศูนย์บริการสาธารณสุข' ? `ศูนย์บริการสาธารณสุข ${d.customHospital}` : d.hospital);
                      
                      // สรุปข้อมูลผู้ใช้
                      const fullUser = Object.assign({ 
                          id: license || `user_${Date.now()}`, 
                          studySeconds: initialSeconds, 
-                         progress: calcProgress(initialSeconds, targetSeconds), 
+                         progress: calcProgress(initialSeconds, store.liveConfig.hours * 3600), 
                          status: 'กำลังเรียน', 
                          pretest: '-', 
                          posttest: '-', 
-                         skillLabPassed: !isMasterclass, // ถ้าไม่ใช่ Masterclass ถือว่าไม่ต้องเข้าห้องนี้ (ให้ผ่านเลยเพื่อไปสอบ)
+                         skillLabPassed: isOnsite, // ทะลุเกราะผ่านด่านเจรจา
                          lastVideoId: 1, 
                          videoTimes: {}, 
                          quizSetIndex: 0 
-                     }, existingUser ?? {}, d, { hospital: finalHosp, sessionId: generateSessionId(), userType: finalUserType });
+                     }, existingUser ?? {}, d, { hospital: finalHosp, sessionId: generateSessionId() });
                      
                      globalStore.setState(p => ({ currentSessionId: fullUser.sessionId, studySeconds: initialSeconds, loggedInUser: fullUser, currentVideoId: fullUser.lastVideoId || 1, otpData: { input: '', isSending: false, error: '' }, fallbackOtp: null, dbUsers: existingUser ? p.dbUsers.map(u => u.id === fullUser.id ? fullUser : u) : [fullUser, ...p.dbUsers] })); 
                      
@@ -612,42 +597,24 @@
                 if (!['video'].includes(tab) || !user) return;
                 const timer = setInterval(() => {
                    const state = globalStore.getState(); 
-                   
-                   // คำนวณเป้าหมายเพื่อใช้อัปเดต Progress
-                   let currentTarget = 28800; // เรียนใหม่ 8 ชม.
-                   if (state.loggedInUser.userType === 'Onsite' || state.loggedInUser.userType === 'Masterclass') currentTarget = 36000;
-                   if (state.loggedInUser.userType === 'Online') currentTarget = (lc?.hours || 10) * 3600;
-
                    const newSecs = state.studySeconds + 10; 
-                   const newProg = calcProgress(newSecs, currentTarget); 
+                   const newProg = calcProgress(newSecs, lc?.hours * 3600); 
                    const upUser = { ...state.loggedInUser, studySeconds: newSecs, progress: newProg };
-                   
                    globalStore.setState(p => ({ studySeconds: newSecs, loggedInUser: upUser, dbUsers: p.dbUsers.map(x => x.id === upUser.id ? upUser : x) }));
                    if (newSecs > 0 && newSecs % 30 === 0) actions.saveUserToDB(upUser);
                 }, 10000);
                 return () => clearInterval(timer);
-            }, [tab, user?.id, lc?.hours, user?.userType]);
+            }, [tab, user?.id, lc?.hours]);
 
             if (!user) return null;
             
-            // 🚀 โลจิกทะลวงเวลา และการปลดล็อกข้อสอบ (Double-Gate Security) 🚀
-            const isTimeMet = user.progress >= 100 || lc?.allowPosttest; 
-            const isMasterclass = user.userType === 'Masterclass';
-            
-            // เฉพาะ Masterclass เท่านั้นที่ต้องบังคับเข้าห้องฝึกเจรจา (skillLabHistory.length > 0)
-            const isUnlockedForPosttest = isMasterclass ? (isTimeMet && user.skillLabHistory?.length > 0) : isTimeMet;
-
+            // 🚀 โลจิกทะลวงเวลา Onsite และการปลดล็อกข้อสอบ 🚀
+            const isTimeMet = user.userType === 'Onsite' || user.progress >= 80 || lc?.allowPosttest; 
+            const isUnlocked = isTimeMet && user.skillLabPassed; 
             const hasPosttest = user.posttest && user.posttest !== '-'; 
             const activeLesson = lessons ? lessons[(vId || 1) - 1] : null;
             
-            // ปุ่ม Action หลักกลางจอ
-            const actionConfig = hasPosttest 
-              ? { t: "ยินดีด้วย คุณเรียนจบแล้ว 🎉", d: "ผ่านการทดสอบและได้รับประกาศนียบัตร", b: "ดูโปรไฟล์", i: "Award", c: "from-emerald-400 to-emerald-600", a: () => globalStore.setState({ activeTab: 'profile' }) } 
-              : (isMasterclass && isTimeMet && !(user.skillLabHistory?.length > 0))
-                ? { t: "ภารกิจพิเศษ: ฝึกภาคปฏิบัติ", d: "สิทธิ์ Masterclass: เข้าฝึกเจรจากับ AI เพื่อเก็บคะแนน Empathy", b: "เข้าห้อง AI Skill Lab", i: "Bot", c: "from-orange-400 to-amber-500", a: () => window.location.href = './aiskilllab.html' } 
-                : isUnlockedForPosttest 
-                  ? { t: "พร้อมสอบ Posttest แล้ว!", d: "คุณมีสิทธิ์เข้าทำแบบทดสอบหลังเรียนแล้ว", b: "เริ่มทำ Posttest", i: "FileText", c: "from-rose-400 to-pink-600", a: () => { globalStore.setState({ quizData: { type: 'posttest', questions: store.questionSets[user.quizSetIndex || 0] || store.questionSets[0] || [], currentIndex: 0, answers: {}, score: 0, isFinished: false }}); actions.nav('quiz'); } } 
-                  : { t: `เรียนต่อ: บทที่ ${user?.lastVideoId || 1}`, d: activeLesson?.title || "กลับเข้าสู่บทเรียนล่าสุด", b: "เล่นวิดีโอต่อ", i: "PlayCircle", c: "from-line-500 to-line-600", a: () => globalStore.setState({ activeTab: 'video', currentVideoId: user?.lastVideoId || 1 }) };
+            const actionConfig = hasPosttest ? { t: "ยินดีด้วย คุณเรียนจบแล้ว 🎉", d: "ผ่านการทดสอบและได้รับประกาศนียบัตร", b: "ดูโปรไฟล์", i: "Award", c: "from-emerald-400 to-emerald-600", a: () => globalStore.setState({ activeTab: 'profile' }) } : isUnlocked ? { t: "พร้อมสอบ Posttest แล้ว!", d: "คุณทำเวลาเรียนและผ่านการประเมินปฏิบัติครบถ้วนแล้ว", b: "เริ่มทำ Posttest", i: "FileText", c: "from-rose-400 to-pink-600", a: () => { globalStore.setState({ quizData: { type: 'posttest', questions: store.questionSets[user.quizSetIndex || 0] || store.questionSets[0] || [], currentIndex: 0, answers: {}, score: 0, isFinished: false }}); actions.nav('quiz'); } } : isTimeMet ? { t: "ภารกิจถัดไป: ฝึกภาคปฏิบัติ", d: "เวลาเรียนครบเกณฑ์แล้ว ขั้นตอนต่อไปคือห้องเจรจา", b: "เข้าห้องเจรจา", i: "Globe", c: "from-orange-400 to-amber-500", a: () => window.location.href = './aiskilllab.html' } : { t: `เรียนต่อ: บทที่ ${user?.lastVideoId || 1}`, d: activeLesson?.title || "กลับเข้าสู่บทเรียนล่าสุด", b: "เล่นวิดีโอต่อ", i: "PlayCircle", c: "from-line-500 to-line-600", a: () => globalStore.setState({ activeTab: 'video', currentVideoId: user?.lastVideoId || 1 }) };
 
             const leaderboardData = (dbUsers || []).map(u => {
                 const history = u.skillLabHistory || [];
@@ -681,16 +648,7 @@
                 </GlassCard>
 
                 <div className="fixed bottom-4 left-0 right-0 mx-auto w-fit max-w-[96vw] z-50 bg-white/20 backdrop-blur-xl border border-white/40 rounded-[2rem] p-2 shadow-[0_10px_40px_rgba(0,0,0,0.3)] md:relative md:inset-auto md:w-full md:max-w-none md:z-10 md:bg-transparent md:border-none md:shadow-none md:p-0 flex flex-row justify-center gap-2 md:gap-3 md:mb-8 overflow-x-auto custom-scrollbar">
-                  {[
-                    {t:'video', l:'วิดีโอ', i:'MonitorPlay'}, 
-                    {t:'live', l:'Live สด', i:'Radio', e:lc?.status==='live'}, 
-                    {t:'skill_lab', l:'AI Skill Lab', i:'Bot', a:() => { 
-                        if(user.userType === 'Masterclass') window.location.href='./aiskilllab.html'; 
-                        else actions.showMsg('ฟีเจอร์ AI (Beta) สงวนสิทธิ์เฉพาะกลุ่ม Masterclass ในช่วงทดสอบค่ะ 💙', 'error'); 
-                    }}, 
-                    {t:'leaderboard', l:'จัดอันดับ', i:'Award'}, 
-                    {t:'profile', l:'โปรไฟล์', i:'History'}
-                  ].map(({t, l, i, e, a}) => {
+                  {[{t:'video', l:'วิดีโอ', i:'MonitorPlay'}, {t:'live', l:'Live สด', i:'Radio', e:lc?.status==='live'}, {t:'skill_lab', l:'AI Skill Lab', i:'Bot', a:() => window.location.href='./aiskilllab.html'}, {t:'leaderboard', l:'จัดอันดับ', i:'Award'}, {t:'profile', l:'โปรไฟล์', i:'History'}].map(({t, l, i, e, a}) => {
                      const isActive = tab === t; 
                      const activeClass = isActive ? '!bg-white/90 border-white text-line-700 shadow-[0_5px_15px_rgba(0,185,0,0.2)] scale-105' : e ? '!bg-rose-100/80 text-rose-600 border-rose-300/80 animate-pulse' : 'text-slate-700 border-white/20 hover:text-slate-900 hover:!bg-white/50';
                      return (<button key={t} onClick={a ?? (() => globalStore.setState({ activeTab: t }))} className={`shrink-0 flex flex-col items-center justify-center w-[64px] h-[72px] sm:w-[72px] sm:h-[80px] md:w-auto md:h-auto md:flex-row md:px-8 md:py-4 rounded-[1.25rem] md:rounded-[1.5rem] font-bold md:font-black text-[10px] md:text-lg border cursor-pointer transition-all active:scale-95 ${activeClass}`}><div className={`md:p-1.5 md:rounded-full ${isActive ? 'md:bg-white/60 text-line-600 md:shadow-inner' : ''}`}><SafeIcon name={i} size={24} className={`mb-1 md:mb-0 md:w-6 md:h-6 ${e ? 'animate-ping' : ''}`} /></div><span className="text-center drop-shadow-sm leading-tight px-1">{l}</span></button>);
