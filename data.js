@@ -1,181 +1,728 @@
-// ============================================================================
-// แฟ้มเก็บข้อมูล (Static Data) ฉบับสมบูรณ์ 100% สำหรับ RJ Ailiverse
-// ============================================================================
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - e-Learning RJ Ailiverse</title>
+    
+    <!-- 🌟 เรียกใช้ไฟล์ข้อมูลแยก (Static Data) เพื่อรีดน้ำหนักโค้ด 🌟 -->
+    <script src="./data.js"></script>
 
-window.FAH_IDLE_VIDEO = "https://player.vimeo.com/video/1201677272?background=1&autoplay=1&loop=1&muted=1";
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = { theme: { extend: { colors: { line: { 50: '#e5f8e5', 100: '#cbf1cb', 200: '#9ce49c', 300: '#6dd66d', 400: '#3ec93e', 500: '#00B900', 600: '#009400', 700: '#006f00', 800: '#004a00', 900: '#002500' } } } } }
+    </script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&display=swap');
+        body { font-family: 'Sarabun', sans-serif; background-color: #f1f5f9; color: #1e293b; margin: 0; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background-color: #94a3b8; }
+    </style>
 
-window.CHARACTER_VIDEOS = {
-  FAH: { 
-    ANGRY: "https://player.vimeo.com/video/1201657361?background=1&autoplay=1&loop=1&muted=1", 
-    CONFUSED: "https://player.vimeo.com/video/1201657360?background=1&autoplay=1&loop=1&muted=1", 
-    HESITANT: "https://player.vimeo.com/video/1201657359?background=1&autoplay=1&loop=1&muted=1", 
-    SAD: "https://player.vimeo.com/video/1201657372?background=1&autoplay=1&loop=1&muted=1", 
-    NEUTRAL: "https://player.vimeo.com/video/1201677272?background=1&autoplay=1&loop=1&muted=1", 
-    ADVISING: "https://player.vimeo.com/video/1202358300?background=1&autoplay=1&loop=1&muted=1" 
-  },
-  BROTHER: { 
-    ANGRY: "https://player.vimeo.com/video/1201657665?background=1&autoplay=1&loop=1&muted=1", 
-    CONFUSED: "https://player.vimeo.com/video/1201657667?background=1&autoplay=1&loop=1&muted=1", 
-    HESITANT: "https://player.vimeo.com/video/1201657664?background=1&autoplay=1&loop=1&muted=1", 
-    SAD: "https://player.vimeo.com/video/1201657681?background=1&autoplay=1&loop=1&muted=1", 
-    NEUTRAL: "https://player.vimeo.com/video/1202839934?background=1&autoplay=1&loop=1&muted=1" 
-  }
-};
+    <script type="importmap">
+    {
+      "imports": {
+        "react": "https://esm.sh/react@18.2.0",
+        "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+        "react-dom": "https://esm.sh/react-dom@18.2.0",
+        "lucide-react": "https://esm.sh/lucide-react@0.294.0?external=react",
+        "firebase/app": "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js",
+        "firebase/auth": "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js",
+        "firebase/firestore": "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js"
+      }
+    }
+    </script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body>
+    <div id="admin-root"></div>
 
-window.FAH_PROFILE_PIC = "https://res.cloudinary.com/djwclucoz/image/upload/v1781599152/%E0%B8%A5%E0%B8%9A%E0%B8%84%E0%B8%99%E0%B8%94%E0%B9%89%E0%B8%B2%E0%B8%99%E0%B8%AB%E0%B8%A5%E0%B8%B1%E0%B8%87%E0%B8%AD%E0%B8%AD%E0%B8%81%E0%B8%97%E0%B8%B1%E0%B9%89%E0%B8%87%E0%B8%AB%E0%B8%A1%E0%B8%94_2K_202606161538_tdnggg.jpg";
+    <script type="text/babel" data-type="module">
+        // 🛡️ ป้องกันจอขาว (Global Error Handler)
+        window.onerror = function(message, source, lineno, colno, error) {
+            document.body.innerHTML = `
+                <div style="min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; color:#1e293b; font-family:sans-serif; padding:20px; text-align:center;">
+                    <h2 style="font-size:24px; font-weight:bold; margin-bottom:10px; color:#ef4444;">พบข้อผิดพลาดในโค้ด (Syntax Error)</h2>
+                    <p style="color:#64748b; max-width:600px; line-height:1.5; background:#f8fafc; padding:15px; border-radius:8px; border:1px solid #e2e8f0;">${message}</p>
+                </div>
+            `;
+            return true;
+        };
 
-window.HOSPITAL_MAPPING = { 
-  "เขตสุขภาพที่ 1": [{ name: "รพ.มหาราชนครเชียงใหม่", prov: "เชียงใหม่" }], "เขตสุขภาพที่ 2": [{ name: "รพ.พุทธชินราช", prov: "พิษณุโลก" }],
-  "เขตสุขภาพที่ 3": [{ name: "รพ.สวรรค์ประชารักษ์", prov: "นครสวรรค์" }], "เขตสุขภาพที่ 4": [{ name: "รพ.สระบุรี", prov: "สระบุรี" }],
-  "เขตสุขภาพที่ 5": [{ name: "รพ.ราชบุรี", prov: "ราชบุรี" }], "เขตสุขภาพที่ 6": [{ name: "รพ.ชลบุรี", prov: "ชลบุรี" }],
-  "เขตสุขภาพที่ 7": [{ name: "รพ.ขอนแก่น", prov: "ขอนแก่น" }], "เขตสุขภาพที่ 8": [{ name: "รพ.อุดรธานี", prov: "อุดรธานี" }],
-  "เขตสุขภาพที่ 9": [{ name: "รพ.มหาราชนครราชสีมา", prov: "นครราชสีมา" }], "เขตสุขภาพที่ 10": [{ name: "รพ.สรรพสิทธิประสงค์", prov: "อุบลราชธานี" }],
-  "เขตสุขภาพที่ 11": [{ name: "รพ.สุราษฎร์ธานี", prov: "สุราษฎร์ธานี" }], "เขตสุขภาพที่ 12": [{ name: "รพ.หาดใหญ่", prov: "สงขลา" }],
-  "กรมการแพทย์": [{ name: "รพ.ราชวิถี", prov: "กรุงเทพมหานคร" }, { name: "รพ.เลิดสิน", prov: "กรุงเทพมหานคร" }, { name: "รพ.นพรัตนราชธานี", prov: "กรุงเทพมหานคร" }],
-  "สำนักการแพทย์ กรุงเทพฯ": [{ name: "รพ.กลาง", prov: "กรุงเทพมหานคร" }, { name: "รพ.ตากสิน", prov: "กรุงเทพมหานคร" }, { name: "รพ.เจริญกรุงประชารักษ์", prov: "กรุงเทพมหานคร" }],
-  "สำนักอนามัย กรุงเทพฯ": [{ name: "ศูนย์บริการสาธารณสุข", prov: "กรุงเทพมหานคร" }], "อื่นๆ": [{ name: "อื่นๆ", prov: "" }]
-};
+        import React, { useState, useEffect, useRef } from 'react';
+        import { createRoot } from 'react-dom/client';
+        import * as LucideIcons from 'lucide-react';
+        import { initializeApp, getApps, getApp } from 'firebase/app';
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from 'firebase/auth';
+        import { getFirestore, collection, doc, setDoc, onSnapshot, deleteDoc } from 'firebase/firestore';
 
-// --- บทเรียน 20 บท ---
-window.INITIAL_LESSONS = [
-  { id: 1, title: "ยุทธศาสตร์และเป้าหมายการพัฒนาระบบบริการสุขภาพ (Service plan)", videoId: "1-sX4LnWRMSjoEQmWee-9GuiQ2XMvkSro", documentUrl: "https://drive.google.com/file/d/1FrJt9TCbOy5oewg_eMrRG8pW4dNzJHS9/view?usp=sharing" },
-  { id: 2, title: "แนวทางการประเมินผู้เสียชีวิตเพื่อบริจาคดวงตาและการประสานงานฯ", videoId: "15QOjyhd0hoxpSSO0tZ7Fj4qFaZByiAzT", documentUrl: "https://drive.google.com/file/d/1iJbKaj0VwcsH0AzdyUqrt2jsTjEyhfSg/view?usp=sharing" },
-  { id: 3, title: "จริยธรรม กฎหมายที่เกี่ยวข้องกับการรับบริจาคอวัยวะ และบทบาทของศูนย์ฯ", videoId: "1L5pFZh85OPDz7lWwJCBKlFDXxkTZSxt_", documentUrl: "https://drive.google.com/file/d/1PtfxrqDZrNpX_NDQBGyCqqfZsPnMRg6e/view?usp=sharing" },
-  { id: 4, title: "ความสำคัญของการบริจาคและปลูกถ่ายอวัยวะ และบทบาทของบุคลากรฯ", videoId: "14hnZ80UE0KvCmW2oHE2zBTx8uBCg4rIB", documentUrl: "https://drive.google.com/file/d/1HXXlSqONQ3eq7E1Os0C8OtbZcSGbG6a5/view?usp=sharing" },
-  { id: 5, title: "การประสานงานเมื่อมีผู้บริจาคอวัยวะสมองตาย และหลักเกณฑ์การจัดสรรอวัยวะ", videoId: "1wkE2CCaRgxlzHmho1ijK49SE028vNqcV", documentUrl: "https://drive.google.com/file/d/1w4xefABcn2GRTQevhpvYuybD2kLozlA6/view?usp=sharing" },
-  { id: 6, title: "การเตรียมผู้ป่วยเพื่อเข้ารับการปลูกถ่ายไต และการดูแลหลังปลูกถ่ายไต", videoId: "1pu1O3swHMtTzBXjF3rG_NzfIgjYfgnLm", documentUrl: "https://drive.google.com/file/d/1u_xSPv95dvxXw85QsSx7FYYsKonJbJjj/view?usp=sharing" },
-  { id: 7, title: "การจัดกิจกรรมส่งเสริมและประชาสัมพันธ์ชีวิตใหม่หลังการปลูกถ่ายอวัยวะ", videoId: "1Sc-2Z_MOD85kvWBduEEWbPiGxw1zeTec", documentUrl: "https://drive.google.com/file/d/1RSPtCHRe38si6P75CCA_85djfwJhUrdE/view?usp=sharing" },
-  { id: 8, title: "กลุ่มงานการพยาบาลรับบริจาค ปลูกถ่ายอวัยวะและเนื้อเยื่อ สธ.", videoId: "1vc4b07Ooas4cozJK5cnweIl2KeeKvHbk", documentUrl: "https://drive.google.com/file/d/1WUO677apoQJeJKboj0iOZmrTIybd4_hM/view?usp=sharing" },
-  { id: 9, title: "Identification of Potential Organ Donors and Assessment", videoId: "1TRLOGabpI66ZUEPybGyrpHTN5dNlYP-f", documentUrl: "https://drive.google.com/file/d/14-GXQS4-KHEUraOt8Ey2cGVkhxN12Ump/view?usp=sharing" },
-  { id: 10, title: "Organ Packaging and Transportation สำหรับ รพ Donor", videoId: "1POFnLm_G2BuXWgOojDRpotM5YhBxcCnk", documentUrl: "https://drive.google.com/file/d/1VQk-wMxYRbphaBDkCnOkapwgVdTGShbV/view?usp=sharing" },
-  { id: 11, title: "Family Approach", videoId: "1GpfjRpbDnilV22iL52ZyOyUcRs9MUVbu", documentUrl: "https://drive.google.com/file/d/1aRjlUNctesyliehy5KXLW7VwmGPW2R4h/view?usp=sharing" },
-  { id: 12, title: "Brain Death Diagnosis", videoId: "136Gl3ocDivGYU764t7t9Qvpn_iTJTfs4", documentUrl: "https://drive.google.com/file/d/1TMceKfI3azgRVRo-GtSDluTzq1lhe8-U/view?usp=sharing" },
-  { id: 13, title: "Donor Management", videoId: "1YPyTis-9VzJLPhUvwMp1IC_xs7TLIao0", documentUrl: "https://drive.google.com/file/d/1OeZIm6x3lg_-dFTUPgd9LiombnRrPrQh/view?usp=sharing" },
-  { id: 14, title: "Organ Procurement", videoId: "12lOd6KsekmV0PDbdLVr2wYsz-gNnovHK", documentUrl: "https://drive.google.com/file/d/1e-PwnXUCVScRLg5bmXRjOMSC0dIeDv5r/view?usp=sharing" },
-  { id: 15, title: "การปฏิบัติตัวหลังผ่าตัด", videoId: "1k2bsL3ZT7dG85c63fC7SPCAQlrkWVzHC", documentUrl: "" },
-  { id: 16, title: "ภาพรวมการปลูกถ่ายไต", videoId: "1U5W7QGZm4CQaKIwiwR3mE3FgSeKA3JxS", documentUrl: "" },
-  { id: 17, title: "การปฏิบัติตัวหลังปลูกถ่าย (ยา)", videoId: "1v1QN-Qq1zHRtEYyKt1iJ6XrSfSfy7zuM", documentUrl: "" },
-  { id: 18, title: "โภชนาการอาหาร", videoId: "1Ekf354d86SJ43JRkqAAEH9D-XB9725Dr", documentUrl: "" },
-  { id: 19, title: "ขั้นตอนการเข้ารับบริการคลินิกปลูกถ่ายไต", videoId: "1Om2A00CDS8seta7eiz47-gbXExzzU4RU", documentUrl: "" },
-  { id: 20, title: "ขั้นตอนการดูแลผู้ป่วยปลูกถ่ายไตในระยะต่างๆ", videoId: "15qb9D-gNqw-cEJoLozRY2DW1Dc6huB0e", documentUrl: "" }
-];
+        const ICONS = {
+          Users: LucideIcons.Users, Radio: LucideIcons.Radio, BookOpen: LucideIcons.BookOpen, 
+          Database: LucideIcons.Database, Activity: LucideIcons.Activity, LogOut: LucideIcons.LogOut,
+          Search: LucideIcons.Search, Edit: LucideIcons.Edit, CheckCircle: LucideIcons.CheckCircle,
+          XCircle: LucideIcons.XCircle, Save: LucideIcons.Save, UploadCloud: LucideIcons.UploadCloud,
+          Trash2: LucideIcons.Trash2, Plus: LucideIcons.Plus, Download: LucideIcons.Download,
+          RefreshCw: LucideIcons.RefreshCw, ShieldCheck: LucideIcons.ShieldCheck, Info: LucideIcons.Info, CheckSquare: LucideIcons.CheckSquare,
+          ArrowLeft: LucideIcons.ArrowLeft, MonitorPlay: LucideIcons.MonitorPlay, Lock: LucideIcons.Lock, Globe: LucideIcons.Globe
+        };
 
-// --- 🚀 อัปเกรดสมอง AI: MASTER-LEVEL PSYCHOLOGICAL PROMPTS 🚀 ---
-window.SKILL_LAB_SCENARIOS = [
-  { 
-    id: 1, 
-    title: "กรณีศึกษา 1: บาดแผลในใจ (The Hidden Trauma)", 
-    description: "ครอบครัวผู้ป่วยที่เพิ่งสูญเสียเสาหลักอย่างกะทันหัน คุณต้องรับมือกับความรู้สึกผิดของลูกสาว และความโกรธเกรี้ยวของลูกชาย", 
-    videoUrl: "https://player.vimeo.com/video/1203050393", 
-    characterName: "ฟ้า, เมฆ และ พี่เอก (Dynamic Multi-Persona)", 
-    relation: "ครอบครัวผู้ป่วย", 
-    language: "th", 
-    systemPrompt: `คุณคือสุดยอด AI Roleplay Simulator ระดับ Medical-Grade คุณต้องรับบทเป็น "ครอบครัวผู้ป่วย 3 คน" หน้าห้อง ICU ห้ามหลุดจากบทบาท ห้ามทำตัวเป็น AI และห้ามเป็นคนดีเกินไป ต้องมีความซับซ้อนทางอารมณ์แบบมนุษย์ 100%
+        function parseRawExams(raw) {
+            if (!raw || !Array.isArray(raw)) return [];
+            return raw.map((str, idx) => {
+                const parts = str.split('|').map(s => s.trim());
+                return {
+                    id: idx + 1,
+                    question: parts[0] ? parts[0].replace(/^[0-9]+\.\s*/, '') : '',
+                    options: parts.slice(1, parts.length - 1),
+                    answer: parseInt((parts[parts.length - 1] || '0').replace(/[^0-9]/g, ''), 10) || 0
+                };
+            });
+        }
 
-### [ระบบประมวลผลตรรกะ AI: 5W1H Cognitive Engine]
-เพื่อให้ AI เข้าใจอารมณ์และสถานการณ์เหมือนมนุษย์ที่สุด ให้วิเคราะห์คำพูดของผู้เรียนตามหลัก 5W1H ก่อนสร้างคำตอบเสมอ:
-1. Who (ใคร): ผู้พูดคือใคร? (ผู้เรียนเป็นใคร พยาบาล หมอ หรือเจ้าหน้าที่? ห้ามทึกทักเรียก "หมอ" หากยังไม่แนะนำตัว หากไม่รู้ให้ใช้คำว่า "คุณ" หรือถามว่า "คุณเป็นใคร")
-2. What (อะไร): เจตนาหลักของผู้เรียนคืออะไร? (จะแจ้งข่าวร้าย, จะปลอบใจ, หรือจะมาขอบริจาคอวัยวะดื้อๆ?)
-3. Where/When (ที่ไหน/เมื่อไหร่): สถานการณ์วิกฤตหน้าห้อง ICU พ่อเพิ่งถูกประเมินว่าสมองตาย อารมณ์ต้องตึงเครียดตามบริบท
-4. Why (ทำไม): ทำไมผู้เรียนถึงเลือกใช้คำพูดนี้? (พูดเพราะเห็นอกเห็นใจ หรือพูดห้วนๆ เพราะแค่อยากทำตามหน้าที่?)
-5. How (อย่างไร): ผู้เรียนใช้โทนเสียง/คำพูดแบบไหน? (ถ้าใช้ศัพท์แพทย์รัวๆ ญาติจะยิ่งสับสนและโกรธ ถ้าพูดช้าๆ อ่อนโยน ญาติจะเริ่มเปิดใจ)
-*หมายเหตุ: ข้อมูลตัวแปร {{USER_POSITION}} คือข้อมูลเบื้องต้น แต่ AI ต้องยึดตามสิ่งที่ผู้เรียนพิมพ์แนะนำตัวเป็นหลัก*
+        function SafeIcon({ name, size = 20, className = "" }) {
+          const IconComponent = ICONS[name] || ICONS['Activity'];
+          return <IconComponent size={size} className={className} />;
+        }
 
-### [1. ปูมหลังผู้ป่วย (The Patient)]
-ผู้ป่วย: ชาย อายุ 46 ปี (คุณพ่อเลี้ยงเดี่ยว) ประสบอุบัติเหตุรถยนต์ แพทย์ประเมินว่า "สมองตาย" แล้ว ร่างกายยังอุ่นเพราะใช้เครื่องช่วยหายใจ
+        // ============================================================================
+        // การเชื่อมต่อ Firebase
+        // ============================================================================
+        let app, auth, db, appId = 'fah-elearning-prod';
+        try {
+          const fbP1 = "AIzaSyBs275"; const fbP2 = "NY99gdv1uZdAnb"; const fbP3 = "mx3UlWO8K4o5a0";
+          let fbConfig = (typeof __firebase_config !== 'undefined' && __firebase_config) 
+            ? JSON.parse(__firebase_config) : { apiKey: fbP1 + fbP2 + fbP3, authDomain: "e-learning-with-fah-ai.firebaseapp.com", projectId: "e-learning-with-fah-ai", storageBucket: "e-learning-with-fah-ai.firebasestorage.app", messagingSenderId: "418946105960", appId: "1:418946105960:web:728e28070790975df231dd" };
+          
+          app = getApps().length === 0 ? initializeApp(fbConfig) : getApp();
+          auth = getAuth(app);
+          db = getFirestore(app);
+          appId = typeof __app_id !== 'undefined' && __app_id ? String(__app_id).replace(/\//g, '-') : 'fah-elearning-prod';
+        } catch (error) { console.error("Firebase init error", error); }
 
-### [2. จิตวิทยาตัวละคร (Psychological Profiles)]
-- **[ฟ้า] (อายุ 22):** ลูกสาวคนโต 
-  - *ปมในใจ (Hidden Trauma):* เช้าวันเกิดเหตุ ฟ้าทะเลาะกับพ่อรุนแรงเรื่องที่พ่อทำงานหนักเกินไปจนไม่มีเวลาพักผ่อน ฟ้าจึงรู้สึกผิดขั้นรุนแรง (Guilt) และคิดว่าตัวเองเป็นต้นเหตุ 
-  - *จุดอ่อน (Trigger):* ถ้าผู้เรียนพูดถึง "การหมดหวัง" หรือ "พ่อไปสบายแล้ว" ฟ้าจะร้องไห้หนักขึ้นเพราะเธอยังไม่ได้ขอโทษพ่อ
-- **[เมฆ] (อายุ 18):** น้องชาย 
-  - *ปมในใจ (Hidden Trauma):* รักพ่อมาก อาการก้าวร้าวของเมฆเป็นเพียง "เกราะป้องกัน (Defense Mechanism)" เพื่อปกปิดความกลัวและความอ่อนแอข้างใน 
-  - *จุดอ่อน (Trigger):* เกลียดศัพท์แพทย์ (Jargon) ถ้าผู้เรียนพูดคำว่า "สมองตาย", "GCS", "Pupil" เมฆจะสวนกลับทันทีว่า *"พูดภาษาคนได้ไหม! พ่อผมตัวยังอุ่นอยู่เลย สมองตายอะไร!"*
-- **[พี่เอก] (อายุ 32):** แฟนของฟ้า 
-  - *ปมในใจ:* รู้ตัวว่าเป็นคนนอก ไม่มีสิทธิ์ตัดสินใจแทนครอบครัว แต่รักฟ้ามาก จึงพยายามเป็นกำแพงพิงให้ฟ้า
-  - *จุดอ่อน:* ถ้าเมฆก้าวร้าวใส่เจ้าหน้าที่ พี่เอกจะดุเมฆให้เบาลง ถ้าฟ้าสติแตก พี่เอกจะลูบหลังและบอกให้ฟ้าตั้งสติฟังก่อน
+        function AdminApp() {
+            const [user, setUser] = useState(null);
+            const [isAuth, setIsAuth] = useState(false);
+            const [password, setPassword] = useState('');
+            const [activeTab, setActiveTab] = useState('users');
+            const [usersList, setUsersList] = useState([]);
+            const [contentConfig, setContentConfig] = useState({ 
+                lessons: window.INITIAL_LESSONS || [],
+                questionSets: window.QUIZ_QUESTIONS_RAW ? [parseRawExams(window.QUIZ_QUESTIONS_RAW)] : [[]]
+            });
+            const [liveConfig, setLiveConfig] = useState({ status: 'offline', days: 1, hours: 10, topic: '', url: '', documentUrl: '' });
+            const [systemConfig, setSystemConfig] = useState({ appsScriptUrl: '', certScriptUrl: '', lookerStudioUrl: '', masterCsvUrl: '', autoSyncFromSheet: false });
+            const [alertMsg, setAlertMsg] = useState({ show: false, text: '', type: 'success' });
+            
+            const [searchTerm, setSearchTerm] = useState('');
+            const [showManualForm, setShowManualForm] = useState(false);
+            const [manualForm, setManualForm] = useState({ name: '', license: '', userType: 'เรียนใหม่', hospital: 'รพ.ราชวิถี' });
 
-### [3. กฎการมีปฏิสัมพันธ์ (Interaction Dynamics)]
-1. **The First Move:** เริ่มต้นด้วยภาวะ **Denial (ปฏิเสธความจริง)** เสมอ เมฆจะเชื่อว่าพ่อหลับ ฟ้าจะหวังปาฏิหาริย์ ห้ามยอมรับความตายง่ายๆ
-2. **Sibling Rescue (ปฏิกิริยาลูกโซ่):** ถ้าผู้เรียนดุหรือใช้คำพูดเย็นชาใส่เมฆ ฟ้าจะหยุดร้องไห้แล้วหันมาปกป้องน้องชายทันที (เข้าสู่โหมด ANGRY)
-3. **No Early Donation:** ห้ามตัวละครเอ่ยถึง "การบริจาคอวัยวะ" ก่อนเด็ดขาด จนกว่าผู้เรียนจะปูทาง (Empathy) ได้ดีพอ และเอ่ยปากถามเอง
-4. **Natural Flaws:** มนุษย์พูดไม่สมบูรณ์แบบ ให้พิมพ์โดยมีคำสร้อย เช่น "ฮึก..", "เอ่อ..", "คือว่า..", หรือพิมพ์ประโยคขาดๆ หายๆ เวลาสับสน
-5. **The Silence Penalty:** ถ้าผู้เรียนพิมพ์แค่ "..." หรือส่งข้อความสั้นเกินไปแบบขอไปที เมฆจะตอบกลับว่า *"เงียบทำไม! ตอบมาสิว่าพ่อผมเป็นอะไร!"*
-6. **[สำคัญมาก - การแนะนำตัว]:** หากผู้เรียนพิมพ์ทักทาย หรือแนะนำตัว "ฟ้า" ต้องเป็นคนตอบรับ แนะนำตัวเอง และผายมือแนะนำ "เมฆ" กับ "พี่เอก" ให้ผู้เรียนรู้จักในข้อความแรกทันที
+            const showAlert = (text, type = 'success') => {
+                setAlertMsg({ show: true, text, type });
+                setTimeout(() => setAlertMsg({ show: false, text: '', type }), 4000);
+            };
 
-### [4. ข้อกำหนดการส่งออก (Output Format)]
-- **กฎเหล็กขั้นสูงสุด:** ให้คุณตอบกลับโดย **เลือกเพียง 1 ตัวละครต่อ 1 ครั้งเท่านั้น!** ห้ามพิมพ์บทพูดของหลายคนออกมาพร้อมกันในข้อความเดียว
-- ตอบขึ้นต้นด้วย Tag อารมณ์และชื่อเสมอ เพื่อให้ระบบดึงวิดีโอถูก:
-  - [SAD] [ฟ้า] ฮึก... พ่อยังหายใจอยู่นะคะ...
-  - [ANGRY] [เมฆ] พวกคุณรักษาประสาอะไรวะ!
-  - [NEUTRAL] [พี่เอก] ใจเย็นๆ ไอเมฆ ฟังเขาก่อน
-(อารมณ์ที่รองรับ: SAD, ANGRY, CONFUSED, HESITANT, NEUTRAL, ADVISING)` 
-  },
-  { 
-    id: 2, 
-    title: "กรณีศึกษา 2: วัฒนธรรมต่างแดน (Cross-Cultural Barrier)", 
-    description: "รับมือญาติชาวต่างชาติที่ไม่เข้าใจระบบสาธารณสุขไทย ความท้าทายคือภาษาและการจัดการความคาดหวัง", 
-    videoUrl: "https://player.vimeo.com/video/1203050393", 
-    characterName: "Fah and Mek (Foreign Tourists)", 
-    relation: "ครอบครัวผู้ป่วย (ต่างชาติ)", 
-    language: "en", 
-    systemPrompt: `You are an elite AI Roleplay Simulator acting as "Two Foreign Relatives" in a Thai ICU. You must stay strictly in character, displaying complex human emotions and cultural barriers. Output ONLY IN ENGLISH.
+            useEffect(() => {
+                if (!auth || !db) return;
+                const initAuth = async () => {
+                    try {
+                        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                            await signInWithCustomToken(auth, __initial_auth_token);
+                        } else {
+                            await signInAnonymously(auth);
+                        }
+                    } catch (err) {
+                        console.error("Auth init error:", err);
+                    }
+                };
+                initAuth();
+                const unsubscribe = onAuthStateChanged(auth, setUser);
+                return () => unsubscribe();
+            }, []);
 
-### [1. The Patient Context]
-Patient: 46yo Male tourist, single father. Involved in a severe tuk-tuk accident. Doctors have pronounced "Brain Death" (GCS 3). He is on a ventilator.
+            useEffect(() => {
+                if (!user || !db) return;
+                
+                const unsubUsers = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'elearning_users'), (snapshot) => {
+                    const arr = []; snapshot.forEach(doc => arr.push({ id: doc.id, ...doc.data() })); setUsersList(arr);
+                }, (err) => console.error("Users sync error:", err));
 
-### [2. Psychological Profiles]
-- **[Fah] (Age 22):** Daughter. 
-  - *Hidden Trauma:* She forced her dad to come on this trip to Thailand. She carries immense guilt.
-  - *Trigger:* If the user says "passed away" or "died", she will point to the monitor crying, *"But the machine says his heart is still beating! You're lying!"*
-- **[Mek] (Age 18):** Son. 
-  - *Hidden Trauma:* Feels utterly helpless in a foreign country. Distrusts the local medical system.
-  - *Trigger:* Extremely hostile towards medical jargon. If the user says "Brain Death" or "Apnea test" without explaining kindly, Mek will erupt: *"Speak English! What the hell are you doing to my dad?!"*
+                const unsubSettings = onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_config', 'settings'), (docSnap) => {
+                    if (docSnap.exists()) {
+                        const data = docSnap.data();
+                        if (data.liveConfig) setLiveConfig(data.liveConfig);
+                        setSystemConfig(prev => ({ ...prev, ...data }));
+                    }
+                }, (err) => console.error("Settings sync error:", err));
 
-### [3. Interaction Rules]
-1. **Culture Shock:** They do not understand Thai healthcare. They might demand to fly their dad back home immediately. The user must navigate this impossibility gracefully.
-2. **One at a Time [STRICT]:** You must output ONLY ONE character's response per turn! NEVER output both characters in a single message!
-3. **Format:** Always start with an Emotion Tag and Name:
-   - [SAD] [Fah] Please... please save him...
-   - [ANGRY] [Mek] I demand to see the head doctor!
-   - [CONFUSED] [Fah] I don't understand... he was fine this morning.
-(Supported Emotions: SAD, ANGRY, CONFUSED, HESITANT, NEUTRAL, ADVISING)` 
-  }
-];
+                const unsubContent = onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_config', 'content'), (docSnap) => {
+                    if (docSnap.exists() && docSnap.data()) {
+                        const data = docSnap.data();
+                        setContentConfig(prev => ({
+                            lessons: data.lessons || prev.lessons,
+                            questionSets: data.questionSets || prev.questionSets
+                        }));
+                    }
+                }, (err) => console.error("Content sync error:", err));
+                
+                return () => {
+                    unsubUsers();
+                    unsubSettings();
+                    unsubContent();
+                };
+            }, [user]);
 
-// --- ข้อสอบ 40 ข้อ (ย่อลงเพื่อประหยัดพื้นที่ แต่ข้อมูลครบตามเดิม) ---
-window.QUIZ_QUESTIONS_RAW = [
-  "เป้าหมายหลักของ Service Plan สาขาการรับบริจาคและปลูกถ่ายอวัยวะคือข้อใด?|ลดค่าใช้จ่ายในการดูแลผู้ป่วยวิกฤต|เพิ่มจำนวนผู้บริจาคอวัยวะสมองตายและผู้ได้รับการปลูกถ่ายอวัยวะให้เพียงพอ|ลดภาระงานของบุคลากรทางการแพทย์ในห้องICU|สร้างศูนย์ปลูกถ่ายอวัยวะในทุกชุมชน|1",
-  "การจัดเก็บดวงตา (Eye procurement) ควรดำเนินการให้แล้วเสร็จอย่างช้าที่สุดภายในกี่ชั่วโมงหลังผู้ป่วยเสียชีวิต?|ภายใน 2 ชั่วโมง|ภายใน 24-48 ชั่วโมง|ภายใน 3 วัน|ภายใน 6-8 ชั่วโมง (หากมีการประคบเย็นอาจยืดได้)|3",
-  "ประโยชน์สูงสุดของการปลูกถ่ายไตเมื่อเทียบกับการฟอกเลือด (Dialysis) คืออะไร?|ผู้ป่วยไม่ต้องทานยากดภูมิคุ้มกันอีกเลย|แพทย์ทำงานง่ายขึ้นโดยไม่ต้องตรวจติดตามผล|สามารถรับประทานอาหารได้ทุกชนิดโดยไม่มีข้อจำกัด|ผู้ป่วยมีคุณภาพชีวิตที่ดีขึ้น อัตราการรอดชีวิตสูง และลดภาระค่าใช้จ่ายระยะยาว|3",
-  "การบรรจุไตเพื่อขนส่ง (Kidney Packaging) ต้องรักษาอุณหภูมิให้อยู่ในช่วงใด?|แช่แข็งในน้ำแข็งแห้ง (-20 องศาเซลเซียส)|อุณหภูมิห้อง (25 องศาเซลเซียส)|2-4 องศาเซลเซียส (แช่ในน้ำแข็งเกล็ดที่กำลังละลาย)|แช่ในน้ำอุ่น (37 องศาเซลเซียส)|2",
-  "การทำ Decoupling หมายถึงการแยกเรื่องใดออกจากเรื่องใด?|แยกการทำงานของหัวใจออกจากปอด|แยกหมอออกจากพยาบาล|แยกการแจ้งข่าวสมองตาย ออกจากการเจรจาขอรับบริจาคอวัยวะ|แยกญาติผู้ชายออกจากญาติผู้หญิง|2",
-  "การทำ Apnea Test เป็นขั้นตอนสำคัญเพื่อพิสูจน์สิ่งใด?|เพื่อดูว่าหัวใจยังเต้นอยู่หรือไม่|เพื่อพิสูจน์ว่าศูนย์ควบคุมการหายใจที่ก้านสมองสูญเสียการทำงานอย่างถาวร|เพื่อกระตุ้นให้ผู้ป่วยฟื้นคืนสติ|เพื่อดูการทำงานของปอดก่อนบริจาค|1",
-  "ข้อใดคือเกณฑ์อายุขั้นต่ำในการแสดงความจำนงบริจาคอวัยวะได้ด้วยตนเองตามกฎหมายไทย?|15 ปีบริบูรณ์|18 ปีบริบูรณ์|20 ปีบริบูรณ์|ไม่มีข้อจำกัดหากได้รับความยินยอมจากผู้ปกครอง|1",
-  "อวัยวะใดต่อไปนี้ไม่สามารถปลูกถ่ายได้?|สมอง|หัวใจ|ปอด|ตับอ่อน|0",
-  "ข้อใดคือสาเหตุการเสียชีวิตที่พบได้บ่อยที่สุดในกลุ่มผู้บริจาคอวัยวะสมองตาย?|โรคมะเร็งระยะสุดท้าย|อุบัติเหตุทางศีรษะ (Traumatic Brain Injury)|โรคติดเชื้อในกระแสเลือด|โรคหัวใจล้มเหลวเฉียบพลัน|1",
-  "ในการเจรจาขอรับบริจาคอวัยวะ หากญาติมีความเชื่อว่า 'บริจาคแล้วชาติหน้าอวัยวะจะไม่ครบ' บุคลากรทางการแพทย์ควรตอบสนองอย่างไร?|อธิบายว่าตามหลักพุทธศาสนา การเสียสละร่างกายเป็นทานบารมีขั้นสูง|เพิกเฉยและเปลี่ยนไปคุยเรื่องอื่น|บอกว่าเป็นความเชื่อที่ผิดและไม่มีเหตุผล|ยุติการเจรจาทันที|0"
-];
+            const syncFromGoogleSheet = async (isManual = false) => {
+                if (!systemConfig.masterCsvUrl) {
+                    if (isManual) showAlert('กรุณาระบุลิงก์ Google Sheets แบบ CSV ก่อน (ตั้งค่าที่แท็บ Auto-Sync)', 'error');
+                    return;
+                }
+                if (isManual) showAlert('กำลังดึงข้อมูลสิทธิ์ผู้เรียนจากตาราง...', 'info');
+                try {
+                    const noCacheUrl = systemConfig.masterCsvUrl + (systemConfig.masterCsvUrl.includes('?') ? '&' : '?') + 't=' + new Date().getTime();
+                    const res = await fetch(noCacheUrl, { cache: 'no-store' });
+                    
+                    if (!res.ok) throw new Error('Cannot fetch CSV');
+                    const text = await res.text();
+                    const rows = text.split('\n').filter(r => r.trim());
+                    if (rows.length <= 1) {
+                        if (isManual) showAlert('ไม่พบข้อมูลผู้เรียนในตาราง', 'error');
+                        return;
+                    }
 
-// --- 📍 ข้อมูลพิกัดแผนที่ 13 เขต ---
-window.BASE_REGIONS = [
-  { id: 'R1', name: 'เขตสุขภาพที่ 1', desc: 'เชียงใหม่และภาคเหนือตอนบน', x: 28, y: 15 },
-  { id: 'R2', name: 'เขตสุขภาพที่ 2', desc: 'พิษณุโลกและภาคเหนือตอนล่าง', x: 34, y: 32 },
-  { id: 'R3', name: 'เขตสุขภาพที่ 3', desc: 'นครสวรรค์และภาคกลางตอนบน', x: 38, y: 44 },
-  { id: 'R4', name: 'เขตสุขภาพที่ 4', desc: 'สระบุรีและภาคกลางตอนบน', x: 44, y: 50 },
-  { id: 'R5', name: 'เขตสุขภาพที่ 5', desc: 'ราชบุรีและภาคตะวันตก', x: 32, y: 58 },
-  { id: 'R6', name: 'เขตสุขภาพที่ 6', desc: 'ชลบุรีและภาคตะวันออก', x: 58, y: 60 },
-  { id: 'R7', name: 'เขตสุขภาพที่ 7', desc: 'ขอนแก่นและอีสานตอนกลาง', x: 62, y: 38 },
-  { id: 'R8', name: 'เขตสุขภาพที่ 8', desc: 'อุดรธานีและอีสานตอนบน', x: 74, y: 26 },
-  { id: 'R9', name: 'เขตสุขภาพที่ 9', desc: 'นครราชสีมาและอีสานตอนล่าง', x: 62, y: 48 },
-  { id: 'R10', name: 'เขตสุขภาพที่ 10', desc: 'อุบลราชธานีและอีสานตอนล่าง', x: 82, y: 48 },
-  { id: 'R11', name: 'เขตสุขภาพที่ 11', desc: 'สุราษฎร์ธานีและภาคใต้ตอนบน', x: 28, y: 78 },
-  { id: 'R12', name: 'เขตสุขภาพที่ 12', desc: 'สงขลาและภาคใต้ตอนล่าง', x: 38, y: 92 },
-  { id: 'BKK', name: 'กรุงเทพมหานคร', desc: 'ศูนย์กลางการแพทย์และสาธารณสุข', x: 48, y: 56 }
-];
+                    let newCount = 0; let updateCount = 0;
+                    for (let i = 1; i < rows.length; i++) {
+                        const regex = /,(?=(?:(?:[^"]*"){2})*[^"]*$)/;
+                        const cols = rows[i].split(regex).map(c => c.trim().replace(/^"|"$/g, ''));
+                        
+                        if (cols.length >= 3 && cols[2]) {
+                            const name = cols[1] || ''; 
+                            const license = String(cols[2]).replace(/[^a-zA-Z0-9]/g, ''); 
+                            if (!license) continue;
 
-window.LIVE_REPORT_URL = "https://raw.githubusercontent.com/danielstuart14/CSS_FOG_ANIMATION/master/report.txt"; 
+                            const email = cols[3] || '';
+                            const position = cols[4] || '';
+                            const department = cols[5] || '';
+                            const hospital = cols[6] || ''; 
+                            const province = cols[7] || '';
+                            
+                            let userType = 'เรียนใหม่';
+                            let rawUserType = String(cols[8] || '').trim().toLowerCase();
+                            
+                            if (rawUserType.includes('onsite')) {
+                                userType = 'Onsite';
+                            } else if (rawUserType.includes('masterclass')) {
+                                userType = 'Masterclass';
+                            } else if (rawUserType.includes('online')) {
+                                userType = 'Online';
+                            } else {
+                                const fullRowText = rows[i].toLowerCase();
+                                if (fullRowText.includes('onsite')) userType = 'Onsite';
+                                else if (fullRowText.includes('masterclass')) userType = 'Masterclass';
+                                else if (fullRowText.includes('online')) userType = 'Online';
+                            }
 
-window.AI_INSIGHT_TEXT = `📊 AI Policy Intelligence Report:\n\n[1] มิติบุคลากร (Status Quo):\n• เข้าร่วมโครงการ {{USERS}} ราย | ผ่านเกณฑ์ {{PASSED}} ราย\n• กำลังรักษาระดับการฝึกเจรจา (Skill Lab) เพื่อปิดช่องว่างการขาดแคลนทีมภูมิภาค\n\n[2] มิติความเหลื่อมล้ำเชิงพื้นที่ (Geo-Equity):\n• ภูมิภาคนำร่องสูงสุด: {{MAX_REG_NAME}} ({{MAX_REG_USERS}} ราย)\n• พื้นที่เฝ้าระวัง: {{MIN_REG_NAME}} ({{MIN_REG_USERS}} ราย)\n\n[3] มิติวิกฤตระดับชาติ (National Crisis Benchmark):\n• ปัจจุบันไทยมีผู้รออวัยวะสะสมกว่า 8,019 ราย\n• คอขวดหลัก: "ขาดทักษะการเจรจาในห้อง ICU" ระบบ RJ Ailiverse จึงเป็นเครื่องมือเร่งด่วนในการแก้ปัญหานี้`;
+                            const phone = (cols[16] || '').replace(/[^0-9]/g, '');
 
-window.POLICY_SPEECH = `สวัสดีค่ะท่านผู้บริหาร ฟ้าทำการสังเคราะห์ข้อมูลล่าสุดพบว่า ขณะนี้เรามีบุคลากรในระบบ {{USERS}} ท่าน สอบผ่านแล้ว {{PASSED}} ท่านค่ะ จากมิติเชิงพื้นที่พบว่า {{MAX_REG_NAME}} มีความตื่นตัวสูงสุดค่ะ อย่างไรก็ตาม ปัจจุบันผู้ป่วยชาวไทยที่รออวัยวะพุ่งสูงกว่าแปดพันราย คอขวดสำคัญคือการขาดทีมเจรจาในภูมิภาค ฟ้าขอเสนอให้เร่งนโยบายจัดเก็บในเขตปลูกถ่ายในเขต และใช้ระบบของเราเป็นเกณฑ์มาตรฐานแห่งชาติในการประเมินทักษะค่ะ ท่านสามารถดูรายละเอียดรายงานเชิงนโยบายบนหน้าจอได้เลยค่ะ`;
+                            const existingUser = usersList.find(u => String(u.id) === license);
+                            const isOnsiteOrMaster = userType === 'Onsite' || userType === 'Masterclass';
+
+                            let targetPayload = {
+                                id: license, 
+                                name: name,
+                                license: license,
+                                phone: phone,
+                                email: email,
+                                position: position,
+                                department: department,
+                                hospital: hospital,
+                                province: province,
+                                userType: userType
+                            };
+
+                            if (!existingUser) {
+                                targetPayload.status = 'กำลังเรียน';
+                                targetPayload.pretest = '-';
+                                targetPayload.posttest = '-';
+                                targetPayload.lastVideoId = 1;
+                                targetPayload.videoTimes = {};
+                                targetPayload.progress = isOnsiteOrMaster ? 100 : 0;
+                                targetPayload.studySeconds = isOnsiteOrMaster ? 36000 : 0;
+                                targetPayload.skillLabPassed = userType === 'Masterclass';
+                                
+                                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_users', license), targetPayload, { merge: true });
+                                newCount++;
+                            } else {
+                                if (isOnsiteOrMaster && ((existingUser.progress || 0) < 100 || (userType === 'Masterclass' && !existingUser.skillLabPassed))) {
+                                    targetPayload.progress = 100;
+                                    targetPayload.studySeconds = 36000;
+                                    if (userType === 'Masterclass') targetPayload.skillLabPassed = true;
+                                }
+                                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_users', license), targetPayload, { merge: true });
+                                updateCount++;
+                            }
+                        }
+                    }
+                    if (isManual) showAlert(`ซิงค์ข้อมูลสำเร็จ! (เพิ่มใหม่ ${newCount} คน, อัปเดต/Auto-refill ${updateCount} คน)`);
+                } catch (e) {
+                    if (isManual) showAlert('ดึงข้อมูลล้มเหลว กรุณาตรวจสอบลิงก์ CSV', 'error');
+                    console.error("Sync Sheet Error:", e);
+                }
+            };
+
+            const handleForceRefillAll = async () => {
+                if(!window.confirm('ระบบจะค้นหาผู้เรียนที่มีสิทธิ์ Onsite หรือ Masterclass ทั้งหมด และเติมเวลาเรียนเป็น 100% พร้อมมอบสิทธิ์พิเศษอัตโนมัติ ยืนยันหรือไม่?')) return;
+                let count = 0;
+                showAlert('กำลังประมวลผล Auto-Refill...', 'info');
+                try {
+                    for(const u of usersList) {
+                        const uTypeStr = String(u.userType).toLowerCase();
+                        const isUserOnsite = ['onsite', 'masterclass'].includes(uTypeStr);
+                        const isMasterclass = uTypeStr === 'masterclass';
+                        
+                        if (isUserOnsite && (u.progress < 100 || (isMasterclass && !u.skillLabPassed))) {
+                            await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_users', String(u.id)), { 
+                                progress: 100, 
+                                studySeconds: 36000, 
+                                skillLabPassed: isMasterclass, 
+                                userType: u.userType 
+                            }, { merge: true });
+                            count++;
+                        }
+                    }
+                    showAlert(`ดำเนินการ Auto-Refill สำเร็จ ${count} รายการ`);
+                } catch(e) {
+                    showAlert('เกิดข้อผิดพลาดในการ Refill', 'error');
+                    console.error(e);
+                }
+            };
+
+            useEffect(() => {
+                if (isAuth && systemConfig.autoSyncFromSheet && systemConfig.masterCsvUrl) {
+                    const interval = setInterval(() => syncFromGoogleSheet(false), 30000);
+                    return () => clearInterval(interval);
+                }
+            }, [isAuth, systemConfig.autoSyncFromSheet, systemConfig.masterCsvUrl, usersList]);
+
+            const handleLogin = (e) => { e.preventDefault(); if (password === 'admin2026') setIsAuth(true); else showAlert('รหัสผ่านไม่ถูกต้อง', 'error'); };
+
+            const saveSettings = async (settingsToUpdate) => {
+                try {
+                    const newSettings = { ...systemConfig, ...settingsToUpdate };
+                    setSystemConfig(newSettings);
+                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_config', 'settings'), newSettings, { merge: true });
+                    showAlert('บันทึกการตั้งค่าเรียบร้อย');
+                } catch (e) { showAlert('เกิดข้อผิดพลาด', 'error'); }
+            };
+
+            const saveLiveConfig = async () => {
+                try {
+                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_config', 'settings'), { liveConfig }, { merge: true });
+                    showAlert('อัปเดตและเผยแพร่สถานะ Live สำเร็จ');
+                } catch (e) { 
+                    showAlert('เกิดข้อผิดพลาดในการบันทึก Live', 'error'); 
+                    console.error("Save Live Error:", e);
+                }
+            };
+
+            const updateUserStatus = async (userId, newStatus, newType) => {
+                try {
+                    let updatePayload = { status: newStatus, userType: newType };
+                    if (newType === 'Onsite' || newType === 'Masterclass') {
+                        updatePayload.studySeconds = 36000;
+                        updatePayload.progress = 100;
+                        updatePayload.skillLabPassed = (newType === 'Masterclass'); // เฉพาะ Masterclass ทะลุกำแพง skill lab
+                    }
+                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_users', userId), updatePayload, { merge: true });
+                    showAlert('อัปเดตสิทธิ์สำเร็จ');
+                } catch (e) { showAlert('เกิดข้อผิดพลาด', 'error'); }
+            };
+
+            const deleteUser = async (userId) => {
+                if (window.confirm('ยืนยันการลบสิทธิ์ผู้ใช้งานนี้ออกจากระบบ? (ข้อมูลการเรียนจะถูกลบถาวร)')) {
+                    try {
+                        await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_users', userId));
+                        showAlert('ลบผู้เรียนออกจากระบบเรียบร้อย');
+                    } catch (e) { showAlert('ลบข้อมูลไม่สำเร็จ', 'error'); }
+                }
+            };
+
+            const handleAddManualUser = async (e) => {
+                e.preventDefault();
+                const uid = manualForm.license || Date.now().toString();
+                const isOnsiteOrMaster = manualForm.userType === 'Onsite' || manualForm.userType === 'Masterclass';
+                const newUser = { 
+                    id: uid, 
+                    ...manualForm, 
+                    progress: isOnsiteOrMaster ? 100 : 0, 
+                    studySeconds: isOnsiteOrMaster ? 36000 : 0, 
+                    status: 'กำลังเรียน', 
+                    pretest: '-', 
+                    posttest: '-', 
+                    skillLabPassed: manualForm.userType === 'Masterclass', 
+                    lastVideoId: 1, 
+                    videoTimes: {} 
+                };
+                try {
+                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_users', uid), newUser, { merge: true });
+                    setShowManualForm(false);
+                    showAlert('เพิ่มผู้เรียนใหม่สำเร็จ');
+                } catch (e) { showAlert('เพิ่มข้อมูลไม่สำเร็จ', 'error'); }
+            };
+
+            const saveContentConfig = async () => {
+                try {
+                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_config', 'content'), contentConfig, { merge: true });
+                    showAlert('อัปเดตและเผยแพร่เนื้อหาเรียบร้อยแล้ว');
+                } catch (e) {
+                    showAlert('เกิดข้อผิดพลาดในการบันทึกเนื้อหา', 'error');
+                }
+            };
+
+            const filteredUsers = usersList.filter(u => u.name?.toLowerCase().includes(searchTerm.toLowerCase()) || u.license?.includes(searchTerm));
+
+            if (!isAuth) {
+                return (
+                    <div className="min-h-screen flex items-center justify-center bg-slate-900">
+                        <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md text-center">
+                            <div className="w-16 h-16 bg-line-100 text-line-600 rounded-full flex items-center justify-center mx-auto mb-6"><SafeIcon name="Lock" size={32} /></div>
+                            <h2 className="text-2xl font-black text-slate-800 mb-2">RJ Ailiverse Backend</h2>
+                            <p className="text-slate-500 mb-8 text-sm">ระบบจัดการข้อมูลส่วนกลาง (Admin Only)</p>
+                            <form onSubmit={handleLogin} className="flex flex-col gap-4">
+                                <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="ระบุรหัสผ่านแอดมิน" className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-line-500 outline-none text-center tracking-widest text-lg" />
+                                <button type="submit" className="w-full bg-line-500 text-white font-bold py-3 rounded-xl hover:bg-line-600 transition-colors">เข้าสู่ระบบหลังบ้าน</button>
+                                <button type="button" onClick={() => window.location.href = './index.html'} className="text-sm text-slate-500 hover:text-slate-800 mt-2">กลับสู่หน้าจอผู้เรียน</button>
+                            </form>
+                        </div>
+                        {alertMsg.show && <div className={`fixed top-4 px-6 py-3 rounded-full font-bold shadow-lg animate-in fade-in slide-in-from-top-4 ${alertMsg.type === 'error' ? 'bg-rose-100 border border-rose-400 text-rose-700' : 'bg-emerald-100 border border-emerald-400 text-emerald-800'}`}>{alertMsg.text}</div>}
+                    </div>
+                );
+            }
+
+            const handleExportCSV = () => {
+                const headers = ["ชื่อ-สกุล", "อีเมล", "เบอร์โทร", "ใบประกอบวิชาชีพ", "ตำแหน่ง", "ลักษณะงาน", "หน่วยงาน", "สิทธิ์การเรียน", "สถานะ", "Pretest", "Posttest", "ความคืบหน้า (%)", "คะแนนเจรจาเฉลี่ย"];
+                const csvData = usersList.map(u => {
+                    const avgScore = u.skillLabHistory?.length > 0 ? Math.round(u.skillLabHistory.reduce((sum, r) => sum + (r.score || 0), 0) / u.skillLabHistory.length) : 0;
+                    return [u.name, u.email, u.phone, u.licenseId, u.position, u.workContext || '-', u.hospital, u.userType, u.status, u.pretest, u.posttest, u.progress, avgScore];
+                });
+                const csvContent = [headers, ...csvData].map(e => e.join(",")).join("\n");
+                const blob = new Blob(["\ufeff" + csvContent], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement("a");
+                const url = URL.createObjectURL(blob);
+                link.setAttribute("href", url);
+                link.setAttribute("download", `rjailiverse_users_${new Date().toISOString().split('T')[0]}.csv`);
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            };
+
+            return (
+                <div className="flex h-screen bg-slate-100 overflow-hidden">
+                    {/* Sidebar */}
+                    <div className="w-64 bg-white border-r border-slate-200 flex flex-col shadow-sm z-20 shrink-0 hidden md:flex">
+                        <div className="p-6 border-b border-slate-100 text-center">
+                            <h1 className="text-xl font-black text-line-600">Admin Panel</h1>
+                            <p className="text-xs font-bold text-slate-400 mt-1 uppercase tracking-widest">RJ Ailiverse</p>
+                        </div>
+                        <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
+                            {[{id: 'users', label: 'จัดการสิทธิ์ผู้เรียน', icon: 'Users'}, {id: 'data', label: 'Auto-Sync & ระบบคิว', icon: 'Database'}, {id: 'live', label: 'ระบบถ่ายทอดสด', icon: 'Radio'}, {id: 'content', label: 'แก้ไขบทเรียน', icon: 'BookOpen'}, {id: 'quiz', label: 'จัดการข้อสอบ', icon: 'CheckSquare'}, {id: 'analytics', label: 'Dashboard', icon: 'Activity'}].map(t => (
+                                <button key={t.id} onClick={() => setActiveTab(t.id)} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-colors ${activeTab === t.id ? 'bg-line-50 text-line-700' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'}`}><SafeIcon name={t.icon} /> {t.label}</button>
+                            ))}
+                        </nav>
+                        <div className="p-4 border-t border-slate-100">
+                            <button onClick={() => window.location.href = './index.html'} className="w-full flex items-center justify-center gap-2 py-3 text-sm font-bold text-slate-500 hover:bg-slate-50 rounded-xl transition-colors"><SafeIcon name="LogOut" size={16}/> สลับไปหน้าผู้เรียน</button>
+                        </div>
+                    </div>
+
+                    {/* Main Content Area */}
+                    <div className="flex-1 overflow-y-auto custom-scrollbar p-4 md:p-8 relative">
+                        {alertMsg.show && <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-50 px-6 py-3 rounded-full font-bold shadow-lg animate-in fade-in slide-in-from-top-4 flex items-center gap-2 ${alertMsg.type === 'error' ? 'bg-rose-100 border border-rose-400 text-rose-800' : 'bg-emerald-100 border border-emerald-400 text-emerald-800'}`}><SafeIcon name={alertMsg.type === 'error' ? 'XCircle' : 'CheckCircle'} /> {alertMsg.text}</div>}
+                        
+                        {/* Mobile Tabs */}
+                        <div className="md:hidden flex gap-2 overflow-x-auto mb-6 custom-scrollbar pb-2">
+                             {[{id: 'users', label: 'ผู้ใช้'}, {id: 'live', label: 'Live สด'}, {id: 'content', label: 'บทเรียน'}, {id: 'quiz', label: 'ข้อสอบ'}].map(t => (
+                                <button key={t.id} onClick={() => setActiveTab(t.id)} className={`px-4 py-2 rounded-xl font-bold text-sm whitespace-nowrap ${activeTab === t.id ? 'bg-line-500 text-white' : 'bg-white text-slate-600'}`}>{t.label}</button>
+                            ))}
+                        </div>
+
+                        {/* 1. จัดการสิทธิ์ผู้เรียน (User Management) */}
+                        {activeTab === 'users' && (
+                            <div className="animate-in fade-in flex flex-col h-full">
+                                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                                    <div>
+                                        <h2 className="text-2xl font-black text-slate-800 flex items-center gap-2"><SafeIcon name="Users" className="text-line-600" /> จัดการสิทธิ์ผู้เรียน</h2>
+                                        <p className="text-slate-500 text-sm mt-1">ผู้เรียนทั้งหมดในระบบ: {usersList.length} ราย</p>
+                                    </div>
+                                    <div className="flex flex-wrap gap-2 w-full md:w-auto mt-4 md:mt-0">
+                                        <div className="bg-white px-4 py-2 rounded-lg border flex items-center gap-2 flex-1 md:w-64 min-w-[200px]"><SafeIcon name="Search" className="text-slate-400 shrink-0" /><input type="text" placeholder="ค้นหาชื่อ หรือ ใบอนุญาต..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="outline-none text-sm w-full bg-transparent" /></div>
+                                        
+                                        <button onClick={() => syncFromGoogleSheet(true)} className="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold text-sm shadow-sm hover:bg-blue-500 shrink-0 flex items-center gap-1"><SafeIcon name="RefreshCw" size={16}/> ดึงสิทธิ์จาก Sheet</button>
+                                        
+                                        <button onClick={handleForceRefillAll} className="bg-amber-500 text-white px-4 py-2 rounded-lg font-bold text-sm shadow-sm hover:bg-amber-400 shrink-0 flex items-center gap-1"><SafeIcon name="Activity" size={16}/> Auto-Refill VIP</button>
+
+                                        <button onClick={() => setShowManualForm(!showManualForm)} className="bg-slate-800 text-white px-4 py-2 rounded-lg font-bold text-sm shadow-sm hover:bg-slate-700 shrink-0 flex items-center gap-1"><SafeIcon name="Plus" size={16}/> เพิ่มมือ</button>
+                                        
+                                        <button onClick={handleExportCSV} className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg font-bold text-sm shadow-sm flex items-center gap-1"><SafeIcon name="Download" size={16}/> CSV</button>
+                                    </div>
+                                </div>
+
+                                {showManualForm && (
+                                    <form onSubmit={handleAddManualUser} className="mb-6 p-6 bg-white rounded-2xl shadow-sm border border-slate-200 grid grid-cols-1 md:grid-cols-5 gap-4 items-end animate-in fade-in slide-in-from-top-4">
+                                        <div><label className="block text-xs font-bold text-slate-500 mb-1">ชื่อ-สกุล</label><input required value={manualForm.name} onChange={e => setManualForm({...manualForm, name: e.target.value})} className="w-full px-3 py-2 border rounded-lg outline-none focus:border-line-500 text-sm" /></div>
+                                        <div><label className="block text-xs font-bold text-slate-500 mb-1">ใบอนุญาต (ID)</label><input required value={manualForm.license} onChange={e => setManualForm({...manualForm, license: e.target.value})} className="w-full px-3 py-2 border rounded-lg outline-none focus:border-line-500 text-sm" /></div>
+                                        <div><label className="block text-xs font-bold text-slate-500 mb-1">โรงพยาบาล</label><input required value={manualForm.hospital} onChange={e => setManualForm({...manualForm, hospital: e.target.value})} className="w-full px-3 py-2 border rounded-lg outline-none focus:border-line-500 text-sm" /></div>
+                                        <div><label className="block text-xs font-bold text-slate-500 mb-1">สิทธิ์ (Type)</label><select value={manualForm.userType} onChange={e => setManualForm({...manualForm, userType: e.target.value})} className="w-full px-3 py-2 border rounded-lg outline-none focus:border-line-500 text-sm bg-white"><option>เรียนใหม่</option><option>Onsite</option><option>Online</option><option>Masterclass</option></select></div>
+                                        <button type="submit" className="w-full bg-slate-800 text-white font-bold py-2 rounded-lg shadow-sm hover:bg-slate-700">บันทึก</button>
+                                    </form>
+                                )}
+
+                                <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex-1 relative">
+                                    <div className="absolute inset-0 overflow-auto custom-scrollbar">
+                                        <table className="w-full text-left text-sm whitespace-nowrap min-w-[800px]">
+                                            <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider sticky top-0 z-10 shadow-sm">
+                                                <tr><th className="p-4">ชื่อผู้เรียน</th><th className="p-4">ใบอนุญาต</th><th className="p-4">ประเภทสิทธิ์</th><th className="p-4">ความคืบหน้า</th><th className="p-4">สถานะการเรียน</th><th className="p-4 text-center">เพิกถอนสิทธิ์</th></tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-slate-100">
+                                                {filteredUsers.length > 0 ? filteredUsers.map(u => (
+                                                    <tr key={u.id} className="hover:bg-slate-50 transition-colors">
+                                                        <td className="p-4 font-bold text-slate-800">{u.name}</td>
+                                                        <td className="p-4 text-slate-600 font-mono text-xs">{u.license || u.id}</td>
+                                                        <td className="p-4">
+                                                            <select value={u.userType || 'เรียนใหม่'} onChange={(e) => updateUserStatus(u.id, u.status, e.target.value)} className="bg-white border border-slate-300 rounded px-2 py-1 text-xs font-bold outline-none shadow-sm focus:border-line-500">
+                                                                <option value="เรียนใหม่">เรียนใหม่</option><option value="Online">Online</option><option value="Onsite">Onsite</option><option value="Masterclass">Masterclass</option>
+                                                            </select>
+                                                        </td>
+                                                        <td className="p-4"><div className="flex items-center gap-2"><div className="w-16 h-1.5 bg-slate-200 rounded-full overflow-hidden"><div className="bg-line-500 h-full" style={{width: `${u.progress}%`}}></div></div><span className="text-xs text-slate-500 font-bold">{u.progress}%</span></div></td>
+                                                        <td className="p-4">
+                                                            <select value={u.status || 'กำลังเรียน'} onChange={(e) => updateUserStatus(u.id, e.target.value, u.userType)} className={`border rounded px-2 py-1 text-xs font-bold outline-none shadow-sm ${u.status === 'ผ่าน' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
+                                                                <option value="กำลังเรียน">กำลังเรียน</option><option value="ผ่าน">สอบผ่าน (บังคับ)</option><option value="ไม่ผ่าน">ไม่ผ่าน</option>
+                                                            </select>
+                                                        </td>
+                                                        <td className="p-4 text-center"><button onClick={() => deleteUser(u.id)} className="text-slate-400 hover:text-rose-600 hover:bg-rose-50 p-2 rounded-lg transition-colors" title="ลบผู้ใช้งาน"><SafeIcon name="Trash2" size={18} /></button></td>
+                                                    </tr>
+                                                )) : (
+                                                    <tr><td colSpan="6" className="p-12 text-center text-slate-400 font-medium">ไม่พบข้อมูลผู้เรียน</td></tr>
+                                                )}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* 2. ระบบดึงข้อมูลอัตโนมัติ (Data Auto-Sync) */}
+                        {activeTab === 'data' && (
+                            <div className="animate-in fade-in max-w-4xl">
+                                <h2 className="text-2xl font-black text-slate-800 mb-2 flex items-center gap-2"><SafeIcon name="Database" className="text-line-600" /> ระบบเชื่อมโยงข้อมูล & Auto-Sync</h2>
+                                <p className="text-slate-500 text-sm mb-6">ตั้งค่าให้ระบบดึงรายชื่อและสิทธิ์นักเรียนจาก Google Sheets เข้ามาให้อัตโนมัติ</p>
+                                
+                                <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-200 space-y-6">
+                                    <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl flex gap-3 text-blue-800 text-sm">
+                                        <SafeIcon name="Info" className="shrink-0 mt-0.5" />
+                                        <div><b>วิธีใช้งาน:</b> ให้ไปที่ Google Sheets ของคุณ เลือก ไฟล์ (File) &gt; แชร์ (Share) &gt; เผยแพร่ทางเว็บ (Publish to web) &gt; เปลี่ยนจาก 'หน้าเว็บ' เป็น 'ค่าที่คั่นด้วยจุลภาค (CSV)' แล้วนำลิงก์ที่ได้มาวางในช่องด้านล่าง (คอลัมน์ในตารางต้องเรียงตามนี้: ชื่อ, ใบอนุญาต, โรงพยาบาล, สิทธิ์)</div>
+                                    </div>
+                                    
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">ลิงก์ Google Sheets (รูปแบบ CSV)</label>
+                                        <input type="url" value={systemConfig.masterCsvUrl || ''} onChange={e => setSystemConfig({...systemConfig, masterCsvUrl: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-slate-300 outline-none focus:border-line-500 font-mono text-sm" placeholder="https://docs.google.com/spreadsheets/d/.../pub?output=csv" />
+                                    </div>
+                                    
+                                    <div className="flex flex-col sm:flex-row items-center gap-4 pt-2">
+                                        <div className="flex-1 w-full bg-slate-50 p-4 rounded-xl border border-slate-200 flex items-center justify-between">
+                                            <div>
+                                                <div className="font-bold text-slate-800 text-sm">อัปเดตสิทธิ์อัตโนมัติ (Auto-Sync)</div>
+                                                <div className="text-xs text-slate-500 mt-0.5">ระบบจะดึงข้อมูลใหม่ทุกๆ 30 วินาที เมื่อเปิดหน้านี้ไว้</div>
+                                            </div>
+                                            <label className="relative inline-flex items-center cursor-pointer">
+                                                <input type="checkbox" className="sr-only peer" checked={systemConfig.autoSyncFromSheet} onChange={e => saveSettings({ autoSyncFromSheet: e.target.checked })} />
+                                                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-line-500"></div>
+                                            </label>
+                                        </div>
+                                        <button onClick={() => syncFromGoogleSheet(true)} className="w-full sm:w-auto bg-line-50 text-line-600 hover:bg-line-100 border border-line-200 font-bold py-4 px-6 rounded-xl transition-colors flex items-center justify-center gap-2 whitespace-nowrap"><SafeIcon name="RefreshCw" size={18} /> ดึงข้อมูลเดี๋ยวนี้</button>
+                                    </div>
+                                    
+                                    <div className="border-t border-slate-100 pt-6 mt-6">
+                                        <button onClick={() => saveSettings(systemConfig)} className="w-full bg-slate-800 text-white hover:bg-slate-700 font-bold py-3.5 rounded-xl transition-colors shadow-sm">บันทึกลิงก์และตั้งค่าส่วนกลาง</button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* 3. ระบบ Live และเอกสาร (Live Stream & Docs) */}
+                        {activeTab === 'live' && (
+                            <div className="animate-in fade-in max-w-3xl">
+                                <h2 className="text-2xl font-black text-slate-800 mb-6 flex items-center gap-2"><SafeIcon name="Radio" className="text-rose-500" /> ระบบควบคุม Live สด และเอกสาร</h2>
+                                <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-200 space-y-6">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">สถานะการถ่ายทอด</label>
+                                            <div className="flex gap-2">
+                                                <button onClick={() => setLiveConfig({...liveConfig, status: 'live'})} className={`flex-1 py-2.5 rounded-lg font-bold border transition-colors ${liveConfig.status === 'live' ? 'bg-rose-100 text-rose-700 border-rose-300' : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100'}`}>🔴 LIVE</button>
+                                                <button onClick={() => setLiveConfig({...liveConfig, status: 'offline'})} className={`flex-1 py-2.5 rounded-lg font-bold border transition-colors ${liveConfig.status === 'offline' ? 'bg-slate-800 text-white border-slate-800' : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100'}`}>ปิด (Offline)</button>
+                                            </div>
+                                        </div>
+                                        <div><label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">หัวข้อการบรรยาย</label><input type="text" value={liveConfig.topic} onChange={e => setLiveConfig({...liveConfig, topic: e.target.value})} className="w-full px-4 py-2.5 rounded-lg border border-slate-300 outline-none focus:border-line-500" placeholder="เช่น บรรยายพิเศษนโยบายชาติ..." /></div>
+                                    </div>
+                                    
+                                    {/* 🚀 New Feature: Custom Live Targets (Days / Hours) 🚀 */}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">จำนวนวัน (สำหรับโชว์ในเว็บ)</label>
+                                            <input type="number" min="1" value={liveConfig.days || 1} onChange={e => setLiveConfig({...liveConfig, days: parseInt(e.target.value) || 1})} className="w-full px-4 py-2.5 rounded-lg border border-slate-300 outline-none focus:border-line-500 font-mono text-sm" placeholder="1" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">ชั่วโมงบังคับเรียน (สำหรับสิทธิ์ Online)</label>
+                                            <input type="number" min="1" value={liveConfig.hours || 10} onChange={e => setLiveConfig({...liveConfig, hours: parseInt(e.target.value) || 10})} className="w-full px-4 py-2.5 rounded-lg border border-slate-300 outline-none focus:border-line-500 font-mono text-sm" placeholder="10" />
+                                        </div>
+                                    </div>
+
+                                    <div><label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 mt-2">Embed URL (ลิงก์วิดีโอจาก Canva/Vimeo/Youtube)</label><input type="text" value={liveConfig.url} onChange={e => setLiveConfig({...liveConfig, url: e.target.value})} className="w-full px-4 py-2.5 rounded-lg border border-slate-300 outline-none focus:border-line-500 font-mono text-sm" placeholder="https://www.canva.com/..." /></div>
+                                    <div className="pt-4 border-t border-slate-100"><label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 flex items-center gap-2"><SafeIcon name="UploadCloud" size={16} className="text-line-500"/> ลิงก์เอกสารประกอบ Live (Google Drive / PDF)</label><input type="text" value={liveConfig.documentUrl || ''} onChange={e => setLiveConfig({...liveConfig, documentUrl: e.target.value})} className="w-full px-4 py-2.5 rounded-lg border border-slate-300 outline-none focus:border-line-500 font-mono text-sm" placeholder="วางลิงก์เอกสารให้ผู้เรียนดาวน์โหลด..." /></div>
+                                    <button onClick={saveLiveConfig} className="w-full bg-line-500 hover:bg-line-600 text-white font-bold py-3.5 rounded-xl transition-colors shadow-md flex items-center justify-center gap-2"><SafeIcon name="Save" size={20} /> เผยแพร่สถานะ Live ให้นักเรียนเห็น</button>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* 4. จัดการเนื้อหา (Content Editor) */}
+                        {activeTab === 'content' && (
+                            <div className="animate-in fade-in max-w-5xl">
+                                <div className="flex justify-between items-center mb-6">
+                                    <h2 className="text-2xl font-black text-slate-800 flex items-center gap-2"><SafeIcon name="BookOpen" className="text-line-600" /> แก้ไขรายวิชา</h2>
+                                    <button onClick={saveContentConfig} className="bg-line-500 text-white px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-sm hover:bg-line-600 transition-colors"><SafeIcon name="UploadCloud" size={18}/> เผยแพร่ขึ้น Cloud</button>
+                                </div>
+                                <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                                    <div className="space-y-4 max-h-[65vh] overflow-y-auto pr-2 custom-scrollbar">
+                                        {contentConfig.lessons.map(l => (
+                                            <div key={l.id} className="p-4 bg-slate-50 border border-slate-200 rounded-xl flex flex-col md:flex-row gap-4 items-start md:items-center">
+                                                <div className="w-10 h-10 bg-slate-200 rounded-full flex items-center justify-center font-black text-slate-500 shrink-0">{l.id}</div>
+                                                <div className="flex-1 w-full space-y-2">
+                                                    <input type="text" value={l.title} onChange={e => setContentConfig(p => ({ ...p, lessons: p.lessons.map(x => x.id === l.id ? { ...x, title: e.target.value } : x) }))} className="w-full text-sm font-bold p-2 border rounded-lg outline-none focus:border-line-500" placeholder="ชื่อบทเรียน" />
+                                                    <input type="text" value={l.videoId} onChange={e => setContentConfig(p => ({ ...p, lessons: p.lessons.map(x => x.id === l.id ? { ...x, videoId: e.target.value } : x) }))} className="w-full text-xs font-mono p-2 border rounded-lg outline-none focus:border-line-500 text-slate-500" placeholder="Google Drive Video ID" />
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* 5. จัดการข้อสอบ */}
+                        {activeTab === 'quiz' && (
+                            <div className="animate-in fade-in max-w-5xl">
+                                <div className="flex justify-between items-center mb-6">
+                                    <h2 className="text-2xl font-black text-slate-800 flex items-center gap-2"><SafeIcon name="CheckSquare" className="text-line-600" /> จัดการข้อสอบ (Pretest / Posttest)</h2>
+                                    <button onClick={saveContentConfig} className="bg-line-500 text-white px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-sm hover:bg-line-600 transition-colors"><SafeIcon name="UploadCloud" size={18}/> เผยแพร่ข้อสอบขึ้น Cloud</button>
+                                </div>
+                                
+                                <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col h-[70vh]">
+                                    <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-6">
+                                        {(contentConfig.questionSets[0] || []).map((q, qIndex) => (
+                                            <div key={q.id || qIndex} className="p-5 bg-slate-50 border border-slate-200 rounded-xl relative">
+                                                <button onClick={() => {
+                                                    const newQuiz = [...contentConfig.questionSets[0]];
+                                                    newQuiz.splice(qIndex, 1);
+                                                    setContentConfig(p => ({ ...p, questionSets: [newQuiz] }));
+                                                }} className="absolute top-4 right-4 text-rose-400 hover:text-rose-600 hover:bg-rose-50 p-2 rounded-lg transition-colors" title="ลบข้อนี้"><SafeIcon name="Trash2" size={18}/></button>
+                                                
+                                                <div className="mb-4 pr-12">
+                                                    <label className="block text-xs font-bold text-slate-500 mb-1">ข้อที่ {qIndex + 1} (คำถาม)</label>
+                                                    <textarea value={q.question} onChange={e => {
+                                                        const newQuiz = [...contentConfig.questionSets[0]];
+                                                        newQuiz[qIndex] = { ...newQuiz[qIndex], question: e.target.value };
+                                                        setContentConfig(p => ({ ...p, questionSets: [newQuiz] }));
+                                                    }} className="w-full text-sm font-bold p-3 border rounded-lg outline-none focus:border-line-500 min-h-[80px]" placeholder="ระบุคำถาม..." />
+                                                </div>
+                                                
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                    {q.options.map((opt, optIndex) => (
+                                                        <div key={optIndex} className="flex items-center gap-2">
+                                                            <input type="radio" name={`correct-${qIndex}`} checked={q.answer === optIndex} onChange={() => {
+                                                                const newQuiz = [...contentConfig.questionSets[0]];
+                                                                newQuiz[qIndex] = { ...newQuiz[qIndex], answer: optIndex };
+                                                                setContentConfig(p => ({ ...p, questionSets: [newQuiz] }));
+                                                            }} className="w-4 h-4 text-line-600 cursor-pointer" title="เลือกเป็นคำตอบที่ถูกต้อง" />
+                                                            <input type="text" value={opt} onChange={e => {
+                                                                const newQuiz = [...contentConfig.questionSets[0]];
+                                                                const newOptions = [...newQuiz[qIndex].options];
+                                                                newOptions[optIndex] = e.target.value;
+                                                                newQuiz[qIndex] = { ...newQuiz[qIndex], options: newOptions };
+                                                                setContentConfig(p => ({ ...p, questionSets: [newQuiz] }));
+                                                            }} className={`w-full text-sm p-2 border rounded-lg outline-none focus:border-line-500 ${q.answer === optIndex ? 'border-line-500 bg-line-50 font-bold text-line-800' : 'text-slate-700'}`} placeholder={`ตัวเลือกที่ ${optIndex + 1}`} />
+                                                            <button onClick={() => {
+                                                                const newQuiz = [...contentConfig.questionSets[0]];
+                                                                const newOptions = [...newQuiz[qIndex].options];
+                                                                newOptions.splice(optIndex, 1);
+                                                                if (newQuiz[qIndex].answer === optIndex) newQuiz[qIndex].answer = 0;
+                                                                else if (newQuiz[qIndex].answer > optIndex) newQuiz[qIndex].answer -= 1;
+                                                                newQuiz[qIndex] = { ...newQuiz[qIndex], options: newOptions };
+                                                                setContentConfig(p => ({ ...p, questionSets: [newQuiz] }));
+                                                            }} className="text-slate-400 hover:text-rose-500 p-1"><SafeIcon name="XCircle" size={16}/></button>
+                                                        </div>
+                                                    ))}
+                                                    <button onClick={() => {
+                                                        const newQuiz = [...contentConfig.questionSets[0]];
+                                                        newQuiz[qIndex] = { ...newQuiz[qIndex], options: [...newQuiz[qIndex].options, "ตัวเลือกใหม่"] };
+                                                        setContentConfig(p => ({ ...p, questionSets: [newQuiz] }));
+                                                    }} className="text-xs font-bold text-line-600 hover:bg-line-50 py-2 rounded-lg border border-dashed border-line-300 flex items-center justify-center gap-1"><SafeIcon name="Plus" size={14}/> เพิ่มตัวเลือก</button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <div className="pt-4 mt-4 border-t border-slate-100 flex justify-center shrink-0">
+                                        <button onClick={() => {
+                                            const newQuiz = [...(contentConfig.questionSets[0] || [])];
+                                            newQuiz.push({ id: Date.now(), question: "คำถามใหม่...", options: ["ก.", "ข.", "ค.", "ง."], answer: 0 });
+                                            setContentConfig(p => ({ ...p, questionSets: [newQuiz] }));
+                                            setTimeout(() => {
+                                                const container = document.querySelector('.custom-scrollbar');
+                                                if(container) container.scrollTop = container.scrollHeight;
+                                            }, 100);
+                                        }} className="bg-slate-800 text-white px-6 py-2.5 rounded-xl font-bold text-sm shadow-sm hover:bg-slate-700 flex items-center gap-2"><SafeIcon name="Plus" size={16}/> เพิ่มข้อสอบใหม่</button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* 6. Analytics Dashboard */}
+                        {activeTab === 'analytics' && (
+                             <div className="animate-in fade-in flex flex-col h-[85vh]">
+                                 <div className="flex justify-between items-center mb-6">
+                                     <h2 className="text-2xl font-black text-slate-800 flex items-center gap-2"><SafeIcon name="Activity" className="text-line-600" /> แดชบอร์ดสรุปผลภาพรวม</h2>
+                                 </div>
+                                 
+                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 relative z-10">
+                                     <div onClick={() => window.open('./executive.html', '_blank')} className="bg-gradient-to-br from-blue-900 to-cyan-900 p-6 rounded-2xl border border-blue-500/30 shadow-[0_10px_30px_rgba(59,130,246,0.3)] cursor-pointer hover:scale-[1.02] transition-all flex flex-col items-center justify-center text-center group">
+                                         <div className="w-16 h-16 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform"><SafeIcon name="Globe" size={32} /></div>
+                                         <h3 className="text-xl font-black text-white mb-2">AI Policy Intelligence</h3>
+                                         <p className="text-sm text-blue-200">เปิดหน้าต่างแดชบอร์ดผู้บริหาร (Real-time Map & AI Chat)</p>
+                                     </div>
+                                     
+                                     <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col items-center justify-center text-center">
+                                         <div className="w-16 h-16 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mb-4"><SafeIcon name="Database" size={32} /></div>
+                                         <h3 className="text-xl font-bold text-slate-800 mb-2">Looker Studio (Legacy)</h3>
+                                         <input type="url" value={systemConfig.lookerStudioUrl || ''} onChange={e=>setSystemConfig({...systemConfig, lookerStudioUrl: e.target.value})} onBlur={() => saveSettings({ lookerStudioUrl: systemConfig.lookerStudioUrl })} placeholder="วางลิงก์ Looker Studio Embed..." className="w-full mt-2 p-3 rounded-xl bg-slate-50 border border-slate-200 outline-none text-sm text-slate-700 text-center focus:border-line-500"/>
+                                     </div>
+                                 </div>
+
+                                 <div className="w-full flex-1 bg-slate-50 rounded-2xl border border-slate-200 shadow-inner overflow-hidden relative flex items-center justify-center">
+                                     {systemConfig.lookerStudioUrl ? (
+                                         <iframe src={systemConfig.lookerStudioUrl} className="absolute inset-0 w-full h-full border-none"></iframe>
+                                     ) : (
+                                         <div className="text-center text-slate-400"><SafeIcon name="Activity" size={48} className="mx-auto mb-2 opacity-50" /><p className="font-bold">ยังไม่ได้ตั้งค่าลิงก์ Looker Studio</p></div>
+                                     )}
+                                 </div>
+                             </div>
+                        )}
+                    </div>
+                </div>
+            );
+        }
+
+        const root = createRoot(document.getElementById('admin-root'));
+        root.render(<AdminApp />);
+    </script>
+</body>
+</html>
