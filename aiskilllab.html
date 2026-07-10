@@ -428,7 +428,8 @@
                 
                 const suggestionInstruction = `\n\n[ข้อบังคับพิเศษ: SMART HOOKS]\nในตอนท้ายสุดของข้อความ ให้คุณประเมินอารมณ์และเสนอ 'ตัวเลือกการตอบกลับเบื้องต้น' ให้ผู้เรียน 2 ทางเลือก โดยต้องจัดรูปแบบให้เป๊ะดังนี้ ห้ามผิดเพี้ยนเด็ดขาด:\n[DIALOGUE]\n(บทสนทนาของญาติ)\n[SUGGESTION 1] (ทางเลือกที่ 1)\n[SUGGESTION 2] (ทางเลือกที่ 2)`;
 
-                const roleplayPrompt = `${currentScenarioPrompt}${introGuideline}${suggestionInstruction}\n\nประวัติ:\n${historyContext}\nผู้เรียน: ${userMsg}\nญาติ (ใส่ Tag อารมณ์และชื่อคนพูดก่อนเสมอ):`;
+                // 🌟 อัปเกรด: ฝังโครงสร้างทีมแพทย์เข้าไปให้ AI รู้ทันทีว่าใครมีหน้าที่อะไร 🌟
+                const roleplayPrompt = `[ข้อมูลพื้นฐานสำหรับ AI ทำความเข้าใจบทบาทของผู้เรียน]:\n${window.CLINICAL_KNOWLEDGE_BASE || ''}\n\n${currentScenarioPrompt}${introGuideline}${suggestionInstruction}\n\nประวัติ:\n${historyContext}\nผู้เรียน: ${userMsg}\nญาติ (ใส่ Tag อารมณ์และชื่อคนพูดก่อนเสมอ):`;
                 
                 try {
                     let rawResponse = await callGeminiAPI(userMsg, roleplayPrompt, imageToSend); 
@@ -481,8 +482,9 @@
                 setMessages(prev => [...prev, { id: Date.now(), sender: 'user', text: "🛑 จบการจำลองสถานการณ์ ช่วยประเมินให้หน่อยค่ะ" }]);
                 
                 const history = messages.slice(-15).map(m => `${m.sender === 'ai' ? 'ญาติ' : 'ผู้เรียน'}: ${m.text}`).join('\n');
-                // 🌟 อัปเกรด Prompt การประเมินผล ให้ AI วิเคราะห์ผ่านมุมมอง 5W1H 🌟
-                const evalPrompt = `คุณคือ "ปรมาจารย์ด้านจิตวิทยาการแพทย์ (Cognitive Profiler)" ประเมินประวัติการเจรจานี้:\n${history}\n\n1. ให้คะแนนความเห็นอกเห็นใจ (Empathy Score) จาก 0-100 (ระบุแท็ก [EMPATHY: คะแนน] เสมอ)\n2. หากคะแนนเกิน 60 ถือว่าผ่าน พิมพ์ [PASS] ไม่ผ่านพิมพ์ [FAIL]\n3. [สำคัญ] วิเคราะห์ "รูปแบบการตอบคำถาม (Interaction Style)" ของผู้เรียน โดยใช้หลักการ 5W1H (Who, What, Where, When, Why, How) เพื่อดูว่าผู้เรียนสามารถเก็บหรือให้ข้อมูลสำคัญได้ครบถ้วน ชัดเจน และสอดคล้องกับอารมณ์ความรู้สึกของญาติในภาวะวิกฤตหรือไม่\n4. สรุป จุดแข็ง และ จุดอ่อน ที่ผู้เรียนต้องนำไปปรับปรุงให้ชัดเจนและเป็นมืออาชีพ`;
+                
+                // 🌟 อัปเกรดการประเมินด้วย 5W1H และ 5 Core Techniques 🌟
+                const evalPrompt = `คุณคือ "ปรมาจารย์ด้านจิตวิทยาการแพทย์ (Cognitive Profiler)" ประเมินการเจรจานี้อ้างอิงจากบทบาททีมแพทย์และ 5 เทคนิคการเจรจาในคู่มือนี้: ${window.CLINICAL_KNOWLEDGE_BASE || ''}\n\nประวัติการสนทนา:\n${history}\n\n1. ให้คะแนนความเห็นอกเห็นใจ (Empathy Score) จาก 0-100 (ระบุแท็ก [EMPATHY: คะแนน] เสมอ)\n2. หากคะแนนเกิน 60 ถือว่าผ่าน พิมพ์ [PASS] ไม่ผ่านพิมพ์ [FAIL]\n3. [สำคัญ] วิเคราะห์การเจรจาตามหลัก 5W1H และตรวจสอบว่าผู้เรียนนำ "เทคนิคเจรจา 5 ข้อ (เช่น Decoupling, Perception Check, Positive Framing)" มาใช้ได้อย่างเหมาะสมกับบริบทสังคมไทยหรือไม่\n4. สรุป จุดแข็ง และ จุดอ่อน ที่ผู้เรียนต้องนำไปปรับปรุงให้ชัดเจนและเป็นมืออาชีพ`;
                 
                 try {
                     const aiResponse = await callGeminiAPI("ประเมินการเจรจาหน่อย", evalPrompt); 
