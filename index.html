@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>e-Learning with Fah AI</title>
+    <title>e-Learning with RJ Ailiverse</title>
     
     <!-- 🌟 เรียกใช้ไฟล์ข้อมูลแยก (Static Data) 🌟 -->
     <script src="./data.js"></script>
@@ -188,7 +188,6 @@
         const globalStore = createGlobalStore({
           currentScreen: 'landing', 
           uiMessage: { type: '', text: '', visible: false }, tempLicense: '', authStep: 'check_license', adminClickCount: 0,
-          // 🌟 อัปเดต Model: เพิ่ม workContext (ลักษณะงานปัจจุบัน) 🌟
           registrationData: { name: '', email: '', phone: '', position: '', workContext: '', licenseId: '', department: '', hospital: '', customHospital: '', province: '', userType: '', isPrefilled: false },
           otpData: { input: '', isSending: false, error: '' }, fallbackOtp: null, loggedInUser: null, currentSessionId: null, studySeconds: 0,
           quizData: { type: 'pretest', questions: FULL_EXAMS[0] || [], currentIndex: 0, answers: {}, score: 0, isFinished: false },
@@ -285,10 +284,9 @@
         }
 
         // ============================================================================
-        // 6. SCREENS (หน้าจอต่างๆ)
+        // 6. SCREENS
         // ============================================================================
 
-        // 🌟 หน้า Landing 🌟
         function LandingScreen({ store, actions }) {
           return (
             <div className="flex min-h-screen w-full relative overflow-hidden items-center justify-center bg-transparent z-50">
@@ -310,7 +308,6 @@
           );
         }
 
-        // 🌟 หน้า Intro 🌟
         function IntroScreen({ store, actions }) {
           useEffect(() => { 
             const handleMessage = (event) => { 
@@ -332,15 +329,15 @@
                        <div className="flex flex-col lg:flex-row gap-8 lg:gap-12 items-center justify-center w-full max-w-4xl mx-auto">
                          <div className="w-[60%] sm:w-[50%] md:w-[320px] lg:w-[350px] shrink-0 flex items-center justify-center relative mx-auto lg:mx-0">
                             <div className="w-full aspect-[9/16] relative rounded-[2rem] overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-white/40 bg-black z-10 print-shadow-none print-border-gold">
-                               <iframe src="https://player.vimeo.com/video/1205670848?autoplay=1&loop=1&muted=0&api=1" className="absolute inset-0 w-full h-full border-none pointer-events-none" allow="autoplay; fullscreen; microphone" title="ฟ้าไตเติล" />
+                               <iframe src="https://player.vimeo.com/video/1205670848?autoplay=1&loop=1&muted=0&api=1" className="absolute inset-0 w-full h-full border-none pointer-events-none" allow="autoplay; fullscreen; microphone" title="AI Introduction" />
                             </div>
                          </div>
                          <div className="w-full lg:flex-1 space-y-4 md:space-y-6">
                             <GlassCard className="p-6 md:p-8 !rounded-3xl flex items-center gap-4 cursor-default relative overflow-hidden shadow-xl print-bg-white print-border-gold print-shadow-none">
                                <div className="absolute right-0 top-1/2 -translate-y-1/2 opacity-20 no-print"><SafeIcon name="Brain" size={150} className="text-white"/></div>
                                <div className="relative z-10">
-                                   <h2 className="text-2xl md:text-3xl font-black text-slate-800 print-text-dark mb-2 drop-shadow-sm">ยินดีที่ได้รู้จักค่ะ! ฟ้าเอง 🙋🏻‍♀️</h2>
-                                   <p className="text-slate-700 print-text-dark text-sm md:text-base font-bold leading-relaxed drop-shadow-sm">ฟ้าเป็น AI ผู้ช่วยส่วนตัว ที่จะดูแลพี่ๆ ตลอดการเรียน e-Learning ค่ะ</p>
+                                   <h2 className="text-2xl md:text-3xl font-black text-slate-800 print-text-dark mb-2 drop-shadow-sm">RJ Ailiverse System</h2>
+                                   <p className="text-slate-700 print-text-dark text-sm md:text-base font-bold leading-relaxed drop-shadow-sm">ระบบปัญญาประดิษฐ์และห้องปฏิบัติการเสมือนจริงเพื่อการฝึกอบรมบุคลากรทางการแพทย์</p>
                                </div>
                             </GlassCard>
                             
@@ -361,11 +358,9 @@
           );
         }
 
-        // 🌟 หน้าเช็คสิทธิ์ล็อกอิน และ รับ OTP 🌟
         function AuthWizard({ store, actions }) {
           const { authStep, tempLicense, registrationData: d, otpData } = store; 
           const [isChecking, setIsChecking] = useState(false); 
-          const [hasVerified, setHasVerified] = useState(false); 
           const [selectedUserType, setSelectedUserType] = useState('เรียนใหม่');
           
           const deptList = [...Object.keys(HOSPITAL_MAPPING).filter(k => k !== 'อื่นๆ'), 'อื่นๆ']; 
@@ -374,7 +369,6 @@
           
           const renderForm = () => {
             if (authStep === 'check_license') {
-              
               const handleVerify = async (e) => {
                 e.preventDefault(); 
                 const cleanLicense = tempLicense.trim().replace(/[^a-zA-Z0-9]/g, '');
@@ -390,7 +384,7 @@
                             existUser = docSnap.data();
                         }
                     } catch(dbErr) {
-                        console.warn("Firestore fetch error, checking cache fallback");
+                        console.warn("Firestore fetch error");
                     }
                     
                     if (!existUser) {
@@ -427,7 +421,6 @@
                 } catch(err) {
                     setIsChecking(false);
                     actions.showMsg('ระบบขัดข้อง กรุณาลองใหม่', 'error');
-                    console.error("Auth Verify Error:", err);
                 }
               };
               
@@ -474,16 +467,7 @@
                        <FormInput label="เบอร์โทรศัพท์" type="tel" value={d.phone || ''} onChange={e => globalStore.setState(p => ({ registrationData: {...p.registrationData, phone: e.target.value} }))} placeholder="08xxxxxxxx" />
                        <FormInput label="อีเมล (สำหรับรับ OTP)" type="email" value={d.email || ''} onChange={e => globalStore.setState(p => ({ registrationData: {...p.registrationData, email: e.target.value} }))} placeholder="email@example.com" />
                        <FormInput label="ตำแหน่ง" value={d.position || ''} onChange={e => globalStore.setState(p => ({ registrationData: {...p.registrationData, position: e.target.value} }))} placeholder="ระบุตำแหน่ง" />
-                       
-                       {/* 🌟 ช่องคัดกรองลักษณะงานปัจจุบัน (Seamless Filter) 🌟 */}
-                       <FormSelect 
-                           label="ลักษณะงานปัจจุบัน" 
-                           value={d.workContext || ''} 
-                           onChange={e => globalStore.setState(p => ({ registrationData: {...p.registrationData, workContext: e.target.value} }))} 
-                           options={['ปฏิบัติงานรับบริจาค/ปลูกถ่ายอวัยวะโดยตรง', 'ปฏิบัติงานในหอผู้ป่วยวิกฤต (ICU/OR)', 'ไม่ได้ปฏิบัติงานด้านนี้โดยตรง แต่สนใจศึกษา', 'อื่นๆ']} 
-                           placeholder="-- เลือกลักษณะงาน --" 
-                       />
-
+                       <FormSelect label="ลักษณะงานปัจจุบัน" value={d.workContext || ''} onChange={e => globalStore.setState(p => ({ registrationData: {...p.registrationData, workContext: e.target.value} }))} options={['ปฏิบัติงานรับบริจาค/ปลูกถ่ายอวัยวะโดยตรง', 'ปฏิบัติงานในหอผู้ป่วยวิกฤต (ICU/OR)', 'ไม่ได้ปฏิบัติงานด้านนี้โดยตรง แต่สนใจศึกษา', 'อื่นๆ']} placeholder="-- เลือกลักษณะงาน --" />
                        <FormSelect label="สังกัด" value={d.department || ''} onChange={(e) => globalStore.setState(p => ({ registrationData: { ...p.registrationData, department: e.target.value, hospital: '', province: '', customHospital: '' } }))} options={deptList} placeholder="-- เลือกสังกัด --" />
                        <div className="w-full relative z-10">
                            <FormSelect label="หน่วยงาน / โรงพยาบาล" value={d.hospital || ''} onChange={(e) => { const hosp = e.target.value; let foundProv = ''; if (hosp !== 'อื่นๆ' && d.department) { const match = HOSPITAL_MAPPING[d.department].find(h => h.name === hosp); if (match) { foundProv = match.prov; } } globalStore.setState(p => ({ registrationData: { ...p.registrationData, hospital: hosp, province: foundProv || p.registrationData.province, customHospital: '' } })); }} options={hospList} placeholder="-- เลือกหน่วยงาน --" disabled={!d.department} />
@@ -502,8 +486,6 @@
             }
             
             if (authStep === 'verify_otp') {
-              
-              // 🚀 2. เข้าสู่ห้องเรียน (สร้าง User ลงฐานข้อมูล และคำนวณสิทธิ์ 4 ระดับ) 🚀
               const handleVerifyOTP = async (e) => { 
                  e.preventDefault(); globalStore.setState(p => ({ otpData: { ...p.otpData, isSending: true, error: '' } }));
                  try {
@@ -513,22 +495,18 @@
                      const license = d.licenseId; 
                      const existingUser = store.dbUsers.find(u => String(u.license || '').trim() === String(license).trim() || String(u.id || '').trim() === String(license).trim()); 
                      
-                     // กำหนดสิทธิ์สุดท้าย (ถ้าแอดมินยัด Masterclass มาให้ จะใช้ของแอดมินเป็นหลัก)
                      const finalUserType = existingUser ? existingUser.userType : d.userType;
                      const isMasterclass = finalUserType === 'Masterclass';
                      const isOnsite = finalUserType === 'Onsite';
                      const isOnline = finalUserType === 'Online';
                      
-                     // 🚀 ตรรกะเป้าหมายเวลา (Target Time)
-                     let targetSeconds = 28800; // เรียนใหม่ 8 ชั่วโมง (28,800 วินาที)
-                     if (isOnsite || isMasterclass) targetSeconds = 36000; // Onsite, Masterclass 10 ชั่วโมง
-                     if (isOnline) targetSeconds = (store.liveConfig?.hours || 10) * 3600; // Online ตามแอดมินตั้ง
+                     let targetSeconds = 28800;
+                     if (isOnsite || isMasterclass) targetSeconds = 36000;
+                     if (isOnline) targetSeconds = (store.liveConfig?.hours || 10) * 3600;
                      
-                     // 🚀 ตรรกะเวลาเริ่มต้น (Initial Time)
                      const initialSeconds = existingUser?.studySeconds ?? ((isOnsite || isMasterclass) ? 36000 : 0); 
                      const finalHosp = d.hospital === 'อื่นๆ' ? d.customHospital : (d.hospital === 'ศูนย์บริการสาธารณสุข' ? `ศูนย์บริการสาธารณสุข ${d.customHospital}` : d.hospital);
                      
-                     // สรุปข้อมูลผู้ใช้
                      const fullUser = Object.assign({ 
                          id: license || `user_${Date.now()}`, 
                          studySeconds: initialSeconds, 
@@ -536,7 +514,7 @@
                          status: 'กำลังเรียน', 
                          pretest: '-', 
                          posttest: '-', 
-                         skillLabPassed: !isMasterclass, // ถ้าไม่ใช่ Masterclass ถือว่าไม่ต้องเข้าห้องนี้ (ให้ผ่านเลยเพื่อไปสอบ)
+                         skillLabPassed: !isMasterclass,
                          lastVideoId: 1, 
                          videoTimes: {}, 
                          quizSetIndex: 0 
@@ -544,11 +522,9 @@
                      
                      globalStore.setState(p => ({ currentSessionId: fullUser.sessionId, studySeconds: initialSeconds, loggedInUser: fullUser, currentVideoId: fullUser.lastVideoId || 1, otpData: { input: '', isSending: false, error: '' }, fallbackOtp: null, dbUsers: existingUser ? p.dbUsers.map(u => u.id === fullUser.id ? fullUser : u) : [fullUser, ...p.dbUsers] })); 
                      
-                     // ยิงข้อมูลอัปเดตลงตู้เซฟ (Firestore)
                      actions.enqueueSync({ action: 'upsertUser', user: fullUser }); 
                      actions.saveUserToDB(fullUser); 
                      
-                     // ถ้ายังไม่ทำ Pretest พาไปทำข้อสอบ ถ้าทำแล้วพาเข้าเรียนโลด
                      if (fullUser.pretest === '-') globalStore.setState({ currentScreen: 'quiz', quizData: { type: 'pretest', questions: store.questionSets[0] || [], currentIndex: 0, answers: {}, score: 0, isFinished: false } }); 
                      else globalStore.setState({ currentScreen: 'dashboard' });
                  } catch (error) { globalStore.setState(p => ({ otpData: { ...p.otpData, error: 'ระบบขัดข้อง กรุณาลองใหม่อีกครั้ง', isSending: false } })); }
@@ -579,7 +555,6 @@
           );
         }
 
-        // 🌟 หน้า Dashboard ห้องเรียนหลัก 🌟
         function StudentDashboard({ store, actions }) {
             const { activeTab: tab, loggedInUser: user, liveConfig: lc, studySeconds: secs, currentVideoId: vId, dbUsers, lessons } = store;
             const [checkedIn, setCheckedIn] = useState(store.isLiveCheckedIn);
@@ -607,14 +582,11 @@
                 sliderRef.current.scrollLeft = scrollLeft - walk;
             };
 
-            // ระบบนับเวลาเรียนอัตโนมัติ
             useEffect(() => {
                 if (!['video'].includes(tab) || !user) return;
                 const timer = setInterval(() => {
                    const state = globalStore.getState(); 
-                   
-                   // คำนวณเป้าหมายเพื่อใช้อัปเดต Progress
-                   let currentTarget = 28800; // เรียนใหม่ 8 ชม.
+                   let currentTarget = 28800;
                    if (state.loggedInUser.userType === 'Onsite' || state.loggedInUser.userType === 'Masterclass') currentTarget = 36000;
                    if (state.loggedInUser.userType === 'Online') currentTarget = (lc?.hours || 10) * 3600;
 
@@ -630,21 +602,17 @@
 
             if (!user) return null;
             
-            // 🚀 โลจิกทะลวงเวลา และการปลดล็อกข้อสอบ (Double-Gate Security) 🚀
             const isTimeMet = user.progress >= 100 || lc?.allowPosttest; 
             const isMasterclass = user.userType === 'Masterclass';
-            
-            // เฉพาะ Masterclass เท่านั้นที่ต้องบังคับเข้าห้องฝึกเจรจา (skillLabHistory.length > 0)
             const isUnlockedForPosttest = isMasterclass ? (isTimeMet && user.skillLabHistory?.length > 0) : isTimeMet;
 
             const hasPosttest = user.posttest && user.posttest !== '-'; 
             const activeLesson = lessons ? lessons[(vId || 1) - 1] : null;
             
-            // ปุ่ม Action หลักกลางจอ
             const actionConfig = hasPosttest 
               ? { t: "ยินดีด้วย คุณเรียนจบแล้ว 🎉", d: "ผ่านการทดสอบและได้รับประกาศนียบัตร", b: "ดูโปรไฟล์", i: "Award", c: "from-emerald-400 to-emerald-600", a: () => globalStore.setState({ activeTab: 'profile' }) } 
               : (isMasterclass && isTimeMet && !(user.skillLabHistory?.length > 0))
-                ? { t: "ภารกิจพิเศษ: ฝึกภาคปฏิบัติ", d: "สิทธิ์ Masterclass: เข้าฝึกเจรจากับ AI เพื่อเก็บคะแนน Empathy", b: "เข้าห้อง AI Skill Lab", i: "Bot", c: "from-orange-400 to-amber-500", a: () => window.location.href = './aiskilllab.html' } 
+                ? { t: "ภารกิจพิเศษ: ฝึกภาคปฏิบัติ", d: "สิทธิ์ Masterclass: เข้าฝึกเจรจากับ AI เพื่อเก็บคะแนน", b: "เข้าห้อง AI Skill Lab", i: "Bot", c: "from-orange-400 to-amber-500", a: () => window.location.href = './aiskilllab.html' } 
                 : isUnlockedForPosttest 
                   ? { t: "พร้อมสอบ Posttest แล้ว!", d: "คุณมีสิทธิ์เข้าทำแบบทดสอบหลังเรียนแล้ว", b: "เริ่มทำ Posttest", i: "FileText", c: "from-rose-400 to-pink-600", a: () => { globalStore.setState({ quizData: { type: 'posttest', questions: store.questionSets[user.quizSetIndex || 0] || store.questionSets[0] || [], currentIndex: 0, answers: {}, score: 0, isFinished: false }}); actions.nav('quiz'); } } 
                   : { t: `เรียนต่อ: บทที่ ${user?.lastVideoId || 1}`, d: activeLesson?.title || "กลับเข้าสู่บทเรียนล่าสุด", b: "เล่นวิดีโอต่อ", i: "PlayCircle", c: "from-line-500 to-line-600", a: () => globalStore.setState({ activeTab: 'video', currentVideoId: user?.lastVideoId || 1 }) };
@@ -686,7 +654,7 @@
                     {t:'live', l:'Live สด', i:'Radio', e:lc?.status==='live'}, 
                     {t:'skill_lab', l:'AI Skill Lab', i:'Bot', a:() => { 
                         if(user.userType === 'Masterclass') window.location.href='./aiskilllab.html'; 
-                        else actions.showMsg('ฟีเจอร์ AI (Beta) สงวนสิทธิ์เฉพาะกลุ่ม Masterclass ในช่วงทดสอบค่ะ 💙', 'error'); 
+                        else actions.showMsg('ฟีเจอร์ AI (Beta) สงวนสิทธิ์เฉพาะกลุ่ม Masterclass ในช่วงทดสอบ', 'error'); 
                     }}, 
                     {t:'leaderboard', l:'จัดอันดับ', i:'Award'}, 
                     {t:'profile', l:'โปรไฟล์', i:'History'}
@@ -725,7 +693,7 @@
                              <SafeIcon name="Award" size={40} />
                          </div>
                          <h2 className="text-3xl font-black text-slate-800 drop-shadow-md">Hall of Fame</h2>
-                         <p className="text-slate-700 font-medium mt-2 drop-shadow-sm">สุดยอดนักเจรจาผู้มีความเห็นอกเห็นใจเป็นเลิศ</p>
+                         <p className="text-slate-700 font-medium mt-2 drop-shadow-sm">คะแนนประเมินทักษะการปฏิบัติงาน</p>
                      </div>
                      
                      <div className="w-full max-w-2xl mx-auto space-y-4 relative z-10 px-4 md:px-0">
@@ -744,13 +712,13 @@
                                 </div>
                                 <div className="flex flex-col items-end">
                                     <div className="text-3xl font-black text-line-600 drop-shadow-md">{u.score}</div>
-                                    <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Empathy</div>
+                                    <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Score</div>
                                 </div>
                             </GlassCard>
                          )) : (
                              <div className="text-center p-8 bg-white/40 rounded-2xl border border-white/50 mt-6 backdrop-blur-md shadow-inner w-full">
                                  <SafeIcon name="Globe" size={40} className="mx-auto text-slate-400 mb-3" />
-                                 <p className="text-slate-600 font-bold">ยังไม่มีข้อมูลผู้ใช้งานที่ผ่านการฝึกเจรจา<br/>เข้าไปที่ "ห้องเจรจา" เพื่อเริ่มสะสมคะแนนคนแรกกันเลย!</p>
+                                 <p className="text-slate-600 font-bold">ยังไม่มีข้อมูลการประเมินในขณะนี้</p>
                              </div>
                          )}
                      </div>
@@ -776,7 +744,6 @@
             );
         }
 
-        // 🌟 หน้าทำข้อสอบ 🌟
         function QuizScreen({ store, actions }) {
           const { quizData: { questions, currentIndex, answers, type, isFinished } } = store; const q = questions[currentIndex]; const isAns = q && answers[q.id] !== undefined; const [timeLeft, setTimeLeft] = useState(2700); const timerRef = useRef(null); 
           useEffect(() => { if (isFinished) return; const tmr = setInterval(() => setTimeLeft(p => { if (p <= 1) { clearInterval(tmr); actions.submitQuiz(); return 0; } return p - 1; }), 1000); return () => clearInterval(tmr); }, [isFinished]);
@@ -865,11 +832,10 @@
           );
         }
 
-        // 🌟 หน้าโปรไฟล์ 🌟
         function ProfileSummaryScreen({ store: { loggedInUser, studySeconds }, actions, inline = false }) {
           if (!loggedInUser) return null;
           const history = loggedInUser.skillLabHistory || [];
-          const avgEmpathy = history.length > 0 ? Math.round(history.reduce((s, r) => s + (r.score || 0), 0) / history.length) : 0;
+          const avgScore = history.length > 0 ? Math.round(history.reduce((s, r) => s + (r.score || 0), 0) / history.length) : 0;
           const content = (
               <div className="w-full max-w-2xl mx-auto p-6 md:p-10 text-center pb-24 md:pb-10">
                   <div className="w-24 h-24 rounded-full bg-white/60 border border-white/80 mx-auto mb-6 flex items-center justify-center text-slate-600 shadow-md"><SafeIcon name="User" size={48} /></div>
@@ -890,9 +856,9 @@
                       <GlassCard className="p-4 mb-10 flex items-center justify-between bg-gradient-to-r from-pink-500/20 to-rose-400/20 border-pink-200/50">
                           <div className="flex items-center gap-3">
                               <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-500 to-rose-600 flex items-center justify-center text-white shadow-[0_0_15px_rgba(244,63,94,0.5)]"><SafeIcon name="Heart" size={24} className="animate-pulse" /></div>
-                              <div className="text-left"><div className="text-xs font-bold text-pink-700 uppercase tracking-widest">Empathy Score</div><div className="text-sm font-medium text-slate-800">คะแนนความเห็นอกเห็นใจเฉลี่ย</div></div>
+                              <div className="text-left"><div className="text-xs font-bold text-pink-700 uppercase tracking-widest">Assessment Score</div><div className="text-sm font-medium text-slate-800">คะแนนประเมินทักษะเฉลี่ย</div></div>
                           </div>
-                          <div className="text-3xl font-black text-rose-600 drop-shadow-sm">{avgEmpathy}<span className="text-base text-rose-500/80">/100</span></div>
+                          <div className="text-3xl font-black text-rose-600 drop-shadow-sm">{avgScore}<span className="text-base text-rose-500/80">/100</span></div>
                       </GlassCard>
                   )}
                   {loggedInUser.certificateClaimed && loggedInUser.certificateUrl && (
@@ -903,27 +869,6 @@
                       </div>
                   )}
 
-                  {/* แหล่งข้อมูลอ้างอิงศูนย์รับบริจาคอวัยวะสภากาชาดไทย */}
-                  <div className="mt-8 mb-8 text-left">
-                      <h3 className="text-sm font-extrabold text-slate-800 mb-3 flex items-center gap-2 drop-shadow-sm"><SafeIcon name="Globe" className="text-line-600" size={18} /> แหล่งข้อมูลอ้างอิงสำคัญ</h3>
-                      <div className="flex flex-col sm:flex-row gap-3">
-                          <a href="https://organdonate.redcross.or.th/" target="_blank" rel="noopener noreferrer" className="flex-1 bg-white/60 hover:bg-white/90 border border-white/80 p-4 rounded-2xl flex items-center gap-3 transition-all shadow-sm hover:shadow-md active:scale-95 backdrop-blur-md group">
-                              <div className="w-10 h-10 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform"><SafeIcon name="Heart" size={20} className="animate-pulse" /></div>
-                              <div>
-                                  <div className="text-sm font-bold text-slate-800 drop-shadow-sm">ศูนย์รับบริจาคอวัยวะฯ</div>
-                                  <div className="text-[10px] text-slate-600 font-medium">เว็บไซต์หลัก สภากาชาดไทย</div>
-                              </div>
-                          </a>
-                          <a href="https://organdonate.redcross.or.th/download" target="_blank" rel="noopener noreferrer" className="flex-1 bg-white/60 hover:bg-white/90 border border-white/80 p-4 rounded-2xl flex items-center gap-3 transition-all shadow-sm hover:shadow-md active:scale-95 backdrop-blur-md group">
-                              <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform"><SafeIcon name="Download" size={20} /></div>
-                              <div>
-                                  <div className="text-sm font-bold text-slate-800 drop-shadow-sm">ดาวน์โหลดแบบฟอร์ม</div>
-                                  <div className="text-[10px] text-slate-600 font-medium">เอกสารและคู่มือปฏิบัติงาน</div>
-                              </div>
-                          </a>
-                      </div>
-                  </div>
-
                   {!inline && <button onClick={actions.handleLogout} className="mt-2 text-sm font-bold bg-white/40 hover:bg-white/60 backdrop-blur-md px-6 py-3 rounded-full border border-white/60 text-rose-600 transition-colors shadow-sm">ออกจากระบบ</button>}
               </div>
           );
@@ -931,7 +876,7 @@
         }
 
         // ============================================================================
-        // 9. APP BOOTSTRAP (Main App Component)
+        // 9. APP BOOTSTRAP
         // ============================================================================
         function App() {
           const [store, setStore] = useGlobalState();
@@ -997,7 +942,6 @@
                    </div>
                </div>
                
-               {/* 🌟 ปุ่มลับ Admin โชว์เฉพาะหน้า Landing 🌟 */}
                {['landing'].includes(store.currentScreen) && (
                    <button onClick={actions.handleAdminClick} className="fixed bottom-4 left-4 z-50 text-white/80 hover:text-white bg-black/30 hover:bg-black/50 backdrop-blur-md p-3 rounded-full transition-all no-print cursor-pointer shadow-lg border border-white/30">
                        <SafeIcon name="Settings" size={24} />
