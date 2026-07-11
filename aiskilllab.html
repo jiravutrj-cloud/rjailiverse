@@ -283,8 +283,8 @@
                 if (audioRef.current) { audioRef.current.pause(); audioRef.current.removeAttribute('src'); audioRef.current.load(); audioRef.current = null; } 
             }, []);
             
-            // 🌟 ระบบเล่นเสียงพร้อมคลื่น Web Audio API 🌟
-            const speakThai = async (text, onEndCallback = null, speaker = 'FAH', isSystemVoice = false) => {
+            // 🌟 ระบบเล่นเสียงพร้อม 2.5D Cinematic Canvas Visualizer 🌟
+            const speakThai = async (text, onEndCallback = null, speaker = 'FAH', isSystemVoice = false, emotion = 'NEUTRAL') => {
                 stopAudio(); currentSpeechIdRef.current += 1; const speechId = currentSpeechIdRef.current; 
                 
                 let targetVoice = "Aoede"; 
@@ -311,11 +311,10 @@
                     audio.crossOrigin = "anonymous";
                     audioRef.current = audio; 
 
-                    // --- Setup Audio Analyser for Hologram Wave ---
                     if (!ttsAudioCtxRef.current) {
                         ttsAudioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
                         ttsAnalyserRef.current = ttsAudioCtxRef.current.createAnalyser();
-                        ttsAnalyserRef.current.fftSize = 128;
+                        ttsAnalyserRef.current.fftSize = 256; 
                     }
                     if (ttsAudioCtxRef.current.state === 'suspended') ttsAudioCtxRef.current.resume();
 
@@ -325,26 +324,115 @@
 
                     setIsAiSpeaking(true);
 
-                    // Waveform Animation Loop (สีฟ้าธรรมชาติ)
+                    // 🌟 อัลกอริทึมวาดคลื่นเสียง 2.5D Multi-Wave Intersections & Reflections 🌟
                     const drawWave = () => {
                         if (!ttsCanvasRef.current || !ttsAnalyserRef.current) return;
                         const canvas = ttsCanvasRef.current;
                         const ctx = canvas.getContext('2d');
-                        const dataArray = new Uint8Array(ttsAnalyserRef.current.frequencyBinCount);
-                        ttsAnalyserRef.current.getByteFrequencyData(dataArray);
+                        
+                        const freqData = new Uint8Array(ttsAnalyserRef.current.frequencyBinCount);
+                        const timeData = new Uint8Array(ttsAnalyserRef.current.frequencyBinCount);
+                        
+                        ttsAnalyserRef.current.getByteFrequencyData(freqData);
+                        ttsAnalyserRef.current.getByteTimeDomainData(timeData);
 
+                        // เคลียร์หน้าจอแคนวาส
                         ctx.clearRect(0, 0, canvas.width, canvas.height);
-                        const barWidth = (canvas.width / dataArray.length) * 2.5;
+                        
+                        // 🎨 กำหนดชุดสีไล่ระดับตามอารมณ์ (Emotion Color Mapping)
+                        const gradients = {
+                            NEUTRAL: ['#00f2fe', '#4facfe', '#667eea'], // Cyan -> Blue -> Purple
+                            ANGRY: ['#ff0844', '#ffb199', '#4a00e0'], // Red -> Orange -> Dark Purple
+                            SAD: ['#b224ef', '#7579ff', '#00c6ff'], // Purple -> Pink -> Cyan
+                            CONFUSED: ['#ff9a44', '#fc6076', '#a18cd1'], // Orange -> Pink -> Purple
+                            HESITANT: ['#f6d365', '#fda085', '#f78ca0'], // Yellow -> Orange -> Pink
+                            ADVISING: ['#43e97b', '#38f9d7', '#00f2fe']  // Emerald -> Cyan -> Blue
+                        };
+                        
+                        const colors = gradients[emotion] || gradients['NEUTRAL'];
+                        
+                        // สร้าง Linear Gradient พาดตามแนวนอน
+                        const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
+                        gradient.addColorStop(0, colors[0]);
+                        gradient.addColorStop(0.5, colors[1]);
+                        gradient.addColorStop(1, colors[2]);
+
+                        const centerY = canvas.height * 0.6; // เส้นศูนย์สูตรของคลื่นหลัก
+                        const reflectY = canvas.height * 0.6; // จุดเริ่มต้นเงาสะท้อน
+
+                        // เปิดโหมดเรืองแสงทับซ้อน (Screen Blending)
+                        ctx.globalCompositeOperation = 'screen';
+
+                        // 1. วาดแถบริบบิ้นความถี่ฉากหลัง (Faint Frequency Ribbons)
+                        const barWidth = (canvas.width / freqData.length) * 2.5;
                         let x = 0;
-                        for(let i = 0; i < dataArray.length; i++) {
-                            const barHeight = Math.min(canvas.height, (dataArray[i] / 255) * canvas.height * 1.2); 
-                            const hue = 210; 
-                            ctx.fillStyle = `hsla(${hue}, 100%, 70%, 0.8)`;
-                            ctx.shadowBlur = 10;
-                            ctx.shadowColor = `hsla(${hue}, 100%, 70%, 0.6)`;
-                            ctx.fillRect(x, canvas.height - barHeight, barWidth - 1, barHeight);
+                        for(let i = 0; i < freqData.length; i+=2) { // ข้ามบางแท่งให้ดูเป็นแผ่นริบบิ้น
+                            const val = freqData[i] / 255.0;
+                            const barHeight = val * (canvas.height * 0.5);
+                            if (val > 0.05) {
+                                ctx.fillStyle = gradient;
+                                // ริบบิ้นด้านบน
+                                ctx.globalAlpha = 0.1 * val; 
+                                ctx.fillRect(x, centerY - barHeight, barWidth - 1, barHeight);
+                                // เงาสะท้อนริบบิ้นด้านล่าง
+                                ctx.globalAlpha = 0.03 * val;
+                                ctx.fillRect(x, reflectY, barWidth - 1, barHeight * 0.6);
+                            }
                             x += barWidth;
                         }
+
+                        // 2. วาดเส้นคลื่นซ้อนทับกัน (Multi-Wave Intersections)
+                        const sliceWidth = canvas.width * 1.0 / timeData.length;
+                        const now = performance.now() * 0.0015; // ความเร็วอนิเมชันไหลของคลื่น
+
+                        const drawSineWave = (amplitudeMultiplier, phaseOffset, alpha, isReflection = false, lineWidth = 2) => {
+                            ctx.beginPath();
+                            let wx = 0;
+                            for(let i = 0; i < timeData.length; i++) {
+                                const v = timeData[i] / 128.0; 
+                                const envelope = Math.sin((i / timeData.length) * Math.PI); // ปลายคลื่นเรียวแหลม
+                                
+                                // คำนวณความสูงคลื่นหลัก + ริ้วคลื่นย่อย (Ripples)
+                                let yDisp = (v - 1) * (canvas.height * 0.4) * amplitudeMultiplier * envelope;
+                                const ripple = Math.sin(i * 0.08 + now * 3 + phaseOffset) * 15 * envelope * (freqData[i%freqData.length]/255);
+                                yDisp += ripple;
+
+                                // พลิกหัวกลับด้านถ้าเป็นเงาสะท้อน
+                                let wy = isReflection ? reflectY + Math.abs(yDisp)*0.7 : centerY + yDisp;
+
+                                if(i === 0) ctx.moveTo(wx, wy);
+                                else ctx.lineTo(wx, wy);
+                                
+                                wx += sliceWidth;
+                            }
+                            
+                            ctx.lineWidth = lineWidth;
+                            ctx.strokeStyle = gradient;
+                            ctx.globalAlpha = alpha;
+                            
+                            if (!isReflection) {
+                                ctx.shadowBlur = 15;
+                                ctx.shadowColor = colors[1];
+                            } else {
+                                ctx.shadowBlur = 0; // เงาสะท้อนไม่ต้องมี Glow
+                            }
+                            ctx.stroke();
+                        };
+
+                        // วาดเลเยอร์เส้นแสง (Aesthetic Layers)
+                        drawSineWave(1.0, 0, 0.9, false, 3);   // เส้นหลักหนา
+                        drawSineWave(0.8, 2, 0.6, false, 1.5); // เส้นรองสลับเฟส
+                        drawSineWave(0.5, 4, 0.4, false, 1);   // เส้นแกนในบางๆ
+
+                        // วาดเลเยอร์เงาสะท้อนพื้นกระจก (Reflective Floor)
+                        drawSineWave(1.0, 0, 0.25, true, 2); 
+                        drawSineWave(0.8, 2, 0.15, true, 1);
+
+                        // รีเซ็ตค่ากลับเป็นปกติ
+                        ctx.globalCompositeOperation = 'source-over'; 
+                        ctx.globalAlpha = 1.0;
+                        ctx.shadowBlur = 0;
+
                         ttsAnimFrameRef.current = requestAnimationFrame(drawWave);
                     };
 
@@ -394,7 +482,7 @@
                 setRoleplayPhase('giving_context'); setCurrentEmotion('SAD'); setCurrentSpeaker('FAH');
                 const contextMsgId = Date.now(); 
                 setMessages(prev => [...prev, { id: contextMsgId, sender: 'ai', text: contextText, isVoiceOnly: false, speakerName: 'ระบบ', isContext: true }]);
-                speakThai(contextText, () => setRoleplayPhase('negotiating'), 'FAH', true);
+                speakThai(contextText, () => setRoleplayPhase('negotiating'), 'FAH', true, 'NEUTRAL');
             };
 
             const startScenario = (sc) => {
@@ -409,7 +497,7 @@
                 speakThai(introMsg, () => { 
                     setMessages(prev => prev.map(m => m.id === introMsgId ? { ...m, isVoiceOnly: false } : m)); 
                     setRoleplayPhase('playing_scenario'); 
-                }, 'FAH', true);
+                }, 'FAH', true, 'NEUTRAL');
             };
 
             const handleSendChat = async (e, quickActionText = null) => {
@@ -467,7 +555,7 @@
                     
                     setMessages(prev => [...prev, { id: msgId, sender: 'ai', text: displayChatText, isVoiceOnly, speakerName }]); setIsTyping(false); 
                     
-                    speakThai(cleanText, () => setMessages(prev => prev.map(m => m.id === msgId ? { ...m, isVoiceOnly: false } : m)), spk, false);
+                    speakThai(cleanText, () => setMessages(prev => prev.map(m => m.id === msgId ? { ...m, isVoiceOnly: false } : m)), spk, false, foundEmotion);
                 } catch (err) { 
                     setIsTyping(false); 
                     setMessages(prev => [...prev, { id: Date.now(), sender: 'ai', text: `ข้อผิดพลาด (${err.message})`, isVoiceOnly: false, speakerName: 'ระบบ' }]); 
@@ -506,7 +594,7 @@
                     } catch(e) {}
                     
                     showMsg(`บันทึกผลเรียบร้อย (Empathy Score: ${empathyScore})`, 'success'); 
-                    speakThai(cleanResponse.replace(/[*#]/g, ''), null, 'FAH', true);
+                    speakThai(cleanResponse.replace(/[*#]/g, ''), null, 'FAH', true, 'ADVISING');
                 } catch (e) { setMessages(prev => [...prev, { id: Date.now(), sender: 'ai', text: `ข้อผิดพลาด: ${e.message}`, isVoiceOnly: false, speakerName: 'ระบบ' }]); }
                 setIsTyping(false);
             };
@@ -524,7 +612,6 @@
             if (currentSpeaker === 'BROTHER') videoToPlay = CHARACTER_VIDEOS?.['BROTHER']?.[currentEmotion] || CHARACTER_VIDEOS?.['BROTHER']?.['NEUTRAL'] || "";
             else videoToPlay = CHARACTER_VIDEOS?.['FAH']?.[currentEmotion] || CHARACTER_VIDEOS?.['FAH']?.['NEUTRAL'] || "";
 
-            // 🚀 แสดงหน้าจอ Access Denied หากไม่ใช่ Masterclass 🚀
             if (accessDenied) return (
                 <div className="min-h-screen sky-bg flex items-center justify-center p-4 relative z-50">
                     <div className="bg-slate-900/80 backdrop-blur-xl border border-white/20 p-8 rounded-[2.5rem] text-center shadow-2xl max-w-md w-full animate-in zoom-in fade-in duration-500">
@@ -665,8 +752,8 @@
                                             <button onClick={triggerScenarioNegotiation} className="absolute bottom-6 right-6 z-50 bg-white/20 hover:bg-white/40 backdrop-blur-md text-white px-4 py-2 rounded-full text-xs font-bold border border-white/50 transition-colors shadow-lg">Skip ⏭️</button>
                                         )}
 
-                                        {/* 🌟 Audio Visualizer Canvas (สีฟ้าธรรมชาติ) 🌟 */}
-                                        {isPiP && <canvas ref={ttsCanvasRef} width="300" height="100" className="absolute bottom-0 left-0 w-full h-1/3 z-20 pointer-events-none opacity-90 mix-blend-screen"></canvas>}
+                                        {/* 🌟 2.5D Cinematic Audio Visualizer Canvas 🌟 */}
+                                        {isPiP && <canvas ref={ttsCanvasRef} width="600" height="200" className="absolute bottom-0 left-0 w-full h-1/2 z-20 pointer-events-none opacity-90 mix-blend-screen"></canvas>}
                                     </div>
                                 </div>
 
