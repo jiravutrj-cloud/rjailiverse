@@ -198,7 +198,7 @@
                                     <div className="flex items-center justify-center mb-1">
                                         <span className="mr-2">ลงชื่อ</span>
                                         <div className="flex-1 border-b border-dotted border-slate-500 relative">
-                                            <span className="absolute bottom-1 left-1/2 -translate-x-1/2 font-signature text-blue-800 text-4xl transform -rotate-12 select-none">ฟ้า รักดี</span>
+                                            <span className="absolute bottom-1 left-1/2 -translate-x-1/2 font-signature text-blue-800 text-4xl transform -rotate-12 select-none whitespace-nowrap">ฟ้า รักดี</span>
                                         </div>
                                     </div>
                                     <div className="text-sm">( นางสาว ฟ้า รักดี )</div>
@@ -670,6 +670,7 @@
 
                     let aiText = rawResponse; let sug1 = "", sug2 = "";
                     
+                    // 🌟 ดักจับรหัสลับ จบเคสอัตโนมัติ 🌟
                     let isResolved = false;
                     if (aiText.includes('[SCENARIO_RESOLVED]')) {
                         isResolved = true;
@@ -699,13 +700,28 @@
 
             const endScenarioAndEvaluate = async () => {
                 stopAudio(); setIsTyping(true); setRoleplayPhase('evaluating'); setCurrentEmotion('ADVISING'); setCurrentSpeaker('FAH'); setSmartSuggestions([]); setShowConsentForm(false);
-                setMessages(prev => [...prev, { id: Date.now(), sender: 'user', text: "🛑 ตัดเข้าสู่การสรุปและประเมินผลการเจรจา" }]);
+                setMessages(prev => [...prev, { id: Date.now(), sender: 'user', text: "🛑 สิ้นสุดการจำลองสถานการณ์ ระบบกำลังเข้าสู่การประเมินวิเคราะห์เชิงลึก..." }]);
                 
-                const history = messages.slice(-15).map(m => `${m.sender === 'ai' ? 'ญาติ' : 'ผู้เรียน'}: ${m.text}`).join('\n');
-                const evalPrompt = `คุณคือ "ปรมาจารย์ด้านจิตวิทยาการแพทย์ (Cognitive Profiler)" ประเมินการเจรจานี้อ้างอิงจากบทบาทผู้เรียน(${user?.position || 'บุคลากร'}) และความรู้ 5W1H/เทคนิคเจรจาในคู่มือนี้:\n${window.CLINICAL_KNOWLEDGE_BASE || ""}\n\nประวัติการสนทนา:\n${history}\n\n1. ให้คะแนนความเห็นอกเห็นใจ (Empathy Score) จาก 0-100 (ระบุแท็ก [EMPATHY: คะแนน] เสมอ)\n2. หากคะแนนเกิน 60 ถือว่าผ่าน พิมพ์ [PASS] ไม่ผ่านพิมพ์ [FAIL]\n3. สรุป จุดแข็ง และ จุดอ่อน ให้ชัดเจน`;
+                const history = messages.filter(m => !m.isContext).map(m => `${m.sender === 'ai' ? 'ครอบครัว' : 'ผู้เรียน'}: ${m.text}`).join('\n');
+                
+                // 🌟 The Psychological Profiler Prompt 🌟
+                const evalPrompt = `คุณคือ "ปรมาจารย์ด้านจิตวิทยาคลินิก (Clinical Psychological Profiler)" และอาจารย์แพทย์ชั้นนำ
+หน้าที่ของคุณคือประเมินการเจรจาขอรับบริจาคอวัยวะนี้ อย่างลึกซึ้งถึงระดับ "จิตใต้สำนึกและกลไกป้องกันตัวเอง (Defense Mechanisms)" ของผู้เรียน (${user?.position || 'บุคลากรทางการแพทย์'})
+
+[ข้อมูลการสนทนาที่ต้องวิเคราะห์]:
+${history}
+
+[กฎการประเมิน - บังคับรูปแบบผลลัพธ์]:
+1. ต้องให้คะแนน [EMPATHY: คะแนน 0-100] (ต้องมีรูปแบบนี้เป๊ะๆ)
+2. หากเกิน 60 คะแนน ให้พิมพ์ [PASS] ถ้าต่ำกว่าพิมพ์ [FAIL]
+3. **การวิเคราะห์บุคลิกภาพเชิงลึก (Psychological Profiling):** ห้ามตอบแบบกว้างๆ แต่ให้วิเคราะห์พฤติกรรมของผู้เรียนว่า:
+   - ผู้เรียนมีจุดอ่อนเรื่องการเผชิญหน้ากับความโศกเศร้าหรือไม่? (เช่น รีบใช้ศัพท์แพทย์บังหน้า, รีบตัดจบ)
+   - ผู้เรียนรับฟัง (Active Listening) หรือแค่รอคิวเพื่อจะพูดเรื่องบริจาคอวัยวะ?
+   - กลยุทธ์ที่ผู้เรียนใช้ สะท้อนถึงความเห็นอกเห็นใจที่แท้จริง หรือเป็นเพียง Fake Empathy?
+4. สรุปคำแนะนำที่ "กระแทกใจและสร้างการเปลี่ยนแปลง (Transformative Feedback)" เพื่อให้ผู้เรียนเป็นนักเจรจาที่สมบูรณ์แบบ`;
                 
                 try {
-                    const aiResponse = await callGeminiAPI("ประเมินการเจรจาหน่อย", evalPrompt); 
+                    const aiResponse = await callGeminiAPI("เริ่มการประเมินโปรไฟล์ผู้เรียน", evalPrompt); 
                     if (aiResponse.startsWith('[ระบบขัดข้อง]')) { setMessages(prev => [...prev, { id: Date.now(), sender: 'ai', text: aiResponse, isVoiceOnly: false, speakerName: 'ระบบ' }]); showMsg(aiResponse, 'error'); setIsTyping(false); return; }
                     
                     const isPass = aiResponse.includes('[PASS]'); 
