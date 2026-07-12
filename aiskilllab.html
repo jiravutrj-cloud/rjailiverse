@@ -353,12 +353,12 @@
                             const createCluster = (arr, ox, oy) => {
                                 for(let i=0; i<30; i++) {
                                     let angle = Math.random() * Math.PI * 2;
-                                    let radiusX = Math.random() * 80; 
-                                    let radiusY = Math.random() * 60;
+                                    let radiusX = Math.random() * 100; // Increased radius
+                                    let radiusY = Math.random() * 80;  // Increased radius
                                     arr.push({
                                         ox: ox + radiusX * Math.cos(angle),
                                         oy: oy + radiusY * Math.sin(angle),
-                                        baseRadius: 1 + Math.random() * 2,
+                                        baseRadius: 1.5 + Math.random() * 2.5, // Increased node size
                                         pulseSpeed: 0.05 + Math.random() * 0.1,
                                         pulseOffset: Math.random() * Math.PI * 2
                                     });
@@ -412,21 +412,21 @@
                                 
                                 let currentRadius = node.baseRadius + Math.sin(now * node.pulseSpeed + node.pulseOffset) * 0.8 + (activePulse * 1.5);
                                 
-                                ctx.globalAlpha = isActive ? (0.8 + activePulse) : 0.15;
+                                ctx.globalAlpha = isActive ? (0.8 + activePulse) : 0.15; // Increased alpha
                                 ctx.beginPath();
                                 ctx.arc(nx, ny, Math.max(0.1, currentRadius), 0, Math.PI * 2);
-                                ctx.shadowBlur = isActive ? (20 + (activePulse * 30)) : 3;
+                                ctx.shadowBlur = isActive ? (40 + (activePulse * 50)) : 10; // Increased glow
                                 ctx.shadowColor = isActive ? colors[3] : colors[1];
                                 ctx.fill();
 
-                                ctx.globalAlpha = isActive ? (0.3 + (activePulse * 0.3)) : 0.03;
+                                ctx.globalAlpha = isActive ? (0.4 + (activePulse * 0.4)) : 0.05; // Increased line alpha
                                 ctx.shadowBlur = 0;
                                 for(let j=i+1; j<nodes.length; j++) {
                                     let node2 = nodes[j];
                                     let dx = node.ox - node2.ox;
                                     let dy = node.oy - node2.oy;
                                     let dist = Math.sqrt(dx*dx + dy*dy);
-                                    if(dist < 50) { 
+                                    if(dist < 60) { // Increased connection distance
                                         ctx.beginPath();
                                         ctx.moveTo(nx, ny);
                                         let nx2 = node2.ox + Math.sin(now + node2.pulseOffset) * 3;
@@ -442,7 +442,7 @@
                             ctx.fillStyle = isActive ? colors[3] : colors[1];
                             ctx.textAlign = "center";
                             ctx.shadowBlur = 0;
-                            let labelY = nodes[0].oy + 95;
+                            let labelY = nodes[0].oy + 115;
                             let labelText = "";
                             if (scenarioLang === 'en') {
                                 labelText = clusterName === 'FAH' ? 'FAH (Daughter)' : clusterName === 'MEK' ? 'MEK (Brother)' : "P'EK (Fah's BF)";
@@ -540,20 +540,40 @@
             const triggerScenarioNegotiation = () => {
                 const isEnglish = selectedScenario?.language === 'en';
                 const contextText = isEnglish 
-                    ? "Initial Case Data: Patient is a 46yo male, car accident. Brain stem reflexes and apnea test performed, confirming brain death. Relatives outside ICU include Michael (Spouse). Let's begin the negotiation." 
+                    ? "Initial Case Data: Patient is a 46yo male, car accident. Brain stem reflexes and apnea test performed, confirming brain death. Relatives outside ICU include Michael (Spouse). The negotiation has started." 
                     : "ข้อมูลเบื้องต้น: คนไข้ชาย อายุ 46 ปี ประสบอุบัติเหตุรถยนต์ แพทย์ประเมินก้านสมองและทดสอบการหายใจแล้ว ยืนยันภาวะสมองตาย ญาติหน้าห้อง ICU มี ฟ้า (ลูกสาว), เมฆ (น้องชาย) และ พี่เอก (แฟนของฟ้า) เริ่มการเจรจาได้เลยค่ะ";
                 
-                setRoleplayPhase('giving_context'); setCurrentEmotion('SAD'); setCurrentSpeaker(isEnglish ? 'MICHAEL' : 'FAH');
+                setRoleplayPhase('giving_context'); setCurrentEmotion('NEUTRAL'); setCurrentSpeaker('FAH');
                 const contextMsgId = Date.now(); 
                 setMessages(prev => [...prev, { id: contextMsgId, sender: 'ai', text: contextText, isVoiceOnly: false, speakerName: 'System', isContext: true }]);
                 
+                // 🌟 The Intro-Hook: ประโยคแรกเพื่อให้ผู้เรียนแนะนำตัว 🌟
+                const introHookText = isEnglish
+                    ? "Hello... Are you the staff member coming to talk to me about my wife?"
+                    : "สวัสดีค่ะ... คุณเป็นเจ้าหน้าที่ที่จะมาคุยกับพวกเราเรื่องคุณพ่อหรือเปล่าคะ?";
+                const introSpeaker = isEnglish ? 'MICHAEL' : 'FAH';
+
                 speakThai(contextText, () => {
                     setRoleplayPhase('negotiating');
-                    if (selectedScenario?.initialMessage) {
-                        setTimeout(() => {
-                            handleAIResponse(selectedScenario.initialMessage);
-                        }, 500);
-                    }
+                    
+                    // แทรกข้อความทักทายเพียงครั้งเดียว
+                    const introMsgId = Date.now() + 1;
+                    const visualSpeakerName = isEnglish ? 'Michael' : 'ฟ้า';
+                    
+                    // ป้องกันการแอดซ้ำ โดยเซ็ต messages ใหม่โดยพ่วงเอาข้อความเดิมก่อนหน้ามาด้วย
+                    setMessages(prev => {
+                        // เช็คว่ามีข้อความนี้อยู่แล้วหรือยัง
+                        if(prev.some(m => m.id === introMsgId)) return prev;
+                        return [...prev, { id: introMsgId, sender: 'ai', text: `(${visualSpeakerName}) ${introHookText}`, isVoiceOnly: true, speakerName: visualSpeakerName }]
+                    });
+                    
+                    setCurrentEmotion('CONFUSED');
+                    setCurrentSpeaker(introSpeaker);
+                    
+                    speakThai(introHookText, () => {
+                        setMessages(prev => prev.map(m => m.id === introMsgId ? { ...m, isVoiceOnly: false } : m));
+                    }, introSpeaker, false, 'CONFUSED');
+                    
                 }, 'FAH', true, 'NEUTRAL');
             };
             
@@ -644,15 +664,21 @@
                 
                 setMessages(prev => [...prev, { id: Date.now(), sender: 'user', text: userMsg, image: selectedImage }]); setChatInput(''); const imageToSend = selectedImage; setSelectedImage(null); setIsTyping(true); setSmartSuggestions([]); setPressureTime(20);
                 
-                const historyContext = messages.filter(m => !m.isContext).slice(-10).map(m => `${m.sender === 'user' ? 'ผู้เรียน' : 'ครอบครัว'}: ${m.text}`).join('\n');
+                const historyContext = messages.filter(m => !m.isContext).slice(-10).map(m => `${m.sender === 'user' ? 'Learner/Staff' : 'Family'}: ${m.text}`).join('\n');
+                
+                // 🌟 The Intro-Hook Logic: ถ้านี่คือช่วงแรกของการสนทนา ให้ AI เรียนรู้จากชื่อ/ตำแหน่งของผู้เรียนเพื่อใช้คุยต่อ 🌟
                 let introGuideline = "";
-                if (userMsg.match(/(ชื่อ|แนะนำตัว|พยาบาล|หมอ|แพทย์|สวัสดี|Hi|Hello|Doctor|Nurse)/i) && messages.length <= 3) {
-                    introGuideline = `\n[กฎระบบแนะนำตัวเพิ่มเติม]: ให้ตัวละครหลัก แนะนำตัวเธอและสมาชิกในครอบครัวทีเดียวพร้อมกัน โดยไม่มีคำพูดชู้สาว`;
+                if (messages.length <= 4) {
+                    introGuideline = scenarioLang === 'en' 
+                        ? `\n[CRITICAL INITIALIZATION]: If the user just introduced themselves (e.g., Doctor, Nurse, Coordinator), acknowledge their role respectfully. Michael must introduce himself and ask about his wife's condition directly.`
+                        : `\n[การตอบรับการแนะนำตัว]: หากผู้เรียนเพิ่งแนะนำตัวว่าเป็นใคร (เช่น หมอ พยาบาล เจ้าหน้าที่) ให้ญาติรับทราบอย่างสุภาพ และให้ญาติหลัก (เช่น ฟ้า หรือ พี่เอก) แนะนำสมาชิกครอบครัวที่เหลือให้ผู้เรียนรู้จักพร้อมกัน และเข้าสู่บทสนทนาถามอาการพ่อทันที`;
                 }
                 
-                const suggestionInstruction = `\n\n[ข้อบังคับพิเศษ: SMART HOOKS]\nสร้างทางเลือกตอบกลับเบื้องต้นให้ผู้เรียน 2 ทางเลือกในตอนท้ายสุด โดยให้จัดรูปแบบดังนี้:\n[SUGGESTION 1] (ทางเลือกที่ 1)\n[SUGGESTION 2] (ทางเลือกที่ 2)\n*หากเป็นเคสภาษาอังกฤษ ให้เขียน Suggestion เป็นภาษาอังกฤษ*`;
+                const suggestionInstruction = scenarioLang === 'en'
+                    ? `\n\n[SPECIAL HOOK: SMART SUGGESTIONS]\nProvide 2 realistic response options for the user at the very end in English. Format:\n[SUGGESTION 1] (Option 1)\n[SUGGESTION 2] (Option 2)`
+                    : `\n\n[ข้อบังคับพิเศษ: SMART HOOKS]\nสร้างทางเลือกตอบกลับเบื้องต้นให้ผู้เรียน 2 ทางเลือกในตอนท้ายสุด โดยให้จัดรูปแบบดังนี้:\n[SUGGESTION 1] (ทางเลือกที่ 1)\n[SUGGESTION 2] (ทางเลือกที่ 2)`;
 
-                const roleplayPrompt = `${currentScenarioPrompt}${introGuideline}${suggestionInstruction}\n\nประวัติ:\n${historyContext}\nผู้เรียน: ${userMsg}\nญาติ (ตอบทีละ 1 คน ใส่ Tag อารมณ์และชื่อคนพูดก่อนเสมอ):`;
+                const roleplayPrompt = `${currentScenarioPrompt}${introGuideline}${suggestionInstruction}\n\nHistory:\n${historyContext}\nLearner: ${userMsg}\nFamily (Respond as ONE character, prefix with Emotion and Name Tags):`;
                 
                 try {
                     let rawResponse = await callGeminiAPI(userMsg, roleplayPrompt, imageToSend); 
@@ -714,7 +740,7 @@
             const handleImageUpload = (e) => { const file = e.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onloadend = () => setSelectedImage(reader.result); reader.readAsDataURL(file); };
 
             if (accessDenied) return (
-                <div className="min-h-screen sky-bg flex items-center justify-center p-4 relative z-50">
+                <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4 relative z-50">
                     <div className="bg-slate-900/80 backdrop-blur-xl border border-white/20 p-8 rounded-[2.5rem] text-center shadow-2xl max-w-md w-full animate-in zoom-in fade-in duration-500">
                         <div className="w-20 h-20 bg-rose-500/10 rounded-full flex items-center justify-center mx-auto mb-6 border border-rose-500/30 shadow-[0_0_20px_rgba(244,63,94,0.3)]">
                             <SafeIcon icon={Lock} size={40} className="text-rose-400" />
@@ -727,7 +753,7 @@
             );
 
             if (!user) return (
-                <div className="min-h-screen sky-bg flex items-center justify-center relative">
+                <div className="min-h-screen bg-slate-900 flex items-center justify-center relative">
                     <div className="bg-black/50 backdrop-blur-xl border border-white/20 p-8 rounded-3xl text-center shadow-2xl animate-in fade-in zoom-in">
                         <div className="w-16 h-16 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin mx-auto mb-6"></div>
                         <h2 className="text-2xl font-black text-white mb-2">Verifying credentials...</h2>
@@ -737,9 +763,7 @@
             );
 
             return (
-                <div className="min-h-screen w-full font-sans antialiased overflow-hidden relative">
-                    <div className="sky-bg"></div>
-                    <div className="clouds-wrapper"><div className="cloud-layer layer-1"></div><div className="cloud-layer layer-2"></div><div className="cloud-layer layer-3"></div></div>
+                <div className="min-h-screen w-full font-sans antialiased overflow-hidden relative bg-slate-900">
                     
                     {uiMessage.show && <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-[100] px-6 py-3 rounded-full font-bold shadow-xl animate-in slide-in-from-top-4 border backdrop-blur-md ${uiMessage.type === 'error' ? 'bg-rose-500/20 text-rose-300 border-rose-500/50' : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/50'}`}>{uiMessage.text}</div>}
 
@@ -752,8 +776,7 @@
                         <div className="text-white/80 font-bold text-sm bg-white/10 px-4 py-1.5 rounded-full border border-white/20 shadow-sm hidden sm:flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> {user.name}</div>
                     </div>
 
-                    {}
-                    <div className="p-4 md:p-6 lg:p-8 h-[calc(100vh-73px)] w-full relative z-10 flex">
+                    <div className="p-4 md:p-6 lg:p-8 h-[calc(100vh-73px)] w-full relative z-10 flex bg-slate-900">
                         
                         {!selectedScenario ? (
                             <div className="w-full max-w-6xl mx-auto flex flex-col lg:flex-row gap-6 h-full animate-in fade-in zoom-in-95">
@@ -787,8 +810,12 @@
                         
                             <div className="w-full h-full flex relative rounded-[2.5rem] overflow-hidden shadow-[0_30px_60px_rgba(0,0,0,0.8)] border border-white/20 bg-transparent">
                                 
-                                {/* 🌟 Background Image Layer (No Cover, Center-aligned) 🌟 */}
-                                <div className="absolute inset-0 z-0 bg-center bg-cover bg-no-repeat" style={{ backgroundImage: `url('https://res.cloudinary.com/djwclucoz/image/upload/v1783830896/Gemini_Generated_Image_r508lgr508lgr508_exrlwo.png')` }}></div>
+                                {/* 🌟 100% Brightness Background Image Layer for Negotiation (Object-fit to maintain aspect ratio perfectly) 🌟 */}
+                                <img 
+                                    src="https://res.cloudinary.com/djwclucoz/image/upload/v1783830896/Gemini_Generated_Image_r508lgr508lgr508_exrlwo.png" 
+                                    className="absolute inset-0 w-full h-full object-cover object-top z-0 pointer-events-none" 
+                                    alt="Virtual ICU Setup" 
+                                />
 
                                 {/* 🌟 Video Player (Plays first, completely covers everything else until skipped/ended) 🌟 */}
                                 {roleplayPhase === 'playing_video' && selectedScenario?.videoUrl && (
