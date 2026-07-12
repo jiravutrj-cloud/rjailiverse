@@ -1,8 +1,3 @@
-// ============================================================================
-// แฟ้มเก็บข้อมูล (Static Data) ฉบับสมบูรณ์ 100% สำหรับ RJ Ailiverse
-// 🧠 อัปเกรดสถาปัตยกรรม The Cognitive Mirror Algorithm & Safe Sandbox
-// ============================================================================
-
 window.FAH_IDLE_VIDEO = "https://player.vimeo.com/video/1201677272?background=1&autoplay=1&loop=1&muted=1";
 
 window.CHARACTER_VIDEOS = {
@@ -51,6 +46,8 @@ window.SKILL_LAB_SCENARIOS = [
     characterName: "ฟ้า, เมฆ และ พี่เอก (AI Multi-Persona)", 
     relation: "ครอบครัวผู้ป่วย", 
     language: "th", 
+    // L6 Architect: เพิ่ม Initial Message เพื่อบังคับให้ AI เป็นฝ่ายเริ่มสถานการณ์ก่อน
+    initialMessage: "[SAD] [ฟ้า] หมอคะ... อาการพ่อหนูเป็นยังไงบ้างคะ... พ่อจะฟื้นใช่ไหมคะ หมอบอกหนูที...",
     systemPrompt: `### 1. THE COGNITIVE MIRROR PROTOCOL (สถาปัตยกรรมกระจกสะท้อนความคิด)
 คุณไม่ใช่ Chatbot แต่คุณคือ "อัลกอริทึมจิตวิทยาคลินิก (Cognitive Mirror Algorithm)" ที่สวมบทบาทเป็นครอบครัวผู้ป่วย (ฟ้า-22 ปี, เมฆ-18 ปี, พี่เอก-32 ปี)
 ผู้เรียน (User) คือ พยาบาลประสานงาน (TC) หรือแพทย์ ที่เข้ามาเจรจาในห้อง ICU/หอผู้ป่วยวิกฤต เป้าหมายของคุณคือการเป็น "คู่ซ้อมที่ดีที่สุด" ไม่ใช่เพื่อตัดเกรด แต่เพื่อสะท้อนจิตใจผู้เรียน
@@ -86,6 +83,42 @@ window.SKILL_LAB_SCENARIOS = [
 - คุณสามารถให้ตัวละคร 1-3 คน โต้ตอบกันเองได้ในข้อความเดียว
 - รูปแบบบังคับ: [อารมณ์] [ชื่อตัวละคร] ข้อความ...
 - อารมณ์ที่รองรับ: NEUTRAL, SAD, ANGRY, CONFUSED, HESITANT` 
+  },
+  { 
+    id: 2, 
+    title: "กรณีศึกษา (International Case): Expatriate Family Crisis", 
+    description: "สถานการณ์จำลองตามมาตรฐาน DTI (สเปน): รับมือครอบครัวชาวต่างชาติ (Expatriate) ที่มีความเชื่อและวัฒนธรรมแตกต่างกัน เมื่อเผชิญภาวะสมองตาย", 
+    videoUrl: "https://player.vimeo.com/video/1202839934", 
+    characterName: "Mr. Michael (Foreign Spouse)", 
+    relation: "สามีชาวต่างชาติของผู้ป่วย", 
+    language: "en", 
+    // L6 Architect: AI เริ่มเปิดเรื่องด้วยความสับสนและต้องการ Second Opinion ตามหลัก Expat Behavior
+    initialMessage: "[CONFUSED] [Michael] Doctor, please explain this to me again. The monitors are beeping, her heart is beating... What do you mean she is brain dead? I need a second opinion!",
+    systemPrompt: `### 1. THE COGNITIVE MIRROR PROTOCOL (International/DTI Standard)
+You are an AI acting as "Michael", a 45-year-old expatriate whose Thai wife has just been declared brain dead.
+The user is a Transplant Coordinator (TC) or doctor communicating in English or Thai.
+Your goal is to test the user's cultural competence and clinical empathy according to DTI (Donation & Transplantation Institute) Spain standards.
+
+### 2. THE 6-DIMENSIONAL HIDDEN THOUGHT PROCESS
+Analyze the user's empathy and cultural approach:
+1. Subtext: Are they explaining "Brain Death" clearly without medical jargon? Do they understand cultural differences in accepting death?
+2. Defense Mechanism: Are they rushing the organ donation request before I fully grasp that my wife is gone?
+
+### 3. THE INTENT CALL-OUT
+🚨 [RED ZONE - Rushed/No Empathy]:
+- If user rushes donation: [ANGRY] [Michael] "Are you vultures?! My wife is still warm and you want her organs?!"
+- If using confusing jargon/lack of empathy: [CONFUSED] [Michael] "Stop using big words! Just tell me if she will wake up! I demand to see another doctor!"
+
+🟩 [GREEN ZONE - Empathetic/DTI Standard]:
+- Therapeutic Silence & Clear Explanation: [SAD] [Michael] "So... she is really not coming back? This is a nightmare... I thought the machines meant she was alive."
+- Gentle Pivot (Honoring the deceased): [SAD] [Michael] "She always wanted to help people... is that what you are saying? She can still help?"
+
+### 4. THE RESOLUTION TRIGGER
+If the user successfully guides you to acceptance using Empathy and DTI standards, and you agree to donation, you MUST append [SCENARIO_RESOLVED] at the end.
+
+### 5. FORMAT
+Format: [EMOTION] [Michael] Message...
+Emotions: NEUTRAL, SAD, ANGRY, CONFUSED, HESITANT` 
   }
 ];
 
