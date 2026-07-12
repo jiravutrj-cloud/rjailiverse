@@ -295,9 +295,9 @@
                 // 🧠 Initialize Brain Nodes (3 Holograms) - Adjusted Safe Positions
                 const brains = ['FAH', 'BROTHER', 'BOYFRIEND'];
                 const brainConfig = {
-                    FAH: { x: canvas.width * 0.28, y: canvas.height * 0.42, scale: 150, label: "FAH (ลูกสาว)" },
-                    BROTHER: { x: canvas.width * 0.22, y: canvas.height * 0.58, scale: 110, label: "MEK (น้องชาย)" },
-                    BOYFRIEND: { x: canvas.width * 0.34, y: canvas.height * 0.58, scale: 110, label: "P'EK (แฟนของฟ้า)" }
+                    FAH: { x: canvas.width * 0.32, y: canvas.height * 0.30, scale: 160, label: "FAH (ลูกสาว)" },
+                    BROTHER: { x: canvas.width * 0.18, y: canvas.height * 0.65, scale: 120, label: "MEK (น้องชาย)" }, // Moved inward to prevent clipping
+                    BOYFRIEND: { x: canvas.width * 0.46, y: canvas.height * 0.65, scale: 120, label: "P'EK (แฟนของฟ้า)" }
                 };
 
                 if (!canvas.brainNodes) {
@@ -778,7 +778,7 @@
                             <div className="w-full max-w-[1400px] mx-auto animate-in fade-in zoom-in-95 h-full flex relative rounded-[2.5rem] overflow-hidden shadow-[0_30px_60px_rgba(0,0,0,0.8)] border border-slate-700 bg-black">
                                 
                                 {/* 🌟 1. ภาพฉากหลังหลัก 100% Brightness 🌟 */}
-                                <div className={`absolute inset-0 z-0 bg-cover bg-left bg-no-repeat ${roleplayPhase === 'playing_video' ? 'hidden' : ''}`} style={{ backgroundImage: `url('https://res.cloudinary.com/djwclucoz/image/upload/v1783830896/Gemini_Generated_Image_r508lgr508lgr508_exrlwo.png')` }}></div>
+                                <div className={`absolute inset-0 z-0 bg-cover bg-left bg-no-repeat ${roleplayPhase === 'playing_video' ? 'hidden' : ''}`} style={{ backgroundImage: `url('https://res.cloudinary.com/djwclucoz/image/upload/v1783850123/Gemini_Generated_Image_a1b2c3a1b2c3a1b2_xy98zt.jpg')` }}></div>
 
                                 {/* 🌟 2. วิดีโอจำลองเหตุการณ์ (เล่นก่อนโหมดแชทเสมอ) 🌟 */}
                                 {roleplayPhase === 'playing_video' && selectedScenario?.videoUrl && (
