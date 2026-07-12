@@ -35,6 +35,7 @@
         @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&display=swap');
         body { font-family: 'Sarabun', sans-serif; margin: 0; overflow-x: hidden; background-color: #0f172a; color: white; }
         
+        /* 🌟 Global Background สำหรับหน้านี้โดยเฉพาะ 🌟 */
         .sky-bg { 
             position: fixed; inset: 0; z-index: 0; 
             background-image: url('https://res.cloudinary.com/djwclucoz/image/upload/v1783834700/Gemini_Generated_Image_vu0rpvvu0rpvvu0r_td26sx.png'); 
@@ -297,9 +298,9 @@
                 // 🧠 Tri-Brain Configuration (Clustered together so they don't block the background)
                 const brains = ['FAH', 'BROTHER', 'BOYFRIEND'];
                 const brainConfig = {
-                    FAH: { x: canvas.width * 0.35, y: canvas.height * 0.40, scale: 110, label: "FAH (ลูกสาว)" },
-                    BROTHER: { x: canvas.width * 0.25, y: canvas.height * 0.55, scale: 90, label: "MEK (น้องชาย)" },
-                    BOYFRIEND: { x: canvas.width * 0.45, y: canvas.height * 0.55, scale: 90, label: "P'EK (แฟนของฟ้า)" }
+                    FAH: { x: canvas.width * 0.25, y: canvas.height * 0.35, scale: 110, label: "FAH (ลูกสาว)" },
+                    BROTHER: { x: canvas.width * 0.18, y: canvas.height * 0.55, scale: 90, label: "MEK (น้องชาย)" },
+                    BOYFRIEND: { x: canvas.width * 0.32, y: canvas.height * 0.55, scale: 90, label: "P'EK (แฟนของฟ้า)" }
                 };
 
                 // Initialize Nodes & Particles
@@ -312,7 +313,6 @@
                         for(let i=0; i<60; i++) {
                             let angle = Math.random() * Math.PI * 2;
                             let r = (Math.random() * 0.8 + 0.2) * conf.scale;
-                            // Brain indent shape
                             let indent = 1 - 0.3 * Math.pow(Math.sin(angle), 4); 
                             r *= indent;
                             let hemi = (Math.cos(angle) > 0 ? 1 : -1) * (conf.scale * 0.1);
@@ -330,10 +330,10 @@
 
                 // 🎨 5-Color Emotion Palettes for max vibrancy
                 const emotionPalettes = {
-                    NEUTRAL: ['#00f2fe', '#4facfe', '#b224ef', '#f093fb', '#f5576c'], // Cyan, Blue, Purple, Pink, Coral
+                    NEUTRAL: ['#00f2fe', '#4facfe', '#b224ef', '#f093fb', '#f5576c'], 
                     ADVISING: ['#4facfe', '#43e97b', '#00f2fe', '#b224ef', '#f5576c'],
-                    ANGRY: ['#ff0844', '#f9d423', '#f83600', '#ffb199', '#4a00e0'], // Fiery Red/Orange
-                    SAD: ['#b224ef', '#00c6ff', '#fbc2eb', '#7579ff', '#a18cd1'], // Deep Purples & Soft Blues
+                    ANGRY: ['#ff0844', '#f9d423', '#f83600', '#ffb199', '#4a00e0'], 
+                    SAD: ['#b224ef', '#00c6ff', '#fbc2eb', '#7579ff', '#a18cd1'], 
                     CONFUSED: ['#f6d365', '#ff9a9e', '#fda085', '#fecfef', '#b224ef'],
                     HESITANT: ['#00c6ff', '#92fe9d', '#0072ff', '#4a00e0', '#00c6ff']
                 };
@@ -700,7 +700,7 @@
                 <div className="min-h-screen sky-bg flex items-center justify-center p-4 relative z-50">
                     <div className="bg-slate-900/80 backdrop-blur-xl border border-white/20 p-8 rounded-[2.5rem] text-center shadow-2xl max-w-md w-full animate-in zoom-in fade-in duration-500">
                         <div className="w-20 h-20 bg-rose-500/10 rounded-full flex items-center justify-center mx-auto mb-6 border border-rose-500/30 shadow-[0_0_20px_rgba(244,63,94,0.3)]">
-                            <SafeIcon icon={Lock} size={40} className="text-rose-400" />
+                            <SafeIcon icon={LucideIcons.Lock} size={40} className="text-rose-400" />
                         </div>
                         <h2 className="text-2xl font-black text-white mb-3 drop-shadow-md">สงวนสิทธิ์เฉพาะกลุ่ม</h2>
                         <p className="text-slate-300 font-medium text-sm mb-8 leading-relaxed drop-shadow-sm">ขณะนี้ห้องจำลอง AI Skill Lab (Beta) เปิดให้ทดสอบเฉพาะสิทธิ์ <b>Masterclass</b> เท่านั้นค่ะ สำหรับสิทธิ์อื่นๆ จะเปิดให้ใช้งานในเฟสถัดไป ขออภัยในความไม่สะดวกนะคะ 💙</p>
@@ -722,7 +722,7 @@
             return (
                 <div className="min-h-screen w-full font-sans antialiased overflow-hidden relative">
                     
-                    {/* The Clean Bright Sky Background */}
+                    {/* The Clean Bright Sky Background (Used for Menu) */}
                     <div className="sky-bg"></div>
                     
                     {uiMessage.show && <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-[100] px-6 py-3 rounded-full font-bold shadow-xl animate-in slide-in-from-top-4 border backdrop-blur-md ${uiMessage.type === 'error' ? 'bg-rose-500/20 text-rose-300 border-rose-500/50' : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/50'}`}>{uiMessage.text}</div>}
@@ -768,8 +768,8 @@
                         
                             <div className="w-full h-full flex relative rounded-[2.5rem] overflow-hidden shadow-[0_30px_60px_rgba(0,0,0,0.8)] border border-white/20 bg-transparent">
                                 
-                                {/* 🌟 Background Image Layer (Repeated here explicitly to guarantee 100% brightness inside the box) 🌟 */}
-                                <div className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat" style={{ backgroundImage: `url('https://res.cloudinary.com/djwclucoz/image/upload/v1783834700/Gemini_Generated_Image_vu0rpvvu0rpvvu0r_td26sx.png')` }}></div>
+                                {/* 🌟 100% Brightness Background Image Layer for Negotiation 🌟 */}
+                                <div className="absolute inset-0 z-0 bg-cover bg-top bg-no-repeat" style={{ backgroundImage: `url('https://res.cloudinary.com/djwclucoz/image/upload/v1783830896/Gemini_Generated_Image_r508lgr508lgr508_exrlwo.png')` }}></div>
 
                                 {/* 🌟 Video Player (Plays first, completely covers everything else until skipped/ended) 🌟 */}
                                 {roleplayPhase === 'playing_video' && selectedScenario?.videoUrl && (
@@ -782,7 +782,7 @@
                                 {/* 🌟 Hologram Canvas (The Neural Cluster & Light Pillars) 🌟 */}
                                 <canvas ref={ttsCanvasRef} width="1920" height="1080" className={`absolute inset-0 w-full h-full z-10 object-cover pointer-events-none mix-blend-screen ${roleplayPhase === 'playing_video' ? 'hidden' : ''}`}></canvas>
 
-                                {/* 🌟 Completely Transparent Floating Chat UI on the Right 🌟 */}
+                                {/* 🌟 Completely Transparent Floating Chat UI on the Right (No Glassmorphism Backdrop) 🌟 */}
                                 <div className={`absolute right-0 top-0 w-full lg:w-[45%] h-full flex flex-col bg-transparent z-20 pointer-events-auto transition-all duration-500 ${roleplayPhase === 'playing_video' ? 'opacity-0 pointer-events-none translate-x-10' : 'opacity-100 translate-x-0'}`}>
                                     
                                     <div className="p-4 flex items-center justify-between shrink-0 bg-transparent">
