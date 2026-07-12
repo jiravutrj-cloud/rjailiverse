@@ -169,11 +169,11 @@
             const [selectedImage, setSelectedImage] = useState(null);
             const [uiMessage, setUiMessage] = useState({ show: false, text: '', type: 'success' });
             
-            // 🚀 Next-Gen Features States 🚀
+            // Next-Gen Features States
             const [smartSuggestions, setSmartSuggestions] = useState([]); 
             const [pressureTime, setPressureTime] = useState(20); 
             
-            // 🌟 TTS & Waveform States 🌟
+            // TTS & Waveform States
             const [isAiSpeaking, setIsAiSpeaking] = useState(false);
             
             // Roleplay States
@@ -183,11 +183,9 @@
             const [scenarioLang, setScenarioLang] = useState('th');
             const [currentScenarioPrompt, setCurrentScenarioPrompt] = useState('');
 
-            // Refs
             const audioContextRef = useRef(null); const analyserRef = useRef(null); const microphoneRef = useRef(null); const vadSilenceTimerRef = useRef(null); const isSpeakingRef = useRef(false); const latestTranscriptRef = useRef('');
             const recognitionRef = useRef(null); const messagesEndRef = useRef(null); const audioRef = useRef(null); const currentSpeechIdRef = useRef(0);
             
-            // 🌟 TTS Refs 🌟
             const ttsCanvasRef = useRef(null);
             const ttsAudioCtxRef = useRef(null);
             const ttsAnalyserRef = useRef(null);
@@ -226,10 +224,9 @@
                 } catch (e) { safeRedirect('./index.html'); }
             }, []);
 
-            // Scroll to bottom
             useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, smartSuggestions]);
 
-            // ⏱️ ระบบบีบคั้น (The Crisis Countdown) - แก้ไขบั๊กตัดบท AI ⏱️
+            // ระบบบีบคั้น (The Crisis Countdown)
             useEffect(() => {
                 let timer;
                 if (roleplayPhase === 'negotiating' && !isTyping && !isAiSpeaking && messages.length > 0 && messages[messages.length-1].sender === 'ai') {
@@ -252,7 +249,6 @@
 
             const handleAutoTimeout = () => { handleSendChat(null, "[ผู้เรียนเงียบ ไม่ตอบสนองทันเวลา]"); };
 
-            // VAD Logic
             useEffect(() => {
                 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
                 if (SR) {
@@ -283,8 +279,7 @@
                 if (audioRef.current) { audioRef.current.pause(); audioRef.current.removeAttribute('src'); audioRef.current.load(); audioRef.current = null; } 
             }, []);
             
-            // 🌟 ระบบเล่นเสียงพร้อมคลื่น Web Audio API 🌟
-            const speakThai = async (text, onEndCallback = null, speaker = 'FAH', isSystemVoice = false) => {
+            const speakThai = async (text, onEndCallback = null, speaker = 'FAH', isSystemVoice = false, emotion = 'NEUTRAL') => {
                 stopAudio(); currentSpeechIdRef.current += 1; const speechId = currentSpeechIdRef.current; 
                 
                 let targetVoice = "Aoede"; 
@@ -311,11 +306,10 @@
                     audio.crossOrigin = "anonymous";
                     audioRef.current = audio; 
 
-                    // --- Setup Audio Analyser for Hologram Wave ---
                     if (!ttsAudioCtxRef.current) {
                         ttsAudioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
                         ttsAnalyserRef.current = ttsAudioCtxRef.current.createAnalyser();
-                        ttsAnalyserRef.current.fftSize = 128;
+                        ttsAnalyserRef.current.fftSize = 256; 
                     }
                     if (ttsAudioCtxRef.current.state === 'suspended') ttsAudioCtxRef.current.resume();
 
@@ -325,26 +319,108 @@
 
                     setIsAiSpeaking(true);
 
-                    // Waveform Animation Loop (สีฟ้าธรรมชาติ)
+                    // 🌟 อัลกอริทึมวาดคลื่นเสียง 2.5D Multi-Wave Intersections & Reflections เต็มหน้าจอ 🌟
                     const drawWave = () => {
                         if (!ttsCanvasRef.current || !ttsAnalyserRef.current) return;
                         const canvas = ttsCanvasRef.current;
                         const ctx = canvas.getContext('2d');
-                        const dataArray = new Uint8Array(ttsAnalyserRef.current.frequencyBinCount);
-                        ttsAnalyserRef.current.getByteFrequencyData(dataArray);
+                        
+                        const freqData = new Uint8Array(ttsAnalyserRef.current.frequencyBinCount);
+                        const timeData = new Uint8Array(ttsAnalyserRef.current.frequencyBinCount);
+                        
+                        ttsAnalyserRef.current.getByteFrequencyData(freqData);
+                        ttsAnalyserRef.current.getByteTimeDomainData(timeData);
 
                         ctx.clearRect(0, 0, canvas.width, canvas.height);
-                        const barWidth = (canvas.width / dataArray.length) * 2.5;
+                        
+                        // กำหนดชุดสีไล่ระดับตามอารมณ์
+                        const gradients = {
+                            NEUTRAL: ['#00f2fe', '#4facfe', '#667eea'], // Cyan -> Blue -> Purple
+                            ANGRY: ['#ff0844', '#ffb199', '#4a00e0'], // Red -> Orange -> Dark Purple
+                            SAD: ['#b224ef', '#7579ff', '#00c6ff'], // Purple -> Pink -> Cyan
+                            CONFUSED: ['#ff9a44', '#fc6076', '#a18cd1'], // Orange -> Pink -> Purple
+                            HESITANT: ['#f6d365', '#fda085', '#f78ca0'], // Yellow -> Orange -> Pink
+                            ADVISING: ['#43e97b', '#38f9d7', '#00f2fe']  // Emerald -> Cyan -> Blue
+                        };
+                        
+                        const colors = gradients[emotion] || gradients['NEUTRAL'];
+                        
+                        const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
+                        gradient.addColorStop(0, colors[0]);
+                        gradient.addColorStop(0.5, colors[1]);
+                        gradient.addColorStop(1, colors[2]);
+
+                        // ตำแหน่งของเส้นศูนย์สูตร (อิงตามความสูงจอ)
+                        const centerY = canvas.height * 0.55; 
+                        const reflectY = canvas.height * 0.55; 
+
+                        ctx.globalCompositeOperation = 'screen';
+
+                        // 1. วาดแถบริบบิ้นความถี่ฉากหลัง (Faint Frequency Ribbons)
+                        const barWidth = (canvas.width / freqData.length) * 3.5;
                         let x = 0;
-                        for(let i = 0; i < dataArray.length; i++) {
-                            const barHeight = Math.min(canvas.height, (dataArray[i] / 255) * canvas.height * 1.2); 
-                            const hue = 210; 
-                            ctx.fillStyle = `hsla(${hue}, 100%, 70%, 0.8)`;
-                            ctx.shadowBlur = 10;
-                            ctx.shadowColor = `hsla(${hue}, 100%, 70%, 0.6)`;
-                            ctx.fillRect(x, canvas.height - barHeight, barWidth - 1, barHeight);
+                        for(let i = 0; i < freqData.length; i+=2) { 
+                            const val = freqData[i] / 255.0;
+                            const barHeight = val * (canvas.height * 0.7); // ให้แท่งความถี่สูงขึ้น
+                            if (val > 0.05) {
+                                ctx.fillStyle = gradient;
+                                ctx.globalAlpha = 0.08 * val; 
+                                ctx.fillRect(x, centerY - barHeight, barWidth - 2, barHeight);
+                                ctx.globalAlpha = 0.03 * val;
+                                ctx.fillRect(x, reflectY, barWidth - 2, barHeight * 0.6);
+                            }
                             x += barWidth;
                         }
+
+                        // 2. วาดเส้นคลื่นซ้อนทับกัน (Multi-Wave Intersections)
+                        const sliceWidth = canvas.width * 1.0 / timeData.length;
+                        const now = performance.now() * 0.0015; 
+
+                        const drawSineWave = (amplitudeMultiplier, phaseOffset, alpha, isReflection = false, lineWidth = 2) => {
+                            ctx.beginPath();
+                            let wx = 0;
+                            for(let i = 0; i < timeData.length; i++) {
+                                const v = timeData[i] / 128.0; 
+                                const envelope = Math.sin((i / timeData.length) * Math.PI); 
+                                
+                                let yDisp = (v - 1) * (canvas.height * 0.45) * amplitudeMultiplier * envelope;
+                                const ripple = Math.sin(i * 0.08 + now * 3 + phaseOffset) * 25 * envelope * (freqData[i%freqData.length]/255);
+                                yDisp += ripple;
+
+                                let wy = isReflection ? reflectY + Math.abs(yDisp)*0.7 : centerY + yDisp;
+
+                                if(i === 0) ctx.moveTo(wx, wy);
+                                else ctx.lineTo(wx, wy);
+                                
+                                wx += sliceWidth;
+                            }
+                            
+                            ctx.lineWidth = lineWidth;
+                            ctx.strokeStyle = gradient;
+                            ctx.globalAlpha = alpha;
+                            
+                            if (!isReflection) {
+                                ctx.shadowBlur = 20;
+                                ctx.shadowColor = colors[1];
+                            } else {
+                                ctx.shadowBlur = 0; 
+                            }
+                            ctx.stroke();
+                        };
+
+                        // วาดคลื่นเส้นแสงสวยงาม
+                        drawSineWave(1.0, 0, 0.9, false, 4);   // เส้นหลักหนา
+                        drawSineWave(0.8, 2, 0.6, false, 2); // เส้นรอง
+                        drawSineWave(0.5, 4, 0.4, false, 1.5);   // เส้นแกนใน
+
+                        // เลเยอร์พื้นกระจกสะท้อน
+                        drawSineWave(1.0, 0, 0.25, true, 2); 
+                        drawSineWave(0.8, 2, 0.15, true, 1);
+
+                        ctx.globalCompositeOperation = 'source-over'; 
+                        ctx.globalAlpha = 1.0;
+                        ctx.shadowBlur = 0;
+
                         ttsAnimFrameRef.current = requestAnimationFrame(drawWave);
                     };
 
@@ -394,14 +470,17 @@
                 setRoleplayPhase('giving_context'); setCurrentEmotion('SAD'); setCurrentSpeaker('FAH');
                 const contextMsgId = Date.now(); 
                 setMessages(prev => [...prev, { id: contextMsgId, sender: 'ai', text: contextText, isVoiceOnly: false, speakerName: 'ระบบ', isContext: true }]);
-                speakThai(contextText, () => setRoleplayPhase('negotiating'), 'FAH', true);
+                speakThai(contextText, () => setRoleplayPhase('negotiating'), 'FAH', true, 'NEUTRAL');
             };
 
             const startScenario = (sc) => {
                 setSelectedScenario(sc); setRoleplayPhase('speaking_intro'); setMessages([]); setSmartSuggestions([]); setScenarioLang(sc.language || 'th'); setPressureTime(20);
                 const userPosition = user?.position || "บุคลากรทางการแพทย์";
                 const dynamicPrompt = sc.systemPrompt.replace(/{{USER_POSITION}}/g, userPosition).replace(/{{PATIENT_GENDER}}/g, 'ชาย').replace(/{{PATIENT_AGE}}/g, `46 ปี`).replace(/{{PATIENT_CAUSE}}/g, 'อุบัติเหตุรถยนต์').replace(/{{PATIENT_RELATION}}/g, 'คนไข้').replace(/{{REL1_ROLE}}/g, sc.language === 'en' ? 'Fah' : 'ฟ้า').replace(/{{REL2_ROLE}}/g, sc.language === 'en' ? 'Mek' : 'เมฆ'); 
-                setCurrentScenarioPrompt(dynamicPrompt); setCurrentEmotion('SAD'); setCurrentSpeaker('FAH');
+                const clinicalDB = window.CLINICAL_KNOWLEDGE_BASE || "";
+                const finalPrompt = `[ฐานความรู้เฉพาะทาง (ห้ามบอกผู้เรียนว่ารู้ แต่ให้ใช้ประเมิน)]\n${clinicalDB}\n\n${dynamicPrompt}`;
+                
+                setCurrentScenarioPrompt(finalPrompt); setCurrentEmotion('SAD'); setCurrentSpeaker('FAH');
                 
                 const introMsg = `โหมดจำลองสถานการณ์วิกฤต ที่นี่คือพื้นที่ปลอดภัยสำหรับฝึกเจรจา ระบบจะเริ่มจับเวลาหากคุณไม่ตอบสนอง เตรียมชมวิดีโอปูเรื่องราวได้เลยค่ะ พร้อมนะคะ?`;
                 const introMsgId = Date.now(); 
@@ -409,7 +488,7 @@
                 speakThai(introMsg, () => { 
                     setMessages(prev => prev.map(m => m.id === introMsgId ? { ...m, isVoiceOnly: false } : m)); 
                     setRoleplayPhase('playing_scenario'); 
-                }, 'FAH', true);
+                }, 'FAH', true, 'NEUTRAL');
             };
 
             const handleSendChat = async (e, quickActionText = null) => {
@@ -426,7 +505,7 @@
                 
                 const suggestionInstruction = `\n\n[ข้อบังคับพิเศษ: SMART HOOKS]\nสร้างทางเลือกตอบกลับเบื้องต้นให้ผู้เรียน 2 ทางเลือกในตอนท้ายสุด (ห้ามพิมพ์บทสนทนาของญาติซ้ำในส่วนนี้) โดยให้จัดรูปแบบดังนี้:\n[SUGGESTION 1] (ทางเลือกที่ 1)\n[SUGGESTION 2] (ทางเลือกที่ 2)`;
 
-                const roleplayPrompt = `[ข้อมูลพื้นฐานสำหรับ AI ทำความเข้าใจบทบาทของผู้เรียน]:\n${window.CLINICAL_KNOWLEDGE_BASE || ''}\n\n${currentScenarioPrompt}${introGuideline}${suggestionInstruction}\n\nประวัติ:\n${historyContext}\nผู้เรียน: ${userMsg}\nญาติ (ใส่ Tag อารมณ์และชื่อคนพูดก่อนเสมอ):`;
+                const roleplayPrompt = `${currentScenarioPrompt}${introGuideline}${suggestionInstruction}\n\nประวัติ:\n${historyContext}\nผู้เรียน: ${userMsg}\nญาติ (ใส่ Tag อารมณ์และชื่อคนพูดก่อนเสมอ):`;
                 
                 try {
                     let rawResponse = await callGeminiAPI(userMsg, roleplayPrompt, imageToSend); 
@@ -467,7 +546,7 @@
                     
                     setMessages(prev => [...prev, { id: msgId, sender: 'ai', text: displayChatText, isVoiceOnly, speakerName }]); setIsTyping(false); 
                     
-                    speakThai(cleanText, () => setMessages(prev => prev.map(m => m.id === msgId ? { ...m, isVoiceOnly: false } : m)), spk, false);
+                    speakThai(cleanText, () => setMessages(prev => prev.map(m => m.id === msgId ? { ...m, isVoiceOnly: false } : m)), spk, false, foundEmotion);
                 } catch (err) { 
                     setIsTyping(false); 
                     setMessages(prev => [...prev, { id: Date.now(), sender: 'ai', text: `ข้อผิดพลาด (${err.message})`, isVoiceOnly: false, speakerName: 'ระบบ' }]); 
@@ -479,8 +558,9 @@
                 setMessages(prev => [...prev, { id: Date.now(), sender: 'user', text: "🛑 จบการจำลองสถานการณ์ ช่วยประเมินให้หน่อยค่ะ" }]);
                 
                 const history = messages.slice(-15).map(m => `${m.sender === 'ai' ? 'ญาติ' : 'ผู้เรียน'}: ${m.text}`).join('\n');
+                const clinicalDB = window.CLINICAL_KNOWLEDGE_BASE || "";
                 
-                const evalPrompt = `คุณคือ "ปรมาจารย์ด้านจิตวิทยาการแพทย์ (Cognitive Profiler)" ประเมินการเจรจานี้อ้างอิงจากบทบาททีมแพทย์และ 5 เทคนิคการเจรจาในคู่มือนี้: ${window.CLINICAL_KNOWLEDGE_BASE || ''}\n\nประวัติการสนทนา:\n${history}\n\n1. ให้คะแนนความเห็นอกเห็นใจ (Empathy Score) จาก 0-100 (ระบุแท็ก [EMPATHY: คะแนน] เสมอ)\n2. หากคะแนนเกิน 60 ถือว่าผ่าน พิมพ์ [PASS] ไม่ผ่านพิมพ์ [FAIL]\n3. [สำคัญ] วิเคราะห์การเจรจาตามหลัก 5W1H และตรวจสอบว่าผู้เรียนนำ "เทคนิคเจรจา 5 ข้อ (เช่น Decoupling, Perception Check, Positive Framing)" มาใช้ได้อย่างเหมาะสมกับบริบทสังคมไทยหรือไม่\n4. สรุป จุดแข็ง และ จุดอ่อน ที่ผู้เรียนต้องนำไปปรับปรุงให้ชัดเจนและเป็นมืออาชีพ`;
+                const evalPrompt = `คุณคือ "ปรมาจารย์ด้านจิตวิทยาการแพทย์ (Cognitive Profiler)" ประเมินการเจรจานี้อ้างอิงจากบทบาทผู้เรียน(${user?.position || 'บุคลากร'}) และความรู้ 5W1H/เทคนิคเจรจาในคู่มือนี้:\n${clinicalDB}\n\nประวัติการสนทนา:\n${history}\n\n1. ให้คะแนนความเห็นอกเห็นใจ (Empathy Score) จาก 0-100 (ระบุแท็ก [EMPATHY: คะแนน] เสมอ)\n2. หากคะแนนเกิน 60 ถือว่าผ่าน พิมพ์ [PASS] ไม่ผ่านพิมพ์ [FAIL]\n3. วิเคราะห์ว่าผู้เรียนใช้เทคนิค (เช่น Decoupling, Positive Framing) ได้เหมาะสมกับบริบทสังคมไทยหรือไม่ และทำหน้าที่ตรงตามวิชาชีพหรือไม่\n4. สรุป จุดแข็ง และ จุดอ่อน ให้ชัดเจน`;
                 
                 try {
                     const aiResponse = await callGeminiAPI("ประเมินการเจรจาหน่อย", evalPrompt); 
@@ -506,7 +586,7 @@
                     } catch(e) {}
                     
                     showMsg(`บันทึกผลเรียบร้อย (Empathy Score: ${empathyScore})`, 'success'); 
-                    speakThai(cleanResponse.replace(/[*#]/g, ''), null, 'FAH', true);
+                    speakThai(cleanResponse.replace(/[*#]/g, ''), null, 'FAH', true, 'ADVISING');
                 } catch (e) { setMessages(prev => [...prev, { id: Date.now(), sender: 'ai', text: `ข้อผิดพลาด: ${e.message}`, isVoiceOnly: false, speakerName: 'ระบบ' }]); }
                 setIsTyping(false);
             };
@@ -524,7 +604,6 @@
             if (currentSpeaker === 'BROTHER') videoToPlay = CHARACTER_VIDEOS?.['BROTHER']?.[currentEmotion] || CHARACTER_VIDEOS?.['BROTHER']?.['NEUTRAL'] || "";
             else videoToPlay = CHARACTER_VIDEOS?.['FAH']?.[currentEmotion] || CHARACTER_VIDEOS?.['FAH']?.['NEUTRAL'] || "";
 
-            // 🚀 แสดงหน้าจอ Access Denied หากไม่ใช่ Masterclass 🚀
             if (accessDenied) return (
                 <div className="min-h-screen sky-bg flex items-center justify-center p-4 relative z-50">
                     <div className="bg-slate-900/80 backdrop-blur-xl border border-white/20 p-8 rounded-[2.5rem] text-center shadow-2xl max-w-md w-full animate-in zoom-in fade-in duration-500">
@@ -598,50 +677,61 @@
                         
                             <div className="w-full max-w-[1400px] mx-auto animate-in fade-in zoom-in-95 h-full flex flex-col lg:flex-row relative rounded-[2.5rem] overflow-hidden shadow-2xl border border-white/20 bg-white/10 backdrop-blur-md">
                                 
-                                {/* 🌟 Left Side: NEW ICU MONITOR & DYNAMIC VIDEO 🌟 */}
-                                <div className="w-full lg:w-[60%] relative bg-slate-950 flex flex-col shrink-0 border-r border-white/20 h-[50vh] lg:h-full p-4 md:p-8 overflow-hidden">
-                                    {/* ICU Grid Background */}
-                                    <div className="absolute inset-0 icu-grid opacity-20 pointer-events-none"></div>
-                                    {isChaos && <div className="absolute inset-0 bg-rose-500/10 mix-blend-overlay z-10 pointer-events-none animate-pulse"></div>}
+                                {/* 🌟 Left Side: 2.5D Cinematic Canvas & Floating Elements 🌟 */}
+                                <div className="w-full lg:w-[60%] relative bg-slate-950 flex flex-col shrink-0 border-r border-white/20 h-[50vh] lg:h-full overflow-hidden">
+                                    
+                                    {/* 🌟 อัลกอริทึมกราฟิก 2.5D เต็มหน้าจอ (ฉากหลัง) 🌟 */}
+                                    <canvas ref={ttsCanvasRef} width="1920" height="1080" className="absolute inset-0 w-full h-full z-0 object-cover opacity-90 mix-blend-screen"></canvas>
 
-                                    {/* ICU Monitor Vitals */}
-                                    <div className="absolute top-4 left-4 text-slate-500 font-bold tracking-widest text-xs flex items-center gap-2 z-10"><SafeIcon icon={Activity} size={16}/> ICU MONITORING SYSTEM</div>
+                                    {/* ICU Grid Background Subtle Overlay */}
+                                    <div className="absolute inset-0 icu-grid opacity-10 pointer-events-none z-0"></div>
+                                    {isChaos && <div className="absolute inset-0 bg-rose-500/10 mix-blend-overlay z-0 pointer-events-none animate-pulse"></div>}
 
-                                    {/* ซ่อนข้อมูล Vitals ไว้ตอนที่ดูวิดีโอเต็มจอ เพื่อความเนียน */}
+                                    {/* 🌟 Floating ICU Mini-Monitor (จอเล็กมุมซ้ายบน) 🌟 */}
                                     {!isFullVideo && (
-                                        <div className="grid grid-cols-1 gap-6 md:gap-8 h-full relative z-10 mt-8">
-                                           {/* ECG Section */}
-                                           <div className="flex flex-col justify-center border-b border-green-500/20 pb-4 relative">
-                                              <div className={`absolute top-0 right-0 font-black text-6xl md:text-8xl font-mono opacity-90 transition-colors duration-500 ${isChaos ? 'text-rose-500 drop-shadow-[0_0_20px_#f43f5e] animate-pulse' : 'text-green-500 drop-shadow-[0_0_15px_#22c55e]'}`}>{hrRate}</div>
-                                              <span className={`${isChaos ? 'text-rose-500' : 'text-green-400'} font-bold text-sm tracking-widest mb-2 transition-colors`}>ECG II</span>
-                                              <div className="h-16 w-full opacity-80" style={{
-                                                  background: `url('data:image/svg+xml;utf8,<svg viewBox="0 0 100 20" xmlns="http://www.w3.org/2000/svg"><polyline points="0,10 20,10 25,5 30,18 35,2 40,15 45,10 100,10" fill="none" stroke="${isChaos ? '%23f43f5e' : '%2322c55e'}" stroke-width="1.5"/></svg>') repeat-x`,
-                                                  backgroundSize: 'auto 100%',
-                                                  animation: `ekg-pan ${isChaos ? '0.7s' : '1.5s'} linear infinite`
-                                              }}></div>
-                                           </div>
-                                           {/* SpO2 Section */}
-                                           <div className="flex flex-col justify-center border-b border-cyan-500/20 pb-4 relative">
-                                              <div className="absolute top-0 right-0 text-cyan-400 font-black text-6xl md:text-8xl font-mono opacity-90 drop-shadow-[0_0_15px_#06b6d4]">{spo2}</div>
-                                              <span className="text-cyan-400 font-bold text-sm tracking-widest mb-2">SpO2 %</span>
-                                              <div className="h-16 w-full opacity-80" style={{
-                                                  background: `url('data:image/svg+xml;utf8,<svg viewBox="0 0 100 20" xmlns="http://www.w3.org/2000/svg"><path d="M0,10 Q10,10 15,5 T30,10 T45,15 T60,10 L100,10" fill="none" stroke="%2306b6d4" stroke-width="1.5"/></svg>') repeat-x`,
-                                                  backgroundSize: 'auto 100%',
-                                                  animation: `ekg-pan 2.5s linear infinite`
-                                              }}></div>
-                                           </div>
-                                           {/* Stress Section */}
-                                           <div className="flex flex-col justify-center pb-4 relative">
-                                              <div className={`absolute top-0 right-0 font-black text-6xl md:text-8xl font-mono opacity-90 transition-colors ${isChaos ? 'text-rose-500 drop-shadow-[0_0_15px_#f43f5e]' : 'text-amber-400 drop-shadow-[0_0_15px_#fbbf24]'}`}>{stressLevel}</div>
-                                              <span className={`${isChaos ? 'text-rose-500' : 'text-amber-400'} font-bold text-sm tracking-widest mb-2 transition-colors`}>STRESS LVL</span>
-                                              <div className="w-1/2 md:w-2/3 h-4 bg-slate-800 rounded-full overflow-hidden mt-4 border border-slate-600 shadow-inner">
-                                                  <div className={`h-full rounded-full transition-all duration-700 ease-in-out ${stressColor}`} style={{ width: `${stressLevel}%` }}></div>
-                                              </div>
-                                           </div>
+                                        <div className="absolute top-4 left-4 md:top-6 md:left-6 z-20 w-48 sm:w-56 md:w-64 bg-slate-950/80 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-4 shadow-2xl flex flex-col gap-4 transition-all">
+                                            <div className="text-slate-500 font-bold tracking-widest text-[8px] md:text-[10px] flex items-center gap-1.5 mb-2"><SafeIcon icon={Activity} size={12}/> ICU MONITOR</div>
+                                            
+                                            {/* ECG Small */}
+                                            <div className="flex flex-col border-b border-green-500/20 pb-2 relative">
+                                                <div className="flex justify-between items-end">
+                                                    <span className={`${isChaos ? 'text-rose-500' : 'text-green-400'} font-bold text-[10px] tracking-widest transition-colors`}>ECG II</span>
+                                                    <span className={`font-black text-2xl md:text-3xl font-mono leading-none transition-colors ${isChaos ? 'text-rose-500 drop-shadow-[0_0_10px_#f43f5e] animate-pulse' : 'text-green-500 drop-shadow-[0_0_8px_#22c55e]'}`}>{hrRate}</span>
+                                                </div>
+                                                <div className="h-8 md:h-10 w-full opacity-80 mt-1" style={{
+                                                    background: `url('data:image/svg+xml;utf8,<svg viewBox="0 0 100 20" xmlns="http://www.w3.org/2000/svg"><polyline points="0,10 20,10 25,5 30,18 35,2 40,15 45,10 100,10" fill="none" stroke="${isChaos ? '%23f43f5e' : '%2322c55e'}" stroke-width="1.5"/></svg>') repeat-x`,
+                                                    backgroundSize: 'auto 100%',
+                                                    animation: `ekg-pan ${isChaos ? '0.7s' : '1.5s'} linear infinite`
+                                                }}></div>
+                                            </div>
+
+                                            {/* SpO2 Small */}
+                                            <div className="flex flex-col border-b border-cyan-500/20 pb-2 relative">
+                                                <div className="flex justify-between items-end">
+                                                    <span className="text-cyan-400 font-bold text-[10px] tracking-widest">SpO2 %</span>
+                                                    <span className="text-cyan-400 font-black text-2xl md:text-3xl font-mono leading-none drop-shadow-[0_0_8px_#06b6d4]">{spo2}</span>
+                                                </div>
+                                                <div className="h-8 md:h-10 w-full opacity-80 mt-1" style={{
+                                                    background: `url('data:image/svg+xml;utf8,<svg viewBox="0 0 100 20" xmlns="http://www.w3.org/2000/svg"><path d="M0,10 Q10,10 15,5 T30,10 T45,15 T60,10 L100,10" fill="none" stroke="%2306b6d4" stroke-width="1.5"/></svg>') repeat-x`,
+                                                    backgroundSize: 'auto 100%',
+                                                    animation: `ekg-pan 2.5s linear infinite`
+                                                }}></div>
+                                            </div>
+
+                                            {/* Stress Small */}
+                                            <div className="flex flex-col relative">
+                                                <div className="flex justify-between items-end mb-1">
+                                                    <span className={`${isChaos ? 'text-rose-500' : 'text-amber-400'} font-bold text-[10px] tracking-widest transition-colors`}>STRESS</span>
+                                                    <span className={`font-black text-2xl md:text-3xl font-mono leading-none transition-colors ${isChaos ? 'text-rose-500 drop-shadow-[0_0_8px_#f43f5e]' : 'text-amber-400 drop-shadow-[0_0_8px_#fbbf24]'}`}>{stressLevel}</span>
+                                                </div>
+                                                <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden border border-slate-600 shadow-inner">
+                                                    <div className={`h-full rounded-full transition-all duration-700 ease-in-out ${stressColor}`} style={{ width: `${stressLevel}%` }}></div>
+                                                </div>
+                                            </div>
                                         </div>
                                     )}
 
-                                    {/* 🌟 Dynamic Video Container (Full Screen <-> PiP) 🌟 */}
+                                    {/* 🌟 Dynamic Video Container (Clean Video PiP) 🌟 */}
                                     <div className={`absolute z-50 overflow-hidden transition-all duration-700 ease-in-out
                                         ${roleplayPhase === 'none' ? 'opacity-0 scale-90 pointer-events-none' : 'opacity-100 scale-100 pointer-events-auto'}
                                         ${isPiP ? 'bottom-4 right-4 md:bottom-8 md:right-8 w-36 sm:w-48 md:w-64 aspect-[3/4] sm:aspect-video rounded-2xl bg-black border-2 border-slate-600 shadow-[0_10px_40px_rgba(0,0,0,0.5)]' : ''}
@@ -664,9 +754,8 @@
                                         {roleplayPhase === 'playing_scenario' && (
                                             <button onClick={triggerScenarioNegotiation} className="absolute bottom-6 right-6 z-50 bg-white/20 hover:bg-white/40 backdrop-blur-md text-white px-4 py-2 rounded-full text-xs font-bold border border-white/50 transition-colors shadow-lg">Skip ⏭️</button>
                                         )}
-
-                                        {/* 🌟 Audio Visualizer Canvas (สีฟ้าธรรมชาติ) 🌟 */}
-                                        {isPiP && <canvas ref={ttsCanvasRef} width="300" height="100" className="absolute bottom-0 left-0 w-full h-1/3 z-20 pointer-events-none opacity-90 mix-blend-screen"></canvas>}
+                                        
+                                        {/* (Canvas ถูกย้ายออกไปอยู่เป็น Background เต็มจอแล้ว) */}
                                     </div>
                                 </div>
 
