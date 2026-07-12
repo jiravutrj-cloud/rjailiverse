@@ -7,6 +7,7 @@
     
     <script src="./data.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://player.vimeo.com/api/player.js"></script>
     
     <script>
       tailwind.config = {
@@ -165,7 +166,7 @@
             const [isAiSpeaking, setIsAiSpeaking] = useState(false);
             
             // Roleplay States
-            const [roleplayPhase, setRoleplayPhase] = useState('none'); 
+            const [roleplayPhase, setRoleplayPhase] = useState('none'); // none, playing_video, giving_context, negotiating, evaluating
             const [currentEmotion, setCurrentEmotion] = useState('NEUTRAL');
             const [currentSpeaker, setCurrentSpeaker] = useState('FAH');
             const [scenarioLang, setScenarioLang] = useState('th');
@@ -211,6 +212,23 @@
             }, []);
 
             useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, smartSuggestions]);
+
+            useEffect(() => {
+                let checkVimeo;
+                if (roleplayPhase === 'playing_video' && selectedScenario?.videoUrl) {
+                    checkVimeo = setInterval(() => {
+                        const iframe = document.getElementById('scenario-vimeo-player');
+                        if (iframe && window.Vimeo) {
+                            clearInterval(checkVimeo);
+                            const player = new window.Vimeo.Player(iframe);
+                            player.on('ended', () => {
+                                triggerScenarioNegotiation();
+                            });
+                        }
+                    }, 500);
+                }
+                return () => clearInterval(checkVimeo);
+            }, [roleplayPhase, selectedScenario]);
 
             useEffect(() => {
                 let timer;
@@ -526,7 +544,12 @@
             };
 
             const startScenario = (sc) => {
-                setSelectedScenario(sc); setRoleplayPhase('giving_context'); setMessages([]); setSmartSuggestions([]); setScenarioLang(sc.language || 'th'); setPressureTime(20);
+                setSelectedScenario(sc); 
+                setMessages([]); 
+                setSmartSuggestions([]); 
+                setScenarioLang(sc.language || 'th'); 
+                setPressureTime(20);
+                
                 const userPosition = user?.position || "บุคลากรทางการแพทย์";
                 const dynamicPrompt = sc.systemPrompt.replace(/{{USER_POSITION}}/g, userPosition).replace(/{{PATIENT_GENDER}}/g, 'ชาย').replace(/{{PATIENT_AGE}}/g, `46 ปี`).replace(/{{PATIENT_CAUSE}}/g, 'อุบัติเหตุรถยนต์').replace(/{{PATIENT_RELATION}}/g, 'คนไข้').replace(/{{REL1_ROLE}}/g, sc.language === 'en' ? 'Fah' : 'ฟ้า').replace(/{{REL2_ROLE}}/g, sc.language === 'en' ? 'Mek' : 'เมฆ'); 
                 const clinicalDB = window.CLINICAL_KNOWLEDGE_BASE || "";
@@ -534,7 +557,12 @@
                 
                 setCurrentScenarioPrompt(finalPrompt); setCurrentEmotion('SAD'); setCurrentSpeaker('FAH');
                 
-                triggerScenarioNegotiation();
+                // NEW LOGIC: Play Video First, if available
+                if (sc.videoUrl) {
+                    setRoleplayPhase('playing_video');
+                } else {
+                    triggerScenarioNegotiation();
+                }
             };
 
             const handleSendChat = async (e, quickActionText = null) => {
@@ -707,83 +735,97 @@
                             </div>
                         ) : (
                         
-                            <div className="w-full max-w-[1400px] mx-auto animate-in fade-in zoom-in-95 h-full flex flex-col lg:flex-row relative rounded-[2.5rem] overflow-hidden shadow-[0_30px_60px_rgba(0,0,0,0.8)] border border-slate-600 bg-slate-900 backdrop-blur-3xl">
+                            <div className="w-full max-w-[1400px] mx-auto animate-in fade-in zoom-in-95 h-full flex relative rounded-[2.5rem] overflow-hidden shadow-[0_30px_60px_rgba(0,0,0,0.8)] border border-slate-600 bg-slate-900">
                                 
-                                {/* 🌟 NEW: The Full-Screen Holographic Left Panel 🌟 */}
-                                <div className="w-full lg:w-[60%] relative bg-slate-950 flex flex-col shrink-0 border-r border-slate-700 h-[50vh] lg:h-full overflow-hidden">
-                                    
-                                    {/* 1. ภาพฉากหลังหลัก (Background Layer) */}
-                                    <div className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat" style={{ backgroundImage: `url('https://res.cloudinary.com/djwclucoz/image/upload/v1783749430/Gemini_Generated_Image_ps4njwps4njwps4n_neepch.png')` }}></div>
-                                    
-                                    {/* Dark overlay เพื่อเน้นความสว่างของกราฟิกโฮโลแกรม */}
-                                    <div className="absolute inset-0 z-0 bg-slate-950/60 mix-blend-multiply pointer-events-none"></div>
+                                {/* 1. ภาพฉากหลังหลัก (Global Background Layer สว่าง 100%) */}
+                                <div className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat" style={{ backgroundImage: `url('https://res.cloudinary.com/djwclucoz/image/upload/v1783769840/Gemini_Generated_Image_bbwd1cbbwd1cbbwd_vh03lz.png')` }}></div>
 
-                                    {/* 2. แคนวาสวาดกราฟิกสมองโฮโลแกรมและคลื่นเสียง (Canvas Layer เต็มจอ) */}
-                                    <canvas ref={ttsCanvasRef} width="1920" height="1080" className="absolute inset-0 w-full h-full z-10 object-cover mix-blend-screen pointer-events-none"></canvas>
-                                </div>
+                                {/* 2. แคนวาสวาดกราฟิกสมองโฮโลแกรมและคลื่นเสียง (Canvas Layer) */}
+                                <canvas ref={ttsCanvasRef} width="1920" height="1080" className="absolute inset-0 w-full h-full z-10 object-cover mix-blend-screen pointer-events-none"></canvas>
 
-                                <div className="w-full lg:w-[40%] flex flex-col h-[50vh] lg:h-full bg-slate-900/95 backdrop-blur-3xl relative z-10 border-t md:border-t-0 border-slate-700">
-                                    <div className="p-4 border-b border-slate-700 flex items-center justify-between shrink-0 bg-slate-800/50 shadow-md">
-                                        <div className="flex items-center gap-3"><div><h3 className="font-extrabold text-sm text-white drop-shadow-sm">{selectedScenario.title}</h3><p className="text-[10px] text-cyan-400 font-medium flex items-center gap-1"><SafeIcon icon={Volume2} size={12}/> {currentSpeaker === 'BROTHER' ? 'Charon Neural' : 'Aoede Neural'}</p></div></div>
-                                        <button onClick={() => { stopAudio(); setSelectedScenario(null); setMessages([]); setRoleplayPhase('none'); }} className="p-2 rounded-lg hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 transition-colors" title="ยกเลิกและออก"><SafeIcon icon={X} size={20} /></button>
+                                {/* 3. Video Player Overlay (เล่นวิดีโอก่อนเข้าโหมดเจรจา) */}
+                                {roleplayPhase === 'playing_video' && (
+                                    <div className="absolute inset-0 z-50 bg-black flex flex-col items-center justify-center animate-in fade-in">
+                                        <iframe
+                                            id="scenario-vimeo-player"
+                                            src={`${selectedScenario.videoUrl}?autoplay=1`}
+                                            className="w-full h-full border-none"
+                                            allow="autoplay; fullscreen"
+                                            allowFullScreen
+                                        ></iframe>
+                                        <button onClick={triggerScenarioNegotiation} className="absolute bottom-6 right-6 px-6 py-3 bg-white/20 hover:bg-white/30 backdrop-blur-md text-white rounded-full font-bold transition-all z-50 border border-white/40 shadow-lg">ข้ามวิดีโอ (Skip) &gt;</button>
                                     </div>
+                                )}
+
+                                {/* 4. Main Content Layout (เปิดเผยกล่องแชทซ้อนทับภาพพื้นหลัง) */}
+                                <div className={`relative z-20 w-full flex flex-col lg:flex-row h-full ${roleplayPhase === 'playing_video' ? 'hidden' : ''}`}>
                                     
-                                    <div className="flex-1 p-4 overflow-y-auto custom-scrollbar space-y-4 flex flex-col relative">
-                                        {messages.map((m, idx) => (
-                                            <div key={idx} className={`flex gap-2 ${m.sender === 'user' ? 'justify-end' : 'justify-start'} ${m.isHidden ? 'hidden' : ''}`}>
-                                                <div className={`p-3 rounded-2xl max-w-[85%] text-sm leading-relaxed whitespace-pre-wrap ${m.sender === 'ai' ? 'bg-slate-800 border border-slate-600 text-slate-200 shadow-sm rounded-tl-none' : 'bg-blue-600 border border-blue-500 text-white shadow-md font-medium rounded-tr-none'}`}>{m.image && <img src={m.image} className="w-full rounded-lg mb-2 object-cover border border-white/20" />}{m.text}</div>
-                                            </div>
-                                        ))}
-                                        {isTyping && <div className="flex gap-2 justify-start animate-in fade-in"><div className="p-4 rounded-2xl bg-slate-800 border border-slate-600 rounded-tl-none flex gap-1.5"><div className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-bounce"></div><div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div><div className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-bounce" style={{animationDelay: '0.4s'}}></div></div></div>}
+                                    {/* Left Area - ปล่อยโปร่งใสเพื่อให้เห็นภาพฉากหลังชัดเจน */}
+                                    <div className="hidden lg:block lg:w-[60%] h-full"></div>
+
+                                    {/* Right Area - กล่องแชท Glassmorphism */}
+                                    <div className="w-full lg:w-[40%] flex flex-col h-[50vh] lg:h-full bg-slate-900/70 backdrop-blur-2xl border-t lg:border-t-0 lg:border-l border-slate-700/50 shadow-[-10px_0_30px_rgba(0,0,0,0.3)]">
+                                        <div className="p-4 border-b border-slate-700 flex items-center justify-between shrink-0 bg-slate-800/40 shadow-sm">
+                                            <div className="flex items-center gap-3"><div><h3 className="font-extrabold text-sm text-white drop-shadow-sm">{selectedScenario.title}</h3><p className="text-[10px] text-cyan-400 font-medium flex items-center gap-1"><SafeIcon icon={Volume2} size={12}/> {currentSpeaker === 'BROTHER' ? 'Charon Neural' : 'Aoede Neural'}</p></div></div>
+                                            <button onClick={() => { stopAudio(); setSelectedScenario(null); setMessages([]); setRoleplayPhase('none'); }} className="p-2 rounded-lg hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 transition-colors" title="ยกเลิกและออก"><SafeIcon icon={X} size={20} /></button>
+                                        </div>
                                         
-                                        {!isTyping && messages[messages.length-1]?.sender === 'ai' && (
-                                            <div className="flex flex-wrap gap-2 mt-2 animate-in fade-in">
-                                                {roleplayPhase === 'negotiating' && <button onClick={endScenarioAndEvaluate} className="text-xs bg-rose-500/10 border border-rose-500/50 text-rose-400 px-4 py-2 rounded-lg hover:bg-rose-500/20 active:scale-95 transition-all font-bold">🛑 จบการเจรจา (ประเมินผล)</button>}
-                                                {roleplayPhase === 'evaluating' && <><button onClick={() => startScenario(selectedScenario)} className="text-xs bg-amber-500/10 border border-amber-500/50 text-amber-400 px-4 py-2 rounded-lg hover:bg-amber-500/20 active:scale-95 transition-all font-bold">🔄 ลองฝึกเคสนี้อีกครั้ง</button><button onClick={() => { setSelectedScenario(null); setMessages([]); setRoleplayPhase('none'); }} className="text-xs bg-slate-800 border border-slate-600 text-slate-300 px-4 py-2 rounded-lg hover:bg-slate-700 transition-all font-bold">🔙 กลับไปเลือกเคสอื่น</button></>}
-                                            </div>
-                                        )}
-                                        <div ref={messagesEndRef} />
-                                    </div>
-                                    
-                                    <div className="shrink-0 p-3 md:p-4 bg-slate-900 border-t border-slate-700 relative z-10 pb-safe shadow-[0_-5px_15px_rgba(0,0,0,0.5)]">
-                                        {/* ⏱️ Crisis Countdown Bar */}
-                                        {roleplayPhase === 'negotiating' && !isTyping && messages[messages.length-1]?.sender === 'ai' && (
-                                           <div className="absolute top-0 left-0 w-full h-0.5 bg-slate-800">
-                                               <div className={`h-full transition-all duration-1000 ${pressureTime > 10 ? 'bg-cyan-500' : pressureTime > 5 ? 'bg-amber-500 shadow-[0_0_8px_#f59e0b]' : 'bg-rose-500 shadow-[0_0_8px_#f43f5e]'}`} style={{ width: `${(pressureTime/20)*100}%` }}></div>
-                                           </div>
-                                        )}
-                                        
-                                        {/* 💡 Smart Suggestions Hooks */}
-                                        {roleplayPhase === 'negotiating' && smartSuggestions.length > 0 && !isTyping && (
-                                            <div className="flex flex-col gap-2 mb-3 px-1 animate-in fade-in slide-in-from-bottom-2">
-                                                <div className="text-[10px] font-bold text-cyan-400 flex items-center gap-1 uppercase tracking-widest"><SafeIcon icon={Lightbulb} size={12}/> AI COACH SUGGESTIONS:</div>
-                                                <div className="flex flex-wrap gap-2">
-                                                    {smartSuggestions.map((sug, i) => (
-                                                        <button key={i} onClick={() => handleSendChat(null, sug)} className="text-xs bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-300 px-3 py-2 rounded-lg text-left transition-colors active:scale-95 break-words line-clamp-2 shadow-sm">{sug}</button>
-                                                    ))}
+                                        <div className="flex-1 p-4 overflow-y-auto custom-scrollbar space-y-4 flex flex-col relative">
+                                            {messages.map((m, idx) => (
+                                                <div key={idx} className={`flex gap-2 ${m.sender === 'user' ? 'justify-end' : 'justify-start'} ${m.isHidden ? 'hidden' : ''}`}>
+                                                    <div className={`p-3 rounded-2xl max-w-[85%] text-sm leading-relaxed whitespace-pre-wrap ${m.sender === 'ai' ? 'bg-slate-800/90 border border-slate-600 text-slate-200 shadow-sm rounded-tl-none' : 'bg-blue-600 border border-blue-500 text-white shadow-md font-medium rounded-tr-none'}`}>{m.image && <img src={m.image} className="w-full rounded-lg mb-2 object-cover border border-white/20" />}{m.text}</div>
                                                 </div>
-                                            </div>
-                                        )}
-
-                                        {isVadMode && <div className="absolute -top-1 left-8 right-8 h-1 bg-transparent"><div className="h-full bg-cyan-500 transition-all duration-100 rounded-full shadow-[0_0_8px_rgba(34,211,238,0.8)]" style={{ width: `${Math.min(100, audioLevel * 2)}%` }}></div></div>}
-                                        {selectedImage && <div className="mb-2 relative inline-block"><img src={selectedImage} alt="Preview" className="h-14 w-14 object-cover rounded-lg border border-slate-600 shadow-sm" /><button onClick={() => setSelectedImage(null)} className="absolute -top-2 -right-2 bg-slate-900 text-white rounded-full p-0.5 border border-slate-700 hover:bg-rose-500"><SafeIcon icon={X} size={14} /></button></div>}
-                                        
-                                        <form onSubmit={handleSendChat} className={`flex items-center gap-2 bg-slate-950 border border-slate-700 rounded-lg p-1.5 pl-3 transition-colors ${isVadMode ? '!border-cyan-500 bg-cyan-950/30' : ''}`}>
-                                            <input type="file" id="ai-image-upload" accept="image/*" className="hidden" onChange={handleImageUpload} />
-                                            <label htmlFor="ai-image-upload" className="text-slate-400 hover:text-white cursor-pointer p-1.5"><SafeIcon icon={ImageIcon} size={20} /></label>
-                                            <input type="text" value={chatInput} onChange={e => setChatInput(e.target.value)} placeholder={isListening ? "กำลังฟัง..." : "พิมพ์ข้อความ หรือกดไมค์..."} disabled={isTyping || roleplayPhase === 'playing_scenario'} className="flex-1 bg-transparent text-slate-200 placeholder-slate-500 px-1 outline-none text-sm font-medium" />
+                                            ))}
+                                            {isTyping && <div className="flex gap-2 justify-start animate-in fade-in"><div className="p-4 rounded-2xl bg-slate-800/90 border border-slate-600 rounded-tl-none flex gap-1.5"><div className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-bounce"></div><div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div><div className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-bounce" style={{animationDelay: '0.4s'}}></div></div></div>}
                                             
-                                            {/* Timer Badge */}
+                                            {!isTyping && messages[messages.length-1]?.sender === 'ai' && (
+                                                <div className="flex flex-wrap gap-2 mt-2 animate-in fade-in">
+                                                    {roleplayPhase === 'negotiating' && <button onClick={endScenarioAndEvaluate} className="text-xs bg-rose-500/10 border border-rose-500/50 text-rose-400 px-4 py-2 rounded-lg hover:bg-rose-500/20 active:scale-95 transition-all font-bold">🛑 จบการเจรจา (ประเมินผล)</button>}
+                                                    {roleplayPhase === 'evaluating' && <><button onClick={() => startScenario(selectedScenario)} className="text-xs bg-amber-500/10 border border-amber-500/50 text-amber-400 px-4 py-2 rounded-lg hover:bg-amber-500/20 active:scale-95 transition-all font-bold">🔄 ลองฝึกเคสนี้อีกครั้ง</button><button onClick={() => { setSelectedScenario(null); setMessages([]); setRoleplayPhase('none'); }} className="text-xs bg-slate-800 border border-slate-600 text-slate-300 px-4 py-2 rounded-lg hover:bg-slate-700 transition-all font-bold">🔙 กลับไปเลือกเคสอื่น</button></>}
+                                                </div>
+                                            )}
+                                            <div ref={messagesEndRef} />
+                                        </div>
+                                        
+                                        <div className="shrink-0 p-3 md:p-4 bg-slate-900/90 border-t border-slate-700 relative z-10 pb-safe shadow-[0_-5px_15px_rgba(0,0,0,0.5)]">
+                                            {/* ⏱️ Crisis Countdown Bar */}
                                             {roleplayPhase === 'negotiating' && !isTyping && messages[messages.length-1]?.sender === 'ai' && (
-                                                <div className={`text-[10px] font-mono font-bold px-2 py-1 rounded border shrink-0 ${pressureTime <= 5 ? 'text-rose-400 border-rose-500/50 bg-rose-500/10 animate-pulse' : 'text-slate-400 border-slate-700 bg-slate-800'}`}>{pressureTime}s</div>
+                                               <div className="absolute top-0 left-0 w-full h-0.5 bg-slate-800">
+                                                   <div className={`h-full transition-all duration-1000 ${pressureTime > 10 ? 'bg-cyan-500' : pressureTime > 5 ? 'bg-amber-500 shadow-[0_0_8px_#f59e0b]' : 'bg-rose-500 shadow-[0_0_8px_#f43f5e]'}`} style={{ width: `${(pressureTime/20)*100}%` }}></div>
+                                               </div>
+                                            )}
+                                            
+                                            {/* 💡 Smart Suggestions Hooks */}
+                                            {roleplayPhase === 'negotiating' && smartSuggestions.length > 0 && !isTyping && (
+                                                <div className="flex flex-col gap-2 mb-3 px-1 animate-in fade-in slide-in-from-bottom-2">
+                                                    <div className="text-[10px] font-bold text-cyan-400 flex items-center gap-1 uppercase tracking-widest"><SafeIcon icon={Lightbulb} size={12}/> AI COACH SUGGESTIONS:</div>
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {smartSuggestions.map((sug, i) => (
+                                                            <button key={i} onClick={() => handleSendChat(null, sug)} className="text-xs bg-slate-800/80 hover:bg-slate-700 border border-slate-600 text-slate-300 px-3 py-2 rounded-lg text-left transition-colors active:scale-95 break-words line-clamp-2 shadow-sm">{sug}</button>
+                                                        ))}
+                                                    </div>
+                                                </div>
                                             )}
 
-                                            <button type="button" onClick={toggleMic} disabled={isTyping || roleplayPhase === 'playing_scenario'} className={`w-9 h-9 rounded flex items-center justify-center transition-colors relative shrink-0 ${isListening ? 'bg-cyan-500 text-slate-900 shadow-md' : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white border border-slate-700'}`}><SafeIcon icon={Mic} size={16} />{isListening && <span className="absolute inset-0 rounded border-2 border-cyan-400 animate-ping opacity-75"></span>}</button>
-                                            <button type="submit" disabled={(!chatInput.trim() && !selectedImage) || isTyping || roleplayPhase === 'playing_scenario'} className="w-9 h-9 rounded bg-blue-600 hover:bg-blue-500 text-white flex items-center justify-center disabled:opacity-50 transition-colors shadow-sm shrink-0"><SafeIcon icon={Send} size={16} /></button>
-                                        </form>
+                                            {isVadMode && <div className="absolute -top-1 left-8 right-8 h-1 bg-transparent"><div className="h-full bg-cyan-500 transition-all duration-100 rounded-full shadow-[0_0_8px_rgba(34,211,238,0.8)]" style={{ width: `${Math.min(100, audioLevel * 2)}%` }}></div></div>}
+                                            {selectedImage && <div className="mb-2 relative inline-block"><img src={selectedImage} alt="Preview" className="h-14 w-14 object-cover rounded-lg border border-slate-600 shadow-sm" /><button onClick={() => setSelectedImage(null)} className="absolute -top-2 -right-2 bg-slate-900 text-white rounded-full p-0.5 border border-slate-700 hover:bg-rose-500"><SafeIcon icon={X} size={14} /></button></div>}
+                                            
+                                            <form onSubmit={handleSendChat} className={`flex items-center gap-2 bg-slate-950 border border-slate-700 rounded-lg p-1.5 pl-3 transition-colors ${isVadMode ? '!border-cyan-500 bg-cyan-950/50' : ''}`}>
+                                                <input type="file" id="ai-image-upload" accept="image/*" className="hidden" onChange={handleImageUpload} />
+                                                <label htmlFor="ai-image-upload" className="text-slate-400 hover:text-white cursor-pointer p-1.5"><SafeIcon icon={ImageIcon} size={20} /></label>
+                                                <input type="text" value={chatInput} onChange={e => setChatInput(e.target.value)} placeholder={isListening ? "กำลังฟัง..." : "พิมพ์ข้อความ หรือกดไมค์..."} disabled={isTyping || roleplayPhase === 'playing_scenario'} className="flex-1 bg-transparent text-slate-200 placeholder-slate-500 px-1 outline-none text-sm font-medium" />
+                                                
+                                                {/* Timer Badge */}
+                                                {roleplayPhase === 'negotiating' && !isTyping && messages[messages.length-1]?.sender === 'ai' && (
+                                                    <div className={`text-[10px] font-mono font-bold px-2 py-1 rounded border shrink-0 ${pressureTime <= 5 ? 'text-rose-400 border-rose-500/50 bg-rose-500/10 animate-pulse' : 'text-slate-400 border-slate-700 bg-slate-800'}`}>{pressureTime}s</div>
+                                                )}
+
+                                                <button type="button" onClick={toggleMic} disabled={isTyping || roleplayPhase === 'playing_scenario'} className={`w-9 h-9 rounded flex items-center justify-center transition-colors relative shrink-0 ${isListening ? 'bg-cyan-500 text-slate-900 shadow-md' : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white border border-slate-700'}`}><SafeIcon icon={Mic} size={16} />{isListening && <span className="absolute inset-0 rounded border-2 border-cyan-400 animate-ping opacity-75"></span>}</button>
+                                                <button type="submit" disabled={(!chatInput.trim() && !selectedImage) || isTyping || roleplayPhase === 'playing_scenario'} className="w-9 h-9 rounded bg-blue-600 hover:bg-blue-500 text-white flex items-center justify-center disabled:opacity-50 transition-colors shadow-sm shrink-0"><SafeIcon icon={Send} size={16} /></button>
+                                            </form>
+                                        </div>
                                     </div>
                                 </div>
-                                
                             </div>
                         )}
                     </div>
