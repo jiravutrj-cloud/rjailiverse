@@ -76,6 +76,7 @@
     }
     </script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://player.vimeo.com/api/player.js"></script>
 </head>
 <body>
     <div id="skilllab-root"></div>
@@ -319,7 +320,6 @@
 
                     setIsAiSpeaking(true);
 
-                    // 🌟 The Hologram Logic (Tri-Brain) 🌟
                     const drawWave = () => {
                         if (!ttsCanvasRef.current || !ttsAnalyserRef.current) return;
                         const canvas = ttsCanvasRef.current;
@@ -436,6 +436,50 @@
                         drawBrainCluster(canvas.brainNodes.MEK, 'MEK', currentSpeaker === 'BROTHER');
                         drawBrainCluster(canvas.brainNodes.PEK, 'PEK', currentSpeaker === 'BOYFRIEND');
 
+                        // ==========================================
+                        // ✨ ส่วนที่ 2: วาดคลื่นเสียง (Wave Lines)
+                        // ==========================================
+                        const sliceWidth = canvas.width * 1.0 / timeData.length;
+                        const waveCenterY = canvas.height * 0.75; 
+
+                        const waveGradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
+                        waveGradient.addColorStop(0, colors[1]); 
+                        waveGradient.addColorStop(0.5, colors[3]); 
+                        waveGradient.addColorStop(1, colors[4]); 
+
+                        const drawStrand = (ampMult, freqMult, speedOffset, lineWidth, strokeColor, shadowBlur, shadowCol, opacity) => {
+                            ctx.beginPath();
+                            let wx = 0;
+                            for(let i = 0; i < timeData.length; i++) {
+                                const v = timeData[i] / 128.0; 
+                                const envelope = Math.sin((i / timeData.length) * Math.PI); 
+                                
+                                let yDisp = (v - 1) * (canvas.height * 0.3) * ampMult * envelope;
+                                const electricRipple = Math.sin(i * freqMult + now * 4 + speedOffset) * 40 * envelope * (freqData[i%freqData.length]/255);
+                                yDisp += electricRipple;
+
+                                let wy = waveCenterY + yDisp;
+
+                                if(i === 0) ctx.moveTo(wx, wy);
+                                else ctx.lineTo(wx, wy);
+                                
+                                wx += sliceWidth;
+                            }
+                            ctx.lineWidth = lineWidth;
+                            ctx.strokeStyle = strokeColor;
+                            ctx.globalAlpha = opacity;
+                            ctx.shadowBlur = shadowBlur;
+                            ctx.shadowColor = shadowCol;
+                            ctx.stroke();
+                        };
+
+                        if (avgAmp > 10) {
+                            drawStrand(1.2, 0.05, 0, 15, colors[2], 40, colors[2], 0.2); 
+                            drawStrand(1.0, 0.08, 2, 6, waveGradient, 20, colors[3], 0.6); 
+                            drawStrand(0.8, 0.1, 4, 3, '#ffffff', 15, '#ffffff', 0.9); 
+                            drawStrand(1.5, 0.15, 6, 1.5, colors[1], 10, colors[1], 0.4); 
+                        }
+
                         ctx.globalCompositeOperation = 'source-over'; 
                         ctx.globalAlpha = 1.0;
                         ctx.shadowBlur = 0;
@@ -510,7 +554,7 @@
                 
                 if (checkStr.match(/\[\s*(เมฆ|น้องชาย|mek|brother)\s*\]|(^|\s)(เมฆ|น้องชาย|mek|brother)\s*:/)) { spk = 'BROTHER'; visualSpeaker = 'BROTHER'; } 
                 else if (checkStr.match(/\[\s*(พี่เอก|เอก|แฟน|แฟนของฟ้า|แฟนหนุ่ม|boyfriend)\s*\]|(^|\s)(พี่เอก|เอก|แฟน|แฟนของฟ้า|แฟนหนุ่ม|boyfriend)\s*:/)) { spk = 'BOYFRIEND'; visualSpeaker = 'PEK'; } 
-                else if (checkStr.match(/\[\s*(michael|spouse|สามี)\s*\]|(^|\s)(michael|spouse|สามี)\s*:/)) { spk = 'MICHAEL'; visualSpeaker = 'FAH'; }
+                else if (checkStr.match(/\[\s*(michael|spouse|สามี)\s*\]|(^|\s)(michael|spouse|สามี)\s*:/)) { spk = 'MICHAEL'; visualSpeaker = 'MICHAEL'; }
                 else { spk = 'FAH'; visualSpeaker = 'FAH'; }
                 
                 let foundEmotion = "SAD"; const emotionsList = ["SAD", "HESITANT", "CONFUSED", "ANGRY", "ADVISING", "NEUTRAL"]; 
@@ -711,10 +755,11 @@
 
                                 {/* 🌟 Video Player (Plays first, completely covers everything else until skipped/ended) 🌟 */}
                                 {roleplayPhase === 'playing_video' && selectedScenario?.videoUrl && (
-                                    <div className="video-container animate-in fade-in zoom-in duration-500">
+                                    <div className="absolute inset-0 z-50 bg-black animate-in fade-in zoom-in duration-500 flex items-center justify-center">
                                         <iframe 
                                             ref={vimeoPlayerRef}
                                             src={`${selectedScenario.videoUrl}?autoplay=1&title=0&byline=0&portrait=0&api=1`} 
+                                            className="w-full h-full border-none"
                                             allow="autoplay; fullscreen" 
                                             title={selectedScenario.title}
                                         ></iframe>
