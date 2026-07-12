@@ -266,7 +266,7 @@
         }
         function GlobalBackground() {
           return (
-              <><div className="sky-bg print-bg-white" style={{ background: 'linear-gradient(to bottom, #0f172a 0%, #1e40af 30%, #38bdf8 60%, #fcd34d 100%)' }}></div><div className="clouds-wrapper no-print" style={{ opacity: 0.85 }}><div className="cloud-layer layer-1"></div><div className="cloud-layer layer-2"></div><div className="cloud-layer layer-3"></div></div></>
+              <><div className="sky-bg print-bg-white" style={{ backgroundImage: `url('https://res.cloudinary.com/djwclucoz/image/upload/v1783834700/Gemini_Generated_Image_vu0rpvvu0rpvvu0r_td26sx.png')`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed' }}></div><div className="clouds-wrapper no-print" style={{ opacity: 0.85 }}><div className="cloud-layer layer-1"></div><div className="cloud-layer layer-2"></div><div className="cloud-layer layer-3"></div></div></>
           );
         }
         function ScreenWrapper({ children, onBack, iconName, title, subtitle, maxWidth = "max-w-md", textLeft = false }) {
