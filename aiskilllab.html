@@ -339,36 +339,32 @@
 
                     setIsAiSpeaking(true);
 
-                    // 🌟 วงจรวาดคลื่นสมอง Hologram Global Animation Loop (The Unified Stage) 🌟
-                    // จะถูกวาดตลอดเวลาแม้ AI ไม่ได้พูด เพื่อให้ดูมีชีวิตชีวา และจะเปลี่ยนความเข้ม/สีตามคนที่กำลังพูด
                     const drawWave = () => {
                         if (!ttsCanvasRef.current || !ttsAnalyserRef.current) return;
                         const canvas = ttsCanvasRef.current;
                         const ctx = canvas.getContext('2d');
                         
-                        // สร้างและกระจาย Node แบบ Cluster รวมศูนย์ทางซ้าย (Unified Neural Cluster)
                         if (!canvas.brainNodes) {
                             canvas.brainNodes = { FAH: [], MEK: [], PEK: [] };
                             const createCluster = (arr, ox, oy) => {
-                                for(let i=0; i<40; i++) {
+                                for(let i=0; i<30; i++) {
                                     let angle = Math.random() * Math.PI * 2;
-                                    // กระจายรัศมีให้กว้างขึ้น ครอบคลุมพื้นที่ตัวละคร
-                                    let radiusX = Math.random() * 80;
-                                    let radiusY = Math.random() * 60;
+                                    let radiusX = Math.random() * 50;
+                                    let radiusY = Math.random() * 40;
                                     arr.push({
                                         ox: ox + radiusX * Math.cos(angle),
                                         oy: oy + radiusY * Math.sin(angle),
-                                        baseRadius: 1 + Math.random() * 2,
+                                        baseRadius: 0.5 + Math.random() * 1.5,
                                         pulseSpeed: 0.05 + Math.random() * 0.1,
                                         pulseOffset: Math.random() * Math.PI * 2
                                     });
                                 }
                             };
                             
-                            // จัดพิกัดใหม่ให้รวมกลุ่มกันเป็นสามเหลี่ยม (FAH บนกลาง, MEK ซ้ายล่าง, PEK ขวาล่าง)
-                            createCluster(canvas.brainNodes.FAH, canvas.width * 0.25, canvas.height * 0.40); 
-                            createCluster(canvas.brainNodes.MEK, canvas.width * 0.18, canvas.height * 0.65); 
-                            createCluster(canvas.brainNodes.PEK, canvas.width * 0.32, canvas.height * 0.65); 
+                            // 🌟 CLUSTER ALIGNMENT: Grouping nodes closely, slightly overlapping
+                            createCluster(canvas.brainNodes.FAH, canvas.width * 0.28, canvas.height * 0.38); 
+                            createCluster(canvas.brainNodes.MEK, canvas.width * 0.20, canvas.height * 0.58); 
+                            createCluster(canvas.brainNodes.PEK, canvas.width * 0.36, canvas.height * 0.58); 
                         }
 
                         const freqData = new Uint8Array(ttsAnalyserRef.current.frequencyBinCount);
@@ -379,7 +375,7 @@
 
                         ctx.clearRect(0, 0, canvas.width, canvas.height);
                         
-                        // 🎨 5-Color Emotion Palettes (Hologram Theme)
+                        // 🎨 Dense 5-Color Emotion Palettes
                         const holographicColors = {
                             NEUTRAL: ['#000033', '#8A2BE2', '#FF00FF', '#00FFFF', '#00f2fe'], 
                             ADVISING: ['#0d1b2a', '#1b263b', '#415a77', '#778da9', '#e0e1dd'],
@@ -395,66 +391,57 @@
 
                         ctx.globalCompositeOperation = 'screen'; 
 
-                        // ฟังก์ชันวาดกลุ่มสมอง 1 คน
                         const drawBrainCluster = (nodes, clusterName, isActive) => {
                             ctx.save();
-                            // ถ้าแอคทีฟจะกระเพื่อมแรง ถ้าสแตนด์บายจะกระเพื่อมเบาๆ
-                            const activePulse = isActive ? (avgAmp / 255) * 2.5 : 0.1;
-                            ctx.strokeStyle = isActive ? colors[3] : '#4facfe'; // สีสแตนด์บายเป็นสีฟ้าอ่อน
-                            ctx.lineWidth = isActive ? 1.5 : 0.5;
+                            const activePulse = isActive ? (avgAmp / 255) * 2.0 : 0.2;
+                            ctx.strokeStyle = colors[3];
+                            ctx.fillStyle = isActive ? colors[4] : colors[1]; 
+                            ctx.lineWidth = 1;
 
                             for(let i=0; i<nodes.length; i++) {
                                 let node = nodes[i];
-                                let jx = Math.sin(now + node.pulseOffset) * 4;
-                                let jy = Math.cos(now * 0.8 + node.pulseOffset) * 4;
+                                let jx = Math.sin(now + node.pulseOffset) * 3;
+                                let jy = Math.cos(now * 0.8 + node.pulseOffset) * 3;
                                 
                                 let nx = node.ox + jx;
                                 let ny = node.oy + jy;
                                 
-                                let currentRadius = node.baseRadius + Math.sin(now * node.pulseSpeed + node.pulseOffset) * 1.5 + (activePulse * 2);
+                                let currentRadius = node.baseRadius + Math.sin(now * node.pulseSpeed + node.pulseOffset) * 0.8 + (activePulse * 1.5);
                                 
-                                // ปรับค่า Opacity ให้เข้มชัดระดับ 1.0 และเพิ่ม ShadowBlur 2 เท่า เพื่อความชัดเจนสูงสุด
-                                ctx.globalAlpha = isActive ? Math.min(1.0, 0.6 + activePulse) : 0.2;
+                                ctx.globalAlpha = isActive ? (0.4 + activePulse) : 0.15;
                                 ctx.beginPath();
-                                ctx.arc(nx, ny, Math.max(0.5, currentRadius), 0, Math.PI * 2);
-                                ctx.shadowBlur = isActive ? (15 + (activePulse * 20)) : 5;
-                                
-                                // สลับสี node ในคลัสเตอร์ให้ดูมีมิติ
-                                let nodeColor = colors[i % 4 + 1]; 
-                                ctx.shadowColor = isActive ? nodeColor : '#00c6ff';
-                                ctx.fillStyle = isActive ? nodeColor : '#00c6ff'; 
+                                ctx.arc(nx, ny, Math.max(0.1, currentRadius), 0, Math.PI * 2);
+                                ctx.shadowBlur = isActive ? (8 + (activePulse * 15)) : 3;
+                                ctx.shadowColor = isActive ? colors[3] : colors[1];
                                 ctx.fill();
 
-                                // วาดเส้นเชื่อม (Neural Connections)
-                                ctx.globalAlpha = isActive ? Math.min(1.0, 0.2 + (activePulse * 0.3)) : 0.05;
+                                ctx.globalAlpha = isActive ? (0.12 + (activePulse * 0.2)) : 0.03;
                                 ctx.shadowBlur = 0;
                                 for(let j=i+1; j<nodes.length; j++) {
                                     let node2 = nodes[j];
                                     let dx = node.ox - node2.ox;
                                     let dy = node.oy - node2.oy;
                                     let dist = Math.sqrt(dx*dx + dy*dy);
-                                    if(dist < 40) { 
+                                    if(dist < 30) { 
                                         ctx.beginPath();
                                         ctx.moveTo(nx, ny);
-                                        let nx2 = node2.ox + Math.sin(now + node2.pulseOffset) * 4;
-                                        let ny2 = node2.oy + Math.cos(now * 0.8 + node2.pulseOffset) * 4;
+                                        let nx2 = node2.ox + Math.sin(now + node2.pulseOffset) * 3;
+                                        let ny2 = node2.oy + Math.cos(now * 0.8 + node2.pulseOffset) * 3;
                                         ctx.lineTo(nx2, ny2);
                                         ctx.stroke();
                                     }
                                 }
                             }
                             
-                            // ป้ายชื่อกำกับ
-                            ctx.globalAlpha = isActive ? 0.9 : 0.4;
-                            ctx.font = "bold 14px 'Sarabun', sans-serif";
-                            ctx.fillStyle = isActive ? colors[3] : '#a3adc2';
+                            ctx.globalAlpha = 0.6;
+                            ctx.font = "bold 12px 'Sarabun', sans-serif";
+                            ctx.fillStyle = isActive ? colors[3] : colors[1];
                             ctx.textAlign = "center";
-                            ctx.shadowBlur = isActive ? 10 : 0;
-                            ctx.shadowColor = isActive ? colors[3] : 'transparent';
-                            let labelY = nodes[0].oy + 90; // ขยับป้ายลงมาเผื่อวงโฮโลแกรมที่ใหญ่ขึ้น
+                            ctx.shadowBlur = 0;
+                            let labelY = nodes[0].oy + 65;
                             let labelText = "";
                             if (scenarioLang === 'en') {
-                                labelText = clusterName === 'FAH' ? 'FAH (Daughter)' : clusterName === 'MEK' ? 'MEK (Brother)' : "P'EK (Spouse)";
+                                labelText = clusterName === 'FAH' ? 'FAH (Daughter)' : clusterName === 'MEK' ? 'MEK (Brother)' : "P'EK (Fah's BF)";
                                 if (clusterName === 'MICHAEL') labelText = 'MICHAEL (Spouse)';
                             } else {
                                 labelText = clusterName === 'FAH' ? 'FAH (ลูกสาว)' : clusterName === 'MEK' ? 'MEK (น้องชาย)' : "P'EK (แฟนของฟ้า)";
@@ -464,57 +451,56 @@
                             ctx.restore();
                         };
 
-                        // วาดสมองทั้ง 3 จุดตลอดเวลา โดยให้ Active เฉพาะคนที่กำลังพูด
+                        // Render active speaking profiles
                         drawBrainCluster(canvas.brainNodes.FAH, 'FAH', currentSpeaker === 'FAH' || currentSpeaker === 'MICHAEL');
                         drawBrainCluster(canvas.brainNodes.MEK, 'MEK', currentSpeaker === 'BROTHER');
                         drawBrainCluster(canvas.brainNodes.PEK, 'PEK', currentSpeaker === 'BOYFRIEND');
 
-                        // 🌟 The Nebula Lasers 🌟 (วาดแสงเลเซอร์พุ่งขึ้นเฉพาะตอนพูด)
-                        if (avgAmp > 5) {
-                            const sliceWidth = canvas.width * 1.0 / timeData.length;
-                            const waveCenterY = canvas.height * 0.85; 
+                        // Render 3D Fluid Waves with Neon Rain lasers
+                        const sliceWidth = canvas.width * 1.0 / timeData.length;
+                        const waveCenterY = canvas.height * 0.78; 
 
-                            const waveGradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
-                            waveGradient.addColorStop(0, colors[1]); 
-                            waveGradient.addColorStop(0.5, colors[3]); 
-                            waveGradient.addColorStop(1, colors[4]); 
+                        const waveGradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
+                        waveGradient.addColorStop(0, colors[1]); 
+                        waveGradient.addColorStop(0.5, colors[3]); 
+                        waveGradient.addColorStop(1, colors[4]); 
 
-                            const drawStrand = (ampMult, freqMult, speedOffset, lineWidth, strokeColor, shadowBlur, shadowCol, opacity) => {
-                                ctx.beginPath();
-                                let wx = 0;
-                                for(let i = 0; i < timeData.length; i++) {
-                                    const v = timeData[i] / 128.0; 
-                                    const envelope = Math.sin((i / timeData.length) * Math.PI); 
-                                    
-                                    let yDisp = (v - 1) * (canvas.height * 0.3) * ampMult * envelope;
-                                    const electricRipple = Math.sin(i * freqMult + now * 4 + speedOffset) * 40 * envelope * (freqData[i%freqData.length]/255);
-                                    yDisp += electricRipple;
+                        const drawStrand = (ampMult, freqMult, speedOffset, lineWidth, strokeColor, shadowBlur, shadowCol, opacity) => {
+                            ctx.beginPath();
+                            let wx = 0;
+                            for(let i = 0; i < timeData.length; i++) {
+                                const v = timeData[i] / 128.0; 
+                                const envelope = Math.sin((i / timeData.length) * Math.PI); 
+                                
+                                let yDisp = (v - 1) * (canvas.height * 0.25) * ampMult * envelope;
+                                const electricRipple = Math.sin(i * freqMult + now * 4 + speedOffset) * 30 * envelope * (freqData[i%freqData.length]/255);
+                                yDisp += electricRipple;
 
-                                    let wy = waveCenterY + yDisp;
+                                let wy = waveCenterY + yDisp;
 
-                                    if(i === 0) ctx.moveTo(wx, wy);
-                                    else ctx.lineTo(wx, wy);
-                                    
-                                    wx += sliceWidth;
-                                }
-                                ctx.lineWidth = lineWidth;
-                                ctx.strokeStyle = strokeColor;
-                                ctx.globalAlpha = opacity;
-                                ctx.shadowBlur = shadowBlur;
-                                ctx.shadowColor = shadowCol;
-                                ctx.stroke();
-                            };
+                                if(i === 0) ctx.moveTo(wx, wy);
+                                else ctx.lineTo(wx, wy);
+                                
+                                wx += sliceWidth;
+                            }
+                            ctx.lineWidth = lineWidth;
+                            ctx.strokeStyle = strokeColor;
+                            ctx.globalAlpha = opacity;
+                            ctx.shadowBlur = shadowBlur;
+                            ctx.shadowColor = shadowCol;
+                            ctx.stroke();
+                        };
 
-                            drawStrand(1.2, 0.05, 0, 8, colors[2], 30, colors[2], 0.3); 
-                            drawStrand(1.0, 0.08, 2, 4, waveGradient, 15, colors[3], 0.7); 
-                            drawStrand(0.8, 0.1, 4, 2, '#ffffff', 10, '#ffffff', 0.9); 
+                        if (avgAmp > 10) {
+                            drawStrand(1.2, 0.05, 0, 12, colors[2], 30, colors[2], 0.25); 
+                            drawStrand(1.0, 0.08, 2, 5, waveGradient, 15, colors[3], 0.6); 
+                            drawStrand(0.8, 0.1, 4, 2.5, '#ffffff', 10, '#ffffff', 0.85); 
                         }
 
                         ctx.globalCompositeOperation = 'source-over'; 
                         ctx.globalAlpha = 1.0;
                         ctx.shadowBlur = 0;
 
-                        // วนลูปวาดใหม่ตลอดเวลา
                         ttsAnimFrameRef.current = requestAnimationFrame(drawWave);
                     };
 
@@ -525,7 +511,11 @@
 
                     audio.onended = () => { 
                         setIsAiSpeaking(false);
-                        // เมื่อพูดจบก็ยังให้ Hologram Loop วาดสแตนด์บายต่อไป
+                        if(ttsAnimFrameRef.current) cancelAnimationFrame(ttsAnimFrameRef.current);
+                        if(ttsCanvasRef.current) {
+                            const ctx = ttsCanvasRef.current.getContext('2d');
+                            ctx.clearRect(0, 0, ttsCanvasRef.current.width, ttsCanvasRef.current.height);
+                        }
                         if (onEndCallback) onEndCallback(); 
                     }; 
                     audio.onerror = () => { 
@@ -542,23 +532,6 @@
                     } 
                 }
             };
-
-            // 🌟 Hologram Background Loop (ทำงานตลอดเวลาแม้ไม่มีเสียง) 🌟
-            useEffect(() => {
-                if (roleplayPhase !== 'none' && roleplayPhase !== 'playing_video' && !isAiSpeaking) {
-                    if (!ttsAudioCtxRef.current) {
-                        ttsAudioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
-                        ttsAnalyserRef.current = ttsAudioCtxRef.current.createAnalyser();
-                        ttsAnalyserRef.current.fftSize = 512; 
-                    }
-                    if (!ttsAnimFrameRef.current) {
-                        // ปลุกฟังก์ชันให้วาดตัวเองแบบสแตนด์บาย
-                        currentSpeechIdRef.current += 1;
-                        speakThai(" ", null, 'FAH', true, 'NEUTRAL'); 
-                    }
-                }
-            }, [roleplayPhase, isAiSpeaking]);
-
 
             const triggerScenarioNegotiation = () => {
                 const isEnglish = selectedScenario?.language === 'en';
@@ -665,7 +638,7 @@
                     let rawResponse = await callGeminiAPI(userMsg, roleplayPrompt, imageToSend); 
                     
                     if (rawResponse.startsWith('[ระบบขัดข้อง]')) {
-                        setMessages(prev => [...prev, { id: Date.now(), sender: 'ai', text: rawResponse, isVoiceOnly: false, speakerName: 'System' }]);
+                        setMessages(prev => [...prev, { id: Date.now(), sender: 'ai', text: rawResponse, isVoiceOnly: false, speakerName: 'ระบบ' }]);
                         showMsg(rawResponse, 'error');
                         setIsTyping(false);
                         return; 
@@ -674,7 +647,7 @@
                     
                 } catch (err) { 
                     setIsTyping(false); 
-                    setMessages(prev => [...prev, { id: Date.now(), sender: 'ai', text: `System Error (${err.message})`, isVoiceOnly: false, speakerName: 'System' }]); 
+                    setMessages(prev => [...prev, { id: Date.now(), sender: 'ai', text: `ข้อผิดพลาด (${err.message})`, isVoiceOnly: false, speakerName: 'ระบบ' }]); 
                 }
             };
 
@@ -685,12 +658,12 @@
                 const history = messages.slice(-15).map(m => `${m.sender === 'ai' ? 'ญาติ' : 'ผู้เรียน'}: ${m.text}`).join('\n');
                 const clinicalDB = window.CLINICAL_KNOWLEDGE_BASE || "";
                 
-                const evalPrompt = `คุณคือ "ปรมาจารย์ด้านจิตวิทยาการแพทย์ (Cognitive Profiler)" ประเมินการเจรจานี้อ้างอิงจากบทบาทผู้เรียน(${user?.position || 'บุคลากร'}) และความรู้ 5W1H/เทคนิคเจรจาในคู่มือนี้:\n${clinicalDB}\n\nประวัติการสนทนา:\n${history}\n\n1. ให้คะแนนความเห็นอกเห็นใจ (Empathy Score) จาก 0-100 (ระบุแท็ก [EMPATHY: คะแนน] เสมอ)\n2. หากคะแนนเกิน 60 ถือว่าผ่าน พิมพ์ [PASS] ไม่ผ่านพิมพ์ [FAIL]\n3. วิเคราะห์ว่าผู้เรียนใช้เทคนิค (เช่น Decoupling, Positive Framing) ได้เหมาะสมกับบริบทวัฒนธรรมหรือไม่ และทำหน้าที่ตรงตามวิชาชีพหรือไม่\n4. สรุป จุดแข็ง และ จุดอ่อน ให้ชัดเจน (หากเป็นเคสต่างชาติ กรุณาประเมินเรื่อง Cultural Competence ด้วยและตอบประเมินเป็นภาษาอังกฤษ)`;
+                const evalPrompt = `คุณคือ "ปรมาจารย์ด้านจิตวิทยาการแพทย์ (Cognitive Profiler)" ประเมินการเจรจานี้อ้างอิงจากบทบาทผู้เรียน(${user?.position || 'บุคลากร'}) และความรู้ 5W1H/เทคนิคเจรจาในคู่มือนี้:\n${clinicalDB}\n\nประวัติการสนทนา:\n${history}\n\n1. ให้คะแนนความเห็นอกเห็นใจ (Empathy Score) จาก 0-100 (ระบุแท็ก [EMPATHY: คะแนน] เสมอ)\n2. หากคะแนนเกิน 60 ถือว่าผ่าน พิมพ์ [PASS] ไม่ผ่านพิมพ์ [FAIL]\n3. วิเคราะห์ว่าผู้เรียนใช้เทคนิค (เช่น Decoupling, Positive Framing) ได้เหมาะสมกับบริบทวัฒนธรรมหรือไม่ และทำหน้าที่ตรงตามวิชาชีพหรือไม่\n4. สรุป จุดแข็ง และ จุดอ่อน ให้ชัดเจน (หากเป็นเคสต่างชาติ กรุณาประเมินเรื่อง Cultural Competence ด้วย)`;
                 
                 try {
-                    const aiResponse = await callGeminiAPI(isEn ? "Please evaluate the negotiation." : "ประเมินการเจรจาหน่อย", evalPrompt); 
+                    const aiResponse = await callGeminiAPI("ประเมินการเจรจาหน่อย", evalPrompt); 
                     if (aiResponse.startsWith('[ระบบขัดข้อง]')) {
-                        setMessages(prev => [...prev, { id: Date.now(), sender: 'ai', text: aiResponse, isVoiceOnly: false, speakerName: 'System' }]);
+                        setMessages(prev => [...prev, { id: Date.now(), sender: 'ai', text: aiResponse, isVoiceOnly: false, speakerName: 'ระบบ' }]);
                         showMsg(aiResponse, 'error'); setIsTyping(false); return; 
                     }
                     
@@ -699,7 +672,7 @@
                     const empathyScore = empathyMatch ? parseInt(empathyMatch[1]) : (isPass ? 80 : 40);
                     let cleanResponse = aiResponse.replace(/\[PASS\]/g, '').replace(/\[FAIL\]/g, '').replace(/\[EMPATHY:\s*\d+\]/gi, '').trim();
                     
-                    setMessages(prev => [...prev, { id: Date.now()+1, sender: 'ai', text: cleanResponse, isVoiceOnly: false, speakerName: 'System' }]); 
+                    setMessages(prev => [...prev, { id: Date.now()+1, sender: 'ai', text: cleanResponse, isVoiceOnly: false, speakerName: 'ระบบ' }]); 
                     
                     const evalRecord = { timestamp: new Date().toISOString(), scenarioId: selectedScenario.id, passed: isPass, score: empathyScore, evaluation: cleanResponse, chatLog: history }; 
                     const upUser = { ...user, skillLabPassed: true, skillLabHistory: [...(user.skillLabHistory || []), evalRecord] }; 
@@ -712,7 +685,7 @@
                     
                     showMsg(isEn ? `Result Recorded (Empathy Score: ${empathyScore})` : `บันทึกผลเรียบร้อย (Empathy Score: ${empathyScore})`, 'success'); 
                     speakThai(cleanResponse.replace(/[*#]/g, ''), null, 'FAH', true, 'ADVISING');
-                } catch (e) { setMessages(prev => [...prev, { id: Date.now(), sender: 'ai', text: `Error: ${e.message}`, isVoiceOnly: false, speakerName: 'System' }]); }
+                } catch (e) { setMessages(prev => [...prev, { id: Date.now(), sender: 'ai', text: `ข้อผิดพลาด: ${e.message}`, isVoiceOnly: false, speakerName: 'ระบบ' }]); }
                 setIsTyping(false);
             };
 
@@ -771,10 +744,10 @@
                                     <div className="p-4 bg-blue-500/10 border border-blue-500/30 rounded-xl mb-4 backdrop-blur-md">
                                         <p className="text-sm md:text-base font-bold text-blue-200 flex gap-2 leading-relaxed">
                                             <SafeIcon icon={Target} size={24} className="shrink-0 text-blue-400 mt-0.5" />
-                                            <span><strong>Instruction:</strong> พื้นที่นี้คือสถานการณ์จำลอง AI ไม่มีผลต่อการตัดคะแนนสอบ ขอให้ผู้เรียนนำความรู้เรื่องการเจรจา (B.A.L.I.) มาประยุกต์ใช้อย่างเต็มที่ค่ะ</span>
+                                            <span><strong>Instruction:</strong> This is a simulation sandbox. Utilize Empathy guidelines (B.A.L.I.) to complete high-stakes clinical communication.</span>
                                         </p>
                                     </div>
-                                    <h2 className="text-2xl font-black text-white mb-4 drop-shadow-sm text-center lg:text-left">เลือกกรณีศึกษาเพื่อเริ่มฝึกเจรจา</h2>
+                                    <h2 className="text-2xl font-black text-white mb-4 drop-shadow-sm text-center lg:text-left">Select a Case Study to Start</h2>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 overflow-y-auto custom-scrollbar pb-10">
                                         {SKILL_LAB_SCENARIOS.map((sc) => (
                                             <GlassCard key={sc.id} onClick={() => startScenario(sc)} className="p-6 text-center border-t-4 border-t-cyan-500 hover:border-t-cyan-400 group">
@@ -793,7 +766,7 @@
                             <div className="w-full h-full flex relative rounded-[2.5rem] overflow-hidden shadow-[0_30px_60px_rgba(0,0,0,0.8)] border border-white/20 bg-transparent">
                                 
                                 {/* 🌟 100% Brightness Background Image Layer for Negotiation 🌟 */}
-                                <div className="absolute inset-0 z-0 bg-cover bg-top bg-no-repeat" style={{ backgroundImage: `url('https://res.cloudinary.com/djwclucoz/image/upload/v1783830896/Gemini_Generated_Image_r508lgr508lgr508_exrlwo.png')` }}></div>
+                                <div className="absolute inset-0 z-0 bg-no-repeat" style={{ backgroundImage: `url('https://res.cloudinary.com/djwclucoz/image/upload/v1783830896/Gemini_Generated_Image_r508lgr508lgr508_exrlwo.png')`, backgroundSize: '100% 100%', backgroundPosition: 'left top' }}></div>
 
                                 {/* 🌟 Video Player (Plays first, completely covers everything else until skipped/ended) 🌟 */}
                                 {roleplayPhase === 'playing_video' && selectedScenario?.videoUrl && (
