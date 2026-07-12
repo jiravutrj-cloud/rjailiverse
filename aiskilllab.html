@@ -35,17 +35,7 @@
         @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&display=swap');
         body { font-family: 'Sarabun', sans-serif; margin: 0; overflow-x: hidden; background-color: #0f172a; color: white; }
         
-        /* 🌟 GLOABAL BACKGROUND RESTORED 🌟 */
-        .sky-bg { 
-            position: fixed; 
-            inset: 0; 
-            z-index: 0; 
-            background-image: url('https://res.cloudinary.com/djwclucoz/image/upload/v1783834700/Gemini_Generated_Image_vu0rpvvu0rpvvu0r_td26sx.png');
-            background-size: cover;
-            background-position: center;
-            background-attachment: fixed;
-        }
-        
+        .sky-bg { position: fixed; inset: 0; z-index: 0; background: linear-gradient(to bottom, #020617 0%, #0f172a 50%, #1e1b4b 100%); }
         .clouds-wrapper { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 2; pointer-events: none; opacity: 0.5; }
         .cloud-layer { position: absolute; bottom: 0; left: 0; width: 200%; height: 100%; background-repeat: repeat-x; background-size: auto 100%; animation: drift linear infinite; }
         .layer-1 { opacity: 0.9; background-image: url('https://res.cloudinary.com/djwclucoz/image/upload/v1700000000/fog1.png'); animation-duration: 150s; }
@@ -60,6 +50,27 @@
         
         .pt-safe { padding-top: env(safe-area-inset-top, 20px); }
         .pb-safe { padding-bottom: env(safe-area-inset-bottom, 20px); }
+        
+        /* สไตล์สำหรับวิดีโอ */
+        .video-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 50;
+            background-color: black;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        .video-container iframe {
+            width: 100%;
+            height: 100%;
+            max-width: 1200px;
+            border: none;
+        }
     </style>
 
     <script type="importmap">
@@ -76,6 +87,7 @@
     }
     </script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://player.vimeo.com/api/player.js"></script>
 </head>
 <body>
     <div id="skilllab-root"></div>
@@ -175,7 +187,7 @@
             const [isAiSpeaking, setIsAiSpeaking] = useState(false);
             
             // Roleplay States
-            const [roleplayPhase, setRoleplayPhase] = useState('none'); 
+            const [roleplayPhase, setRoleplayPhase] = useState('none'); // 'none', 'playing_video', 'giving_context', 'negotiating', 'evaluating'
             const [currentEmotion, setCurrentEmotion] = useState('NEUTRAL');
             const [currentSpeaker, setCurrentSpeaker] = useState('FAH');
             const [scenarioLang, setScenarioLang] = useState('th');
@@ -185,6 +197,7 @@
             const audioContextRef = useRef(null); const analyserRef = useRef(null); const microphoneRef = useRef(null); const vadSilenceTimerRef = useRef(null); const isSpeakingRef = useRef(false); const latestTranscriptRef = useRef('');
             const recognitionRef = useRef(null); const messagesEndRef = useRef(null); const audioRef = useRef(null); const currentSpeechIdRef = useRef(0);
             
+            // Rendering Refs
             const ttsCanvasRef = useRef(null);
             const ttsAudioCtxRef = useRef(null);
             const ttsAnalyserRef = useRef(null);
@@ -244,10 +257,7 @@
                 return () => clearInterval(timer);
             }, [roleplayPhase, isTyping, messages, isListening, chatInput, isAiSpeaking]);
 
-            const handleAutoTimeout = () => { 
-                const timeoutText = scenarioLang === 'en' ? "[Learner silent, no timely response]" : "[ผู้เรียนเงียบ ไม่ตอบสนองทันเวลา]";
-                handleSendChat(null, timeoutText); 
-            };
+            const handleAutoTimeout = () => { handleSendChat(null, "[ผู้เรียนเงียบ ไม่ตอบสนองทันเวลา]"); };
 
             useEffect(() => {
                 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -319,11 +329,14 @@
 
                     setIsAiSpeaking(true);
 
-                    // 🌟 The Hologram Logic (Tri-Brain) 🌟
+                    // 🌟 The Nebula Wave 3D & Cluster Brain Holograms 🌟
                     const drawWave = () => {
                         if (!ttsCanvasRef.current || !ttsAnalyserRef.current) return;
                         const canvas = ttsCanvasRef.current;
                         const ctx = canvas.getContext('2d');
+                        
+                        // สร้าง Particles สำหรับหยาดฝนดาวตก (Stars/Meteors)
+                        if (!canvas.particles) canvas.particles = [];
                         
                         // ระบบเครือข่ายสมองแบบกลุ่ม 3 คน (Tri-Brain Neural Cluster)
                         if (!canvas.brainNodes) {
@@ -343,9 +356,9 @@
                                 }
                             };
                             // จัดตำแหน่งเป็นกลุ่ม (Cluster) ซ้ายมือ
-                            createCluster(canvas.brainNodes.FAH, canvas.width * 0.32, canvas.height * 0.35); // ฟ้า ตรงกลางบน
-                            createCluster(canvas.brainNodes.MEK, canvas.width * 0.18, canvas.height * 0.55); // เมฆ ซ้ายล่าง
-                            createCluster(canvas.brainNodes.PEK, canvas.width * 0.46, canvas.height * 0.55); // เอก ขวาล่าง
+                            createCluster(canvas.brainNodes.FAH, canvas.width * 0.22, canvas.height * 0.35); // ฟ้า ตรงกลางบน
+                            createCluster(canvas.brainNodes.MEK, canvas.width * 0.15, canvas.height * 0.55); // เมฆ ซ้ายล่าง
+                            createCluster(canvas.brainNodes.PEK, canvas.width * 0.29, canvas.height * 0.55); // เอก ขวาล่าง
                         }
 
                         const freqData = new Uint8Array(ttsAnalyserRef.current.frequencyBinCount);
@@ -368,6 +381,14 @@
                         
                         const colors = holographicColors[emotion] || holographicColors['NEUTRAL'];
                         
+                        // สร้าง Gradient สำหรับคลื่นเสียง 3D
+                        const mainGradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
+                        mainGradient.addColorStop(0, colors[1]); 
+                        mainGradient.addColorStop(0.25, colors[2]); 
+                        mainGradient.addColorStop(0.5, colors[3]); 
+                        mainGradient.addColorStop(0.75, colors[4]); 
+                        mainGradient.addColorStop(1, colors[1]); 
+
                         const now = performance.now() * 0.002;
                         const avgAmp = freqData.reduce((a,b)=>a+b,0)/freqData.length;
 
@@ -436,6 +457,100 @@
                         drawBrainCluster(canvas.brainNodes.MEK, 'MEK', currentSpeaker === 'BROTHER');
                         drawBrainCluster(canvas.brainNodes.PEK, 'PEK', currentSpeaker === 'BOYFRIEND');
 
+                        // 🌠 ระบบตกของสะเก็ดดาว (Meteor Stars)
+                        if (Math.random() < 0.2 && avgAmp > 10) {
+                            canvas.particles.push({
+                                x: Math.random() * canvas.width,
+                                y: -20,
+                                speedY: 5 + Math.random() * 10,
+                                size: 1 + Math.random() * 3,
+                                color: colors[Math.floor(Math.random() * 4) + 1],
+                                alpha: 1
+                            });
+                        }
+
+                        for (let i = canvas.particles.length - 1; i >= 0; i--) {
+                            let p = canvas.particles[i];
+                            p.y += p.speedY;
+                            p.alpha -= 0.01;
+                            
+                            if (p.alpha <= 0 || p.y > canvas.height) {
+                                canvas.particles.splice(i, 1);
+                                continue;
+                            }
+                            
+                            ctx.globalAlpha = p.alpha;
+                            ctx.fillStyle = p.color;
+                            ctx.shadowBlur = 10;
+                            ctx.shadowColor = p.color;
+                            ctx.beginPath();
+                            ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                            ctx.fill();
+                            
+                            // วาดหางดาวตก (Trail)
+                            ctx.beginPath();
+                            ctx.moveTo(p.x, p.y);
+                            ctx.lineTo(p.x, p.y - p.speedY * 3);
+                            ctx.strokeStyle = p.color;
+                            ctx.lineWidth = p.size * 0.5;
+                            ctx.stroke();
+                        }
+
+
+                        const sliceWidth = canvas.width * 1.0 / timeData.length;
+                        const waveCenterY = canvas.height * 0.75; 
+
+                        // 🌊 วาดคลื่นเสียง 3D (Fluid 3D Wave Mesh)
+                        const draw3DWave = (yOffset, freqMult, ampMult, opacity, strokeColor, shadowBlur) => {
+                            ctx.beginPath();
+                            let wx = 0;
+                            for(let i = 0; i < timeData.length; i++) {
+                                const v = timeData[i] / 128.0; 
+                                const envelope = Math.sin((i / timeData.length) * Math.PI); 
+                                
+                                let yDisp = (v - 1) * (canvas.height * 0.3) * ampMult * envelope;
+                                const electricRipple = Math.sin(i * freqMult + now * 3) * 50 * envelope * (freqData[i%freqData.length]/255);
+                                yDisp += electricRipple;
+
+                                let wy = waveCenterY + yDisp + yOffset;
+
+                                if(i === 0) ctx.moveTo(wx, wy);
+                                else ctx.lineTo(wx, wy);
+                                
+                                wx += sliceWidth;
+                            }
+                            ctx.lineWidth = 2;
+                            ctx.strokeStyle = strokeColor;
+                            ctx.globalAlpha = opacity;
+                            ctx.shadowBlur = shadowBlur;
+                            ctx.shadowColor = strokeColor === mainGradient ? colors[3] : strokeColor;
+                            ctx.stroke();
+                        };
+
+                        // วาดชั้นคลื่นหลายๆ ชั้นให้ดูเป็นมิติ 3D
+                        draw3DWave(30, 0.05, 0.5, 0.3, colors[1], 5); // Back Wave
+                        draw3DWave(10, 0.08, 0.8, 0.5, colors[2], 10); // Middle Wave
+                        draw3DWave(-10, 0.1, 1.2, 0.8, mainGradient, 20); // Front Main Wave
+                        draw3DWave(-30, 0.12, 0.6, 0.4, colors[4], 15); // Top Wave
+
+                        // 🎆 เสาแสงเลเซอร์แนวตั้ง (Aurora Light Pillars)
+                        if (avgAmp > 30) {
+                            for (let i = 0; i < 5; i++) {
+                                let pillarX = canvas.width * 0.1 + (Math.random() * canvas.width * 0.8);
+                                let pillarAlpha = (avgAmp / 255) * Math.random();
+                                
+                                ctx.globalAlpha = pillarAlpha * 0.5;
+                                let pillarGrad = ctx.createLinearGradient(0, canvas.height, 0, 0);
+                                pillarGrad.addColorStop(0, colors[3]);
+                                pillarGrad.addColorStop(1, 'transparent');
+                                
+                                ctx.fillStyle = pillarGrad;
+                                ctx.shadowBlur = 30;
+                                ctx.shadowColor = colors[3];
+                                ctx.fillRect(pillarX, 0, 2 + Math.random() * 5, canvas.height);
+                            }
+                        }
+
                         ctx.globalCompositeOperation = 'source-over'; 
                         ctx.globalAlpha = 1.0;
                         ctx.shadowBlur = 0;
@@ -495,7 +610,7 @@
                 }, 'FAH', true, 'NEUTRAL');
             };
             
-            // ฟังก์ชันช่วยแยกและประมวลผลข้อความจาก AI
+            // ฟังก์ชันช่วยแยกและประมวลผลข้อความจาก AI (ใช้ซ้ำได้)
             const handleAIResponse = (rawResponse) => {
                 let aiText = rawResponse;
                 let sug1 = "", sug2 = "";
@@ -540,10 +655,12 @@
                 const finalPrompt = `[ฐานความรู้เฉพาะทาง (ห้ามบอกผู้เรียนว่ารู้ แต่ให้ใช้ประเมิน)]\n${clinicalDB}\n\n${dynamicPrompt}`;
                 setCurrentScenarioPrompt(finalPrompt); 
                 
-                // เล่นวิดีโอถ้ามี
+                // ลำดับที่ 1: เล่นวิดีโอก่อนเสมอ ถ้ามีวิดีโอ
                 if (sc.videoUrl) {
                     setRoleplayPhase('playing_video');
+                    // ฝังการทำงานของ Vimeo จะทำใน useEffect ด้านล่าง
                 } else {
+                    // ถ้าไม่มีวิดีโอ ให้ข้ามไปเจรจาเลย
                     triggerScenarioNegotiation();
                 }
             };
@@ -554,10 +671,13 @@
                     const player = new Vimeo.Player(iframe);
                     
                     player.on('ended', () => {
+                        console.log("Video ended automatically.");
                         triggerScenarioNegotiation();
                     });
                     
+                    // เผื่อ Error หรือวิดีโอไม่ยอมเล่น
                     player.on('error', (error) => {
+                        console.warn("Vimeo Error:", error);
                         triggerScenarioNegotiation();
                     });
                 }
@@ -588,6 +708,7 @@
                         setIsTyping(false);
                         return; 
                     }
+                    // นำข้อความส่งให้ฟังก์ชันช่วยประมวลผล
                     handleAIResponse(rawResponse);
                     
                 } catch (err) { 
@@ -695,6 +816,7 @@
                                                 <div className={`w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center text-white shadow-[0_0_20px_rgba(0,0,0,0.5)] ${sc.language === 'en' ? 'bg-gradient-to-br from-indigo-500 to-purple-600' : 'bg-gradient-to-br from-cyan-500 to-blue-600'}`}>
                                                     <span className="text-xl font-black">{sc.language === 'en' ? 'EN' : 'TH'}</span>
                                                 </div>
+                                                <div className="text-xs font-black text-white/80 bg-white/10 px-3 py-1 rounded-full mx-auto w-fit mb-3 border border-white/20">เคสที่ {idx + 1}</div>
                                                 <h3 className="font-extrabold text-xl text-white mb-3 group-hover:text-cyan-400 transition-colors">{sc.title}</h3>
                                                 <p className="text-sm text-white/60 line-clamp-3">{sc.description}</p>
                                             </GlassCard>
