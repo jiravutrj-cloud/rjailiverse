@@ -95,7 +95,7 @@
             render() {
                 if (this.state.hasError) {
                     return (
-                        <div className="min-h-screen flex flex-col items-center justify-center bg-slate-900 text-white p-8">
+                        <div className="min-h-screen flex flex-col items-center justify-center bg-slate-900 text-white p-8 z-[9999] relative">
                             <div className="bg-rose-950 border border-rose-500 p-8 rounded-2xl max-w-2xl w-full shadow-2xl text-center">
                                 <h1 className="text-2xl font-bold text-rose-400 mb-4">ระบบขัดข้อง (React Crash)</h1>
                                 <p className="text-sm font-mono bg-black/50 p-4 rounded-lg text-rose-300 text-left overflow-auto mb-6">{this.state.error && this.state.error.toString()}</p>
@@ -177,7 +177,6 @@
             const [selectedScenario, setSelectedScenario] = useState(null);
             const [accessDenied, setAccessDenied] = useState(false); 
             
-            // Chatbot States
             const [chatInput, setChatInput] = useState(''); 
             const [isTyping, setIsTyping] = useState(false); 
             const [messages, setMessages] = useState([]); 
@@ -187,14 +186,11 @@
             const [selectedImage, setSelectedImage] = useState(null);
             const [uiMessage, setUiMessage] = useState({ show: false, text: '', type: 'success' });
             
-            // Next-Gen Features States
             const [smartSuggestions, setSmartSuggestions] = useState([]); 
             const [pressureTime, setPressureTime] = useState(20); 
             
-            // TTS & Waveform States
             const [isAiSpeaking, setIsAiSpeaking] = useState(false);
             
-            // Roleplay States
             const [roleplayPhase, setRoleplayPhase] = useState('none'); 
             const [currentEmotion, setCurrentEmotion] = useState('NEUTRAL');
             const [currentSpeaker, setCurrentSpeaker] = useState('FAH');
@@ -205,7 +201,7 @@
             const audioContextRef = useRef(null); const analyserRef = useRef(null); const microphoneRef = useRef(null); const vadSilenceTimerRef = useRef(null); const isSpeakingRef = useRef(false); const latestTranscriptRef = useRef('');
             const recognitionRef = useRef(null); const messagesEndRef = useRef(null); const currentSpeechIdRef = useRef(0);
             
-            // 🌟 L8 MASTER FIX: Single Audio Node Architecture 🌟
+            // Audio Architecture
             const audioElementRef = useRef(null);
             const ttsCanvasRef = useRef(null);
             const ttsAudioCtxRef = useRef(null);
@@ -246,7 +242,6 @@
                 } catch (e) { safeRedirect('./index.html'); }
             }, []);
 
-            // 🌟 THE SILENT AUDIO HACK: Unlock Autoplay Policy permanently on first click 🌟
             useEffect(() => {
                 const unlockAudio = async () => {
                     const audioEl = audioElementRef.current;
@@ -583,10 +578,9 @@
                         if (onEndCallback) onEndCallback(); 
                     }; 
                     
-                    // 🛡️ Play Audio and Gracefully Catch Policy 🛡️
+                    // 🛡️ Play Audio. Because we global unlocked on first click, this will succeed.
                     audioEl.play().catch(e => { 
                         console.warn("Audio Play Error:", e); 
-                        // Because we silent-unlocked on first click, this rarely hits unless connection drops.
                         if (onEndCallback) onEndCallback(); 
                     }); 
                 } catch (error) { 
@@ -610,6 +604,7 @@
                 const contextMsgId = Date.now(); 
                 setMessages([{ id: contextMsgId, sender: 'ai', text: contextText, isVoiceOnly: false, speakerName: 'System', isContext: true }]);
                 
+                // AUTO GREETING - ฟ้าทักทันทีที่ตัดเข้าห้องเจรจา
                 setTimeout(() => {
                     const greetingText = isEnglish ? "Hello... Are you the staff? Who are you?" : "สวัสดีค่ะ... คุณคือใครคะ?";
                     const msgId = Date.now() + 1;
@@ -861,7 +856,7 @@
                                     </div>
                                 )}
 
-                                {/* 🌟 Neural Hologram & Chat Interface (Shows immediately after video) 🌟 */}
+                                {}
                                 {roleplayPhase !== 'playing_video' && (
                                     <div className="absolute inset-0 w-full h-full flex flex-col lg:flex-row z-10">
                                         
