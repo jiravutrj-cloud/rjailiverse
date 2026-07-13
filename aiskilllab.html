@@ -561,7 +561,7 @@
             const handleStartConversation = () => {
                 const isEnglish = selectedScenario?.language === 'en';
                 setRoleplayPhase('negotiating');
-                setCurrentEmotion('SAD');
+                setCurrentEmotion('CONFUSED');
 
                 const contextText = isEnglish 
                     ? "Initial Case Data: Patient is a 46yo male, car accident. Brain stem reflexes and apnea test performed, confirming brain death. Relatives outside ICU include Michael (Spouse). Let's begin the negotiation." 
@@ -583,7 +583,7 @@
                     { id: introMsgId, sender: 'ai', text: `(${isEnglish ? 'Michael' : 'ฟ้า'}) ${introText}`, isVoiceOnly: false, speakerName: isEnglish ? 'Michael' : 'ฟ้า' }
                 ]);
                 
-                speakThai(introText, null, spk, false, 'SAD');
+                speakThai(introText, null, spk, false, 'CONFUSED');
             };
             
             const handleAIResponse = (rawResponse) => {
@@ -638,16 +638,14 @@
             
             useEffect(() => {
                 if (roleplayPhase === 'playing_video' && vimeoPlayerRef.current) {
-                    const iframe = vimeoPlayerRef.current;
-                    const player = new Vimeo.Player(iframe);
-                    
-                    player.on('ended', () => {
-                        handleVideoEndOrSkip();
-                    });
-                    
-                    player.on('error', (error) => {
-                        handleVideoEndOrSkip();
-                    });
+                    try {
+                        const iframe = vimeoPlayerRef.current;
+                        if (window.Vimeo && window.Vimeo.Player) {
+                            const player = new window.Vimeo.Player(iframe);
+                            player.on('ended', () => { handleVideoEndOrSkip(); });
+                            player.on('error', () => { handleVideoEndOrSkip(); });
+                        }
+                    } catch(e) { console.warn(e); }
                 }
             }, [roleplayPhase]);
 
@@ -842,7 +840,7 @@ ${introGuideline}${suggestionInstruction}\n\nประวัติ:\n${historyCo
                                     </div>
                                 )}
 
-                                {/* 🌟 Neural Hologram & Chat Interface (Shows after video or ready state) 🌟 */}
+                                {/* 🌟 Neural Hologram & Chat Interface (Shows after video) 🌟 */}
                                 {(roleplayPhase === 'negotiating' || roleplayPhase === 'evaluating') && (
                                     <div className="absolute inset-0 w-full h-full flex flex-col lg:flex-row z-10">
                                         
@@ -852,10 +850,10 @@ ${introGuideline}${suggestionInstruction}\n\nประวัติ:\n${historyCo
                                         {/* Spacer to push Chat Box to the right */}
                                         <div className="hidden lg:block lg:w-[60%] h-full relative z-30 pointer-events-none"></div>
 
-                                        {/* Chat Box */}
+                                        {/* Chat Box (Transparent/Zero-Glass) */}
                                         <div className="w-full lg:w-[40%] flex flex-col h-[50vh] lg:h-full relative z-30 ml-auto">
                                             
-                                            {/* Chat Header */}
+                                            {/* Chat Header (Transparent Glass) */}
                                             <div className="p-4 flex items-center justify-between shrink-0 bg-transparent">
                                                 <div className="flex items-center gap-3">
                                                     <div>
