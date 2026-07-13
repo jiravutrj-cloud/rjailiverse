@@ -179,7 +179,7 @@
           );
         }
 
-        // 🌟 ใบยินยอม 🌟
+        // 🌟 ใบยินยอม (Consent Form) 🌟
         function ConsentFormOverlay({ onClose }) {
             const [showStamp, setShowStamp] = useState(false);
             useEffect(() => { const timer = setTimeout(() => setShowStamp(true), 1000); return () => clearTimeout(timer); }, []);
@@ -225,7 +225,6 @@
             );
         }
 
-        // 🌟 Main Application 🌟
         function SkillLabApp() {
             const [user, setUser] = useState(null);
             const [selectedScenario, setSelectedScenario] = useState(null);
@@ -239,6 +238,7 @@
             const [isVadMode, setIsVadMode] = useState(false); 
             const [audioLevel, setAudioLevel] = useState(0); 
             const [uiMessage, setUiMessage] = useState({ show: false, text: '', type: 'success' });
+            const [smartSuggestions, setSmartSuggestions] = useState([]); 
             
             // Phase: none -> playing_video -> ready_to_start -> negotiating -> evaluating
             const [roleplayPhase, setRoleplayPhase] = useState('none'); 
@@ -250,7 +250,7 @@
             
             // Refs
             const audioContextRef = useRef(null); const analyserRef = useRef(null); const microphoneRef = useRef(null); const vadSilenceTimerRef = useRef(null); const isSpeakingRef = useRef(false); const latestTranscriptRef = useRef('');
-            const recognitionRef = useRef(null); const messagesEndRef = useRef(null); const audioRef = useRef(null); const currentSpeechIdRef = useRef(0);
+            const recognitionRef = useRef(null); const messagesEndRef = useRef(null); const audioRef = useRef(null); const currentSpeechIdRef = useRef(0); const currentSequenceIdRef = useRef(0);
             
             const ttsCanvasRef = useRef(null);
             const ttsAudioCtxRef = useRef(null);
@@ -286,7 +286,7 @@
                 } catch (e) { safeRedirect('./index.html'); }
             }, []);
 
-            useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, isTyping]);
+            useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, smartSuggestions]);
             useEffect(() => { currentSpeakerRef.current = currentSpeaker; }, [currentSpeaker]);
             useEffect(() => { currentEmotionRef.current = currentEmotion; }, [currentEmotion]);
 
@@ -314,6 +314,7 @@
 
             const stopAudio = useCallback(() => { 
                 currentSpeechIdRef.current += 1; 
+                currentSequenceIdRef.current += 1;
                 isAiSpeakingRef.current = false;
                 setCurrentSpeaker('NONE');
                 if(ttsAnimFrameRef.current) cancelAnimationFrame(ttsAnimFrameRef.current);
@@ -504,7 +505,7 @@
             };
 
             const startScenario = (sc) => {
-                setSelectedScenario(sc); setMessages([]); setScenarioLang(sc.language || 'th');
+                setSelectedScenario(sc); setMessages([]); setSmartSuggestions([]); setScenarioLang(sc.language || 'th');
                 const userPosition = user?.position || "Medical Professional";
                 const dynamicPrompt = sc.systemPrompt.replace(/{{USER_POSITION}}/g, userPosition).replace(/{{PATIENT_GENDER}}/g, 'ชาย').replace(/{{PATIENT_AGE}}/g, `46 ปี`).replace(/{{PATIENT_CAUSE}}/g, 'อุบัติเหตุรถยนต์').replace(/{{PATIENT_RELATION}}/g, 'คนไข้'); 
                 const finalPrompt = `[ฐานความรู้เฉพาะทาง]\n${window.CLINICAL_KNOWLEDGE_BASE || ""}\n\n${dynamicPrompt}`;
@@ -529,7 +530,6 @@
                 
                 const spk = isEn ? 'MICHAEL' : 'FAH';
                 
-                // Add hidden message for AI context
                 setMessages([{ id: Date.now(), sender: 'ai', text: `(${isEn?'Michael':'ฟ้า'}) ${introText}`, isContext: false }]);
                 
                 setCurrentSpeaker(spk);
@@ -542,26 +542,37 @@
                 stopAudio(); if (roleplayPhase !== 'negotiating') return; 
                 if (isListening) { recognitionRef.current?.stop(); setIsListening(false); }
                 
-                setMessages(prev => [...prev, { id: Date.now(), sender: 'user', text: userMsg }]); setChatInput(''); setIsTyping(true);
+                setMessages(prev => [...prev, { id: Date.now(), sender: 'user', text: userMsg }]); setChatInput(''); setIsTyping(true); setSmartSuggestions([]);
                 
                 const historyContext = messages.filter(m => !m.isContext).slice(-10).map(m => `${m.sender === 'user' ? 'ผู้เรียน' : 'ครอบครัว'}: ${m.text}`).join('\n');
                 
                 // 🛑 Strict Turn-by-Turn Prompt
                 let modifiedPrompt = currentScenarioPrompt;
                 modifiedPrompt += `\n\n[CRITICAL RULE FOR PING-PONG CONVERSATION]:
-1. ห้ามพิมพ์ร่ายยาวเด็ดขาด! ให้ตอบโต้สั้นๆ ตรงประเด็น
-2. ห้ามพิมพ์ข้อความกระบวนการคิด (Subtext, Defense Mechanism) ออกมาให้ผู้เรียนเห็นโดยเด็ดขาด! ให้แสดงออกผ่านคำพูดเท่านั้น
-3. เมื่อครอบครัวปรึกษากันเสร็จ ให้โยนคำถามกลับไปหาผู้เรียนเสมอ (Turn-by-turn) เพื่อกระตุ้นให้ผู้เรียนพูดต่อ`;
+1. ห้ามร่ายยาวเด็ดขาด! ให้ตอบโต้สั้นๆ 1-2 ประโยค เหมือนการสนทนาจริง
+2. ห้ามพิมพ์ข้อความกระบวนการคิด (Subtext, Defense Mechanism) ออกมาให้เห็นโดยเด็ดขาด!
+3. ให้สลับกันพูด (Turn-by-turn): เช่น ฟ้าถามหมอ -> หมอตอบ -> ฟ้าหันไปถามพี่เอก -> พี่เอกตอบฟ้า -> พี่เอกหันมาถามหมอ
+4. เมื่อครอบครัวคุยกันเองเสร็จ **ต้องมีคำถามโยนกลับมาให้ผู้เรียน (หมอ/พยาบาล) ตอบเสมอ** เพื่อให้ผู้เรียนได้โต้ตอบ
+5. ผู้เรียนจะไม่เห็นข้อความที่คุณพิมพ์ (หน้าจอจะซ่อนข้อความ AI) เขาจะได้ยินแค่เสียงพูดของคุณเท่านั้น ดังนั้น "ห้ามใช้อีโมจิหรือสัญลักษณ์พิเศษในบทพูด"`;
 
-                const roleplayPrompt = `${modifiedPrompt}\n\nประวัติ:\n${historyContext}\nผู้เรียน: ${userMsg}\nครอบครัว (ใส่ Tag อารมณ์และชื่อคนพูดก่อนเสมอ):`;
+                const suggestionInstruction = `\n\n[ข้อบังคับพิเศษ: SMART HOOKS]\nสร้างทางเลือกตอบกลับเบื้องต้นให้ผู้เรียน 2 ทางเลือกในตอนท้ายสุด (ห้ามพิมพ์บทสนทนาของญาติซ้ำในส่วนนี้) โดยให้จัดรูปแบบดังนี้:\n[SUGGESTION 1] (ทางเลือกที่ 1)\n[SUGGESTION 2] (ทางเลือกที่ 2)\n*หากเป็นเคสภาษาอังกฤษ ให้เขียน Suggestion เป็นภาษาอังกฤษ*`;
+
+                const roleplayPrompt = `${modifiedPrompt}${suggestionInstruction}\n\nประวัติ:\n${historyContext}\nผู้เรียน: ${userMsg}\nครอบครัว (ใส่ Tag อารมณ์และชื่อคนพูดก่อนเสมอ):`;
                 
                 try {
                     let rawResponse = await callGeminiAPI(userMsg, roleplayPrompt); 
                     if (rawResponse.startsWith('[ระบบขัดข้อง]')) { setMessages(prev => [...prev, { id: Date.now(), sender: 'ai', text: rawResponse, isContext: false }]); showMsg(rawResponse, 'error'); setIsTyping(false); return; }
 
                     let aiText = rawResponse;
+                    let sug1 = "", sug2 = "";
+                    
                     let isResolved = false;
                     if (aiText.includes('[SCENARIO_RESOLVED]')) { isResolved = true; aiText = aiText.replace(/\[SCENARIO_RESOLVED\]/g, '').trim(); }
+
+                    const sug1Match = aiText.match(/\[SUGGESTION 1\](.*?)(?=\[SUGGESTION 2\]|$)/is); const sug2Match = aiText.match(/\[SUGGESTION 2\](.*?)$/is);
+                    if (sug1Match) sug1 = sug1Match[1].trim(); if (sug2Match) sug2 = sug2Match[1].trim();
+                    aiText = aiText.replace(/\[SUGGESTION 1\].*$/is, '').replace(/\[DIALOGUE\]/i, '').trim();
+                    setSmartSuggestions([sug1, sug2].filter(Boolean));
 
                     const dialogues = []; const regex = /(?:\[([A-Z]+)\])?\s*\[(.*?)\]\s*(.*?)(?=(?:\[[A-Z]+\])?\s*\[.*?\]|$)/gis;
                     let match; let found = false;
@@ -572,7 +583,6 @@
                     const msgId = Date.now() + 1;
                     const displayChatText = dialogues.map(d => `(${d.speaker}) ${d.text}`).join('\n\n');
                     
-                    // Push AI message to state but it will be hidden in UI during negotiation (Blindfold mode)
                     setMessages(prev => [...prev, { id: msgId, sender: 'ai', text: displayChatText, isContext: false }]); 
                     setIsTyping(false); 
                     
@@ -582,7 +592,7 @@
             };
 
             const endScenarioAndEvaluate = async () => {
-                stopAudio(); setIsTyping(true); setRoleplayPhase('evaluating'); setCurrentEmotion('ADVISING'); setCurrentSpeaker('FAH'); setShowConsentForm(false);
+                stopAudio(); setIsTyping(true); setRoleplayPhase('evaluating'); setCurrentEmotion('ADVISING'); setCurrentSpeaker('FAH'); setShowConsentForm(false); setSmartSuggestions([]);
                 setMessages(prev => [...prev, { id: Date.now(), sender: 'user', text: isEn ? "🛑 End simulation. Please evaluate my performance." : "🛑 จบการจำลองสถานการณ์ ช่วยประเมินผลการฝึกให้หน่อยค่ะ" }]);
                 
                 const history = messages.filter(m => !m.isContext).map(m => `${m.sender === 'ai' ? 'ครอบครัว' : 'ผู้เรียน'}: ${m.text}`).join('\n');
@@ -603,7 +613,6 @@ ${history}
                     const empathyMatch = aiResponse.match(/\[EMPATHY:\s*(\d+)\]/i); const empathyScore = empathyMatch ? parseInt(empathyMatch[1]) : (isPass ? 80 : 40);
                     let cleanResponse = aiResponse.replace(/\[PASS\]/g, '').replace(/\[FAIL\]/g, '').replace(/\[EMPATHY:\s*\d+\]/gi, '').trim();
                     
-                    // Show evaluation text (Sender AI will be visible in evaluating phase)
                     setMessages(prev => [...prev, { id: Date.now()+1, sender: 'ai', text: cleanResponse }]); 
                     
                     const evalRecord = { timestamp: new Date().toISOString(), scenarioId: selectedScenario.id, passed: isPass, score: empathyScore, evaluation: cleanResponse, chatLog: history }; 
@@ -685,9 +694,9 @@ ${history}
                         ) : (
                             <div className="w-full h-full flex flex-col relative overflow-hidden bg-slate-900 border border-white/10 m-4 rounded-3xl shadow-2xl max-w-[95%] mx-auto mb-8">
                                 
-                                {/* 🌟 Background Image Layer 🌟 */}
+                                {/* 🌟 Background Image Layer: Perfect Center Cover 🌟 */}
                                 <div className="absolute inset-0 z-0 bg-slate-950">
-                                    <img src="https://res.cloudinary.com/djwclucoz/image/upload/v1783830896/Gemini_Generated_Image_r508lgr508lgr508_exrlwo.png" className="w-full h-full object-cover object-center opacity-90 pointer-events-none" alt="Cyber background" />
+                                    <img src="https://res.cloudinary.com/djwclucoz/image/upload/v1783830896/Gemini_Generated_Image_r508lgr508lgr508_exrlwo.png" className="w-full h-full object-cover object-top opacity-90 pointer-events-none" alt="Cyber background" />
                                 </div>
 
                                 {/* Hologram Canvas */}
@@ -724,6 +733,19 @@ ${history}
                                                 </div>
                                             );
                                         })}
+                                        
+                                        {/* Smart Suggestions */}
+                                        {roleplayPhase === 'negotiating' && smartSuggestions.length > 0 && !isTyping && (
+                                            <div className="flex flex-col gap-2 mb-3 px-1 animate-in fade-in slide-in-from-bottom-2 items-end mt-4">
+                                                <div className="text-[10px] font-black text-cyan-300 flex items-center gap-1 uppercase tracking-widest drop-shadow-md"><SafeIcon icon={Lightbulb} size={12}/> AI COACH SUGGESTIONS:</div>
+                                                <div className="flex flex-col gap-2 w-full max-w-[90%] items-end">
+                                                    {smartSuggestions.map((sug, i) => (
+                                                        <button key={i} onClick={() => handleSendChat(null, sug)} className="text-xs bg-slate-900/80 backdrop-blur-md hover:bg-slate-800/90 border border-slate-600/50 text-slate-200 px-4 py-3 rounded-xl text-left transition-colors active:scale-95 shadow-lg w-full">{sug}</button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
                                         {isTyping && (
                                             <div className="flex justify-end">
                                                 <div className="p-4 rounded-3xl bg-blue-600/50 backdrop-blur-md border border-blue-400/30 rounded-tr-none flex gap-1.5 shadow-lg">
@@ -738,7 +760,7 @@ ${history}
 
                                     {/* Controls Area */}
                                     <div className="shrink-0 pointer-events-auto mt-auto flex flex-col gap-3 px-4 pb-4">
-                                        {roleplayPhase === 'negotiating' && !isTyping && messages.length > 0 && messages[messages.length-1].sender === 'ai' && (
+                                        {roleplayPhase === 'negotiating' && !isTyping && messages.length > 0 && messages[messages.length-1]?.sender === 'ai' && (
                                             <div className="flex justify-end">
                                                 <button onClick={endScenarioAndEvaluate} className="text-xs bg-rose-600/90 backdrop-blur-md border border-rose-400/50 text-white px-5 py-2.5 rounded-full hover:bg-rose-500 active:scale-95 transition-all font-bold shadow-lg">🛑 จบการเจรจา (ประเมินผล)</button>
                                             </div>
