@@ -194,7 +194,7 @@
             // TTS & Waveform States
             const [isAiSpeaking, setIsAiSpeaking] = useState(false);
             
-            // Roleplay States ('none' -> 'playing_video' -> 'negotiating' -> 'evaluating')
+            // Roleplay States
             const [roleplayPhase, setRoleplayPhase] = useState('none'); 
             const [currentEmotion, setCurrentEmotion] = useState('NEUTRAL');
             const [currentSpeaker, setCurrentSpeaker] = useState('FAH');
@@ -203,8 +203,10 @@
 
             // Refs
             const audioContextRef = useRef(null); const analyserRef = useRef(null); const microphoneRef = useRef(null); const vadSilenceTimerRef = useRef(null); const isSpeakingRef = useRef(false); const latestTranscriptRef = useRef('');
-            const recognitionRef = useRef(null); const messagesEndRef = useRef(null); const audioRef = useRef(null); const currentSpeechIdRef = useRef(0);
+            const recognitionRef = useRef(null); const messagesEndRef = useRef(null); const currentSpeechIdRef = useRef(0);
             
+            // 🌟 L8 MASTER FIX: Single Audio Node Architecture 🌟
+            const audioElementRef = useRef(null);
             const ttsCanvasRef = useRef(null);
             const ttsAudioCtxRef = useRef(null);
             const ttsAnalyserRef = useRef(null);
@@ -242,6 +244,33 @@
                         safeRedirect('./index.html');
                     }
                 } catch (e) { safeRedirect('./index.html'); }
+            }, []);
+
+            // 🌟 L8 MASTER FIX: Global Audio Unlocker 🌟
+            useEffect(() => {
+                const unlockAudio = () => {
+                    if (!ttsAudioCtxRef.current && audioElementRef.current) {
+                        const AudioContext = window.AudioContext || window.webkitAudioContext;
+                        ttsAudioCtxRef.current = new AudioContext();
+                        ttsAnalyserRef.current = ttsAudioCtxRef.current.createAnalyser();
+                        ttsAnalyserRef.current.fftSize = 512;
+                        const source = ttsAudioCtxRef.current.createMediaElementSource(audioElementRef.current);
+                        source.connect(ttsAnalyserRef.current);
+                        ttsAnalyserRef.current.connect(ttsAudioCtxRef.current.destination);
+                    }
+                    if (ttsAudioCtxRef.current?.state === 'suspended') {
+                        ttsAudioCtxRef.current.resume();
+                    }
+                    // Clean up after first user interaction unlocks it
+                    document.removeEventListener('click', unlockAudio);
+                    document.removeEventListener('touchstart', unlockAudio);
+                };
+                document.addEventListener('click', unlockAudio);
+                document.addEventListener('touchstart', unlockAudio);
+                return () => {
+                    document.removeEventListener('click', unlockAudio);
+                    document.removeEventListener('touchstart', unlockAudio);
+                };
             }, []);
 
             useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, smartSuggestions]);
@@ -297,12 +326,21 @@
                 currentSpeechIdRef.current += 1; 
                 setIsAiSpeaking(false);
                 if(ttsAnimFrameRef.current) cancelAnimationFrame(ttsAnimFrameRef.current);
-                if(ttsCanvasRef.current) ttsCanvasRef.current.getContext('2d').clearRect(0, 0, ttsCanvasRef.current.width, ttsCanvasRef.current.height);
-                if (audioRef.current) { audioRef.current.pause(); audioRef.current.removeAttribute('src'); audioRef.current.load(); audioRef.current = null; } 
+                if(ttsCanvasRef.current) {
+                    const ctx = ttsCanvasRef.current.getContext('2d');
+                    ctx.clearRect(0, 0, ttsCanvasRef.current.width, ttsCanvasRef.current.height);
+                }
+                if (audioElementRef.current) { 
+                    audioElementRef.current.pause(); 
+                    audioElementRef.current.currentTime = 0; 
+                } 
             }, []);
             
+            // 🌟 L8 MASTER FIX: Updated speakThai to use Single Persistent Audio Node 🌟
             const speakThai = async (text, onEndCallback = null, speaker = 'FAH', isSystemVoice = false, emotion = 'NEUTRAL') => {
-                stopAudio(); currentSpeechIdRef.current += 1; const speechId = currentSpeechIdRef.current; 
+                stopAudio(); 
+                currentSpeechIdRef.current += 1; 
+                const speechId = currentSpeechIdRef.current; 
                 
                 let targetVoice = "Aoede"; 
                 let cleanSpeakText = text.replace(/\[.*?\]/g, '').replace(/\(.*?\)/g, '').replace(/\*.*?\*/g, '').replace(/#.*?#/g, '').replace(/^(ฟ้า|เมฆ|พี่เอก|เอก|น้องชาย|ลูกสาว|แฟน|แฟนของฟ้า|Fah|Mek|Brother|Sister|Boyfriend|AI|Michael)\s*:\s*/i, '').trim();
@@ -341,21 +379,25 @@
                     if (speechId !== currentSpeechIdRef.current) return;
                     const sampleRate = parseInt(inlineData.mimeType.match(/rate=(\d+)/)?.[1] ?? "24000", 10); 
                     const audioUrl = pcm16ToWav(inlineData.data, sampleRate);
-                    const audio = new Audio(audioUrl); 
-                    audio.crossOrigin = "anonymous";
-                    audioRef.current = audio; 
-
-                    if (!ttsAudioCtxRef.current) {
-                        ttsAudioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
+                    
+                    // 🌟 L8 FIX: Ensure AudioContext is ready and resumed 🌟
+                    if (!ttsAudioCtxRef.current && audioElementRef.current) {
+                        const AudioContext = window.AudioContext || window.webkitAudioContext;
+                        ttsAudioCtxRef.current = new AudioContext();
                         ttsAnalyserRef.current = ttsAudioCtxRef.current.createAnalyser();
-                        ttsAnalyserRef.current.fftSize = 512; 
+                        ttsAnalyserRef.current.fftSize = 512;
+                        const source = ttsAudioCtxRef.current.createMediaElementSource(audioElementRef.current);
+                        source.connect(ttsAnalyserRef.current);
+                        ttsAnalyserRef.current.connect(ttsAudioCtxRef.current.destination);
                     }
-                    if (ttsAudioCtxRef.current.state === 'suspended') ttsAudioCtxRef.current.resume();
+                    if (ttsAudioCtxRef.current?.state === 'suspended') {
+                        await ttsAudioCtxRef.current.resume();
+                    }
 
-                    const source = ttsAudioCtxRef.current.createMediaElementSource(audio);
-                    source.connect(ttsAnalyserRef.current);
-                    ttsAnalyserRef.current.connect(ttsAudioCtxRef.current.destination);
-
+                    const audioEl = audioElementRef.current;
+                    if (!audioEl) return;
+                    
+                    audioEl.src = audioUrl;
                     setIsAiSpeaking(true);
 
                     const drawWave = () => {
@@ -523,12 +565,12 @@
                         ttsAnimFrameRef.current = requestAnimationFrame(drawWave);
                     };
 
-                    audio.onplay = () => {
+                    audioEl.onplay = () => {
                         if(ttsAnimFrameRef.current) cancelAnimationFrame(ttsAnimFrameRef.current);
                         drawWave();
                     };
 
-                    audio.onended = () => { 
+                    audioEl.onended = () => { 
                         setIsAiSpeaking(false);
                         if(ttsAnimFrameRef.current) cancelAnimationFrame(ttsAnimFrameRef.current);
                         if(ttsCanvasRef.current) {
@@ -537,18 +579,18 @@
                         }
                         if (onEndCallback) onEndCallback(); 
                     }; 
-                    audio.onerror = () => { 
+                    
+                    audioEl.onerror = () => { 
                         setIsAiSpeaking(false);
                         showMsg(scenarioLang === 'en' ? 'Audio Error' : 'ระบบเสียงขัดข้อง', 'error'); 
                         if (onEndCallback) onEndCallback(); 
                     }; 
                     
-                    // 🛡️ Error Catching for Auto-Play Policy Block (Zero-Friction Entry) 🛡️
-                    audio.play().catch(e => { 
+                    // 🛡️ Play Audio and Gracefully Catch Block Policy 🛡️
+                    audioEl.play().catch(e => { 
                         console.warn("Audio Play Error (Autoplay blocked):", e); 
-                        // Show the red warning badge just like in the user's screenshot
                         showMsg(scenarioLang === 'en' ? 'Please tap screen to allow audio' : 'กรุณาแตะหน้าจอเพื่ออนุญาตเล่นเสียง', 'error'); 
-                        // DON'T stop the UI flow. Let the negotiation phase continue.
+                        // Proceed UI flow so user isn't stuck
                         if (onEndCallback) onEndCallback(); 
                     }); 
                 } catch (error) { 
@@ -559,31 +601,29 @@
                 }
             };
 
+            // 🌟 Zero-Friction Entry: Directly start negotiation without any overlay buttons 🌟
             const triggerScenarioNegotiation = () => {
                 const isEnglish = selectedScenario?.language === 'en';
                 const contextText = isEnglish 
                     ? "Initial Case Data: Patient is a 46yo male, car accident. Brain stem reflexes and apnea test performed, confirming brain death. Relatives outside ICU include Michael (Spouse). Let's begin the negotiation." 
                     : "ข้อมูลเบื้องต้น: คนไข้ชาย อายุ 46 ปี ประสบอุบัติเหตุรถยนต์ แพทย์ประเมินก้านสมองและทดสอบการหายใจแล้ว ยืนยันภาวะสมองตาย ญาติหน้าห้อง ICU มี ฟ้า (ลูกสาว), เมฆ (น้องชาย) และ พี่เอก (แฟนของฟ้า) เริ่มการเจรจาได้เลยค่ะ";
                 
-                // 1. Immediately go into negotiation mode (Skip any start buttons)
                 setRoleplayPhase('negotiating'); 
                 setCurrentEmotion('NEUTRAL'); 
                 setCurrentSpeaker(isEnglish ? 'MICHAEL' : 'FAH');
                 
-                // 2. Load context message
                 const contextMsgId = Date.now(); 
                 setMessages(prev => [...prev, { id: contextMsgId, sender: 'ai', text: contextText, isVoiceOnly: false, speakerName: 'System', isContext: true }]);
                 
-                // 3. Trigger first AI greeting automatically after a short delay
                 setTimeout(() => {
-                    const greetingText = isEnglish ? "Hello... Are you the staff coming to talk to us? Who are you?" : "สวัสดีค่ะ... คุณคือใครคะ?";
+                    const greetingText = isEnglish ? "Hello... Are you the staff? Who are you?" : "สวัสดีค่ะ... คุณคือใครคะ?";
                     const msgId = Date.now() + 1;
                     
-                    // Add message to chat (Hidden text, voice only)
-                    setMessages(prev => [...prev, { id: msgId, sender: 'ai', text: `(ฟ้า) ${greetingText}`, isVoiceOnly: true, speakerName: isEnglish ? 'Michael' : 'ฟ้า' }]);
+                    setMessages(prev => [...prev, { id: msgId, sender: 'ai', text: `(${isEnglish ? 'Michael' : 'ฟ้า'}) ${greetingText}`, isVoiceOnly: true, speakerName: isEnglish ? 'Michael' : 'ฟ้า' }]);
                     
-                    // Play audio (If blocked, the catch block in speakThai will handle it gracefully)
-                    speakThai(greetingText, null, isEnglish ? 'MICHAEL' : 'FAH', false, 'SAD');
+                    speakThai(greetingText, () => {
+                        setMessages(prev => prev.map(m => m.id === msgId ? { ...m, isVoiceOnly: false } : m));
+                    }, isEnglish ? 'MICHAEL' : 'FAH', false, 'SAD');
                 }, 800);
             };
             
@@ -611,7 +651,6 @@
                 
                 cleanText = cleanText.replace(/\[.*?\]/g, '').replace(/\(.*?\)/g, '').replace(/^(ฟ้า|เมฆ|พี่เอก|เอก|น้องชาย|ลูกสาว|แฟน|แฟนของฟ้า|Fah|Mek|Brother|Sister|Boyfriend|Michael)\s*:\s*/i, '').replace(/[*#]/g, '').trim();
                 
-                // Force Voice Only display during negotiation (Blindfold Mode)
                 const isVoiceOnly = roleplayPhase === 'negotiating'; 
                 const speakerName = spk === 'BROTHER' ? 'เมฆ' : spk === 'BOYFRIEND' ? 'พี่เอก' : spk === 'MICHAEL' ? 'Michael' : 'ฟ้า'; 
                 const msgId = Date.now() + 1;
@@ -626,7 +665,7 @@
                 setSelectedScenario(sc); setMessages([]); setSmartSuggestions([]); setScenarioLang(sc.language || 'th'); setPressureTime(20);
                 const userPosition = user?.position || "Medical Professional";
                 
-                // 🏓 PING-PONG INSTRUCTION APPLIED
+                // 🏓 PING-PONG INSTRUCTION
                 const pingPongInstruction = `\n[กฎเหล็กขั้นเด็ดขาด]: ห้ามคุณตอบยาวเกิน 2-3 ประโยคเด็ดขาด ให้ตอบแบบคนคุยกันจริงๆ (Turn-by-turn) และเมื่อญาติพูดจบ ต้องมีฝ่ายใดฝ่ายหนึ่งในครอบครัว "โยนคำถาม" กลับมาถามผู้เรียนเสมอ เพื่อกระตุ้นให้ผู้เรียนต้องพูดตอบ ห้ามร่ายยาวฝ่ายเดียวเด็ดขาด!`;
 
                 const dynamicPrompt = sc.systemPrompt.replace(/{{USER_POSITION}}/g, userPosition).replace(/{{PATIENT_GENDER}}/g, 'ชาย').replace(/{{PATIENT_AGE}}/g, `46 ปี`).replace(/{{PATIENT_CAUSE}}/g, 'อุบัติเหตุรถยนต์').replace(/{{PATIENT_RELATION}}/g, 'คนไข้').replace(/{{REL1_ROLE}}/g, sc.language === 'en' ? 'Fah' : 'ฟ้า').replace(/{{REL2_ROLE}}/g, sc.language === 'en' ? 'Mek' : 'เมฆ'); 
@@ -754,6 +793,9 @@
 
             return (
                 <div className="min-h-screen w-full font-sans antialiased overflow-hidden relative">
+                    {/* Hidden Audio Node for Persistent Audio Context */}
+                    <audio ref={audioElementRef} className="hidden" crossOrigin="anonymous" playsInline />
+                    
                     <div className="sky-bg"></div>
                     <div className="clouds-wrapper"><div className="cloud-layer layer-1"></div><div className="cloud-layer layer-2"></div><div className="cloud-layer layer-3"></div></div>
                     
@@ -805,7 +847,7 @@
                                 {/* 🌟 100% Brightness Background Image Layer for Negotiation 🌟 */}
                                 <div className="absolute inset-0 z-0 bg-no-repeat" style={{ backgroundImage: `url('https://res.cloudinary.com/djwclucoz/image/upload/v1783830896/Gemini_Generated_Image_r508lgr508lgr508_exrlwo.png')`, backgroundSize: '100% 100%', backgroundPosition: 'left top' }}></div>
 
-                                {/* 🌟 Video Player 🌟 */}
+                                {/* 🌟 Video Player (Plays first, completely covers everything else until skipped/ended) 🌟 */}
                                 {roleplayPhase === 'playing_video' && selectedScenario?.videoUrl && (
                                     <div className="absolute inset-0 z-50 bg-black animate-in fade-in zoom-in duration-500 flex items-center justify-center">
                                         <iframe 
@@ -853,7 +895,7 @@
                                                 {messages.map((m, idx) => (
                                                     <div key={idx} className={`flex gap-2 ${m.sender === 'user' ? 'justify-end' : 'justify-start'} ${m.isHidden ? 'hidden' : ''}`}>
                                                         
-                                                        {/* IF SENDER IS AI AND IT'S VOICE ONLY -> BLINDFOLD MODE */}
+                                                        {/* 🌟 BLINDFOLD MODE: Hide AI text, show only Voice Icon 🌟 */}
                                                         {m.sender === 'ai' && !m.isContext && roleplayPhase !== 'evaluating' ? (
                                                             <div className="flex items-center gap-3 p-3 rounded-2xl bg-slate-800/80 border border-slate-600/50 backdrop-blur-md shadow-lg animate-in fade-in self-start">
                                                                 <div className="w-10 h-10 rounded-full bg-cyan-500/20 flex items-center justify-center border border-cyan-500/30">
@@ -897,7 +939,7 @@
                                             </div>
                                             
                                             {/* Input Area */}
-                                            <div className="shrink-0 p-3 md:p-4 relative z-40 pb-safe">
+                                            <div className="shrink-0 p-3 md:p-4 relative z-40 pb-safe bg-transparent">
                                                 
                                                 {/* ⏱️ Crisis Countdown Bar */}
                                                 {roleplayPhase === 'negotiating' && !isTyping && messages[messages.length-1]?.sender === 'ai' && (
