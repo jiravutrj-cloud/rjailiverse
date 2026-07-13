@@ -247,6 +247,7 @@
             }, []);
 
             // 🌟 L8 MASTER FIX: Global Audio Unlocker 🌟
+            // ปลดล็อค AudioContext ทันทีที่ผู้เรียนกดหน้าจอ (เช่น กดเลือก Case Study)
             useEffect(() => {
                 const unlockAudio = () => {
                     if (!ttsAudioCtxRef.current && audioElementRef.current) {
@@ -261,7 +262,6 @@
                     if (ttsAudioCtxRef.current?.state === 'suspended') {
                         ttsAudioCtxRef.current.resume();
                     }
-                    // Clean up after first user interaction unlocks it
                     document.removeEventListener('click', unlockAudio);
                     document.removeEventListener('touchstart', unlockAudio);
                 };
@@ -380,22 +380,22 @@
                     const sampleRate = parseInt(inlineData.mimeType.match(/rate=(\d+)/)?.[1] ?? "24000", 10); 
                     const audioUrl = pcm16ToWav(inlineData.data, sampleRate);
                     
+                    const audioEl = audioElementRef.current;
+                    if (!audioEl) return;
+                    
                     // 🌟 L8 FIX: Ensure AudioContext is ready and resumed 🌟
-                    if (!ttsAudioCtxRef.current && audioElementRef.current) {
+                    if (!ttsAudioCtxRef.current) {
                         const AudioContext = window.AudioContext || window.webkitAudioContext;
                         ttsAudioCtxRef.current = new AudioContext();
                         ttsAnalyserRef.current = ttsAudioCtxRef.current.createAnalyser();
                         ttsAnalyserRef.current.fftSize = 512;
-                        const source = ttsAudioCtxRef.current.createMediaElementSource(audioElementRef.current);
+                        const source = ttsAudioCtxRef.current.createMediaElementSource(audioEl);
                         source.connect(ttsAnalyserRef.current);
                         ttsAnalyserRef.current.connect(ttsAudioCtxRef.current.destination);
                     }
                     if (ttsAudioCtxRef.current?.state === 'suspended') {
                         await ttsAudioCtxRef.current.resume();
                     }
-
-                    const audioEl = audioElementRef.current;
-                    if (!audioEl) return;
                     
                     audioEl.src = audioUrl;
                     setIsAiSpeaking(true);
