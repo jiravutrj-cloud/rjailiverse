@@ -88,7 +88,6 @@
         import { getAuth, signInAnonymously } from 'firebase/auth';
         import { getFirestore, doc, setDoc } from 'firebase/firestore';
 
-        // 🛡️ Error Boundary เพื่อป้องกันจอขาว
         class ErrorBoundary extends React.Component {
             constructor(props) { super(props); this.state = { hasError: false, error: null }; }
             static getDerivedStateFromError(error) { return { hasError: true, error }; }
@@ -195,7 +194,7 @@
             // TTS & Waveform States
             const [isAiSpeaking, setIsAiSpeaking] = useState(false);
             
-            // Roleplay States
+            // Roleplay States ('none' -> 'playing_video' -> 'negotiating' -> 'evaluating')
             const [roleplayPhase, setRoleplayPhase] = useState('none'); 
             const [currentEmotion, setCurrentEmotion] = useState('NEUTRAL');
             const [currentSpeaker, setCurrentSpeaker] = useState('FAH');
@@ -544,7 +543,14 @@
                         if (onEndCallback) onEndCallback(); 
                     }; 
                     
-                    audio.play().catch(e => { console.error("Audio Play Error:", e); showMsg(scenarioLang === 'en' ? 'Please tap to allow audio' : 'กรุณาแตะหน้าจอเพื่ออนุญาตเล่นเสียง', 'error'); if (onEndCallback) onEndCallback(); }); 
+                    // 🛡️ Error Catching for Auto-Play Policy Block (Zero-Friction Entry) 🛡️
+                    audio.play().catch(e => { 
+                        console.warn("Audio Play Error (Autoplay blocked):", e); 
+                        // Show the red warning badge just like in the user's screenshot
+                        showMsg(scenarioLang === 'en' ? 'Please tap screen to allow audio' : 'กรุณาแตะหน้าจอเพื่ออนุญาตเล่นเสียง', 'error'); 
+                        // DON'T stop the UI flow. Let the negotiation phase continue.
+                        if (onEndCallback) onEndCallback(); 
+                    }); 
                 } catch (error) { 
                     if (speechId === currentSpeechIdRef.current) { 
                         showMsg(`Audio error: ${error.message}`, 'error'); 
@@ -559,22 +565,26 @@
                     ? "Initial Case Data: Patient is a 46yo male, car accident. Brain stem reflexes and apnea test performed, confirming brain death. Relatives outside ICU include Michael (Spouse). Let's begin the negotiation." 
                     : "ข้อมูลเบื้องต้น: คนไข้ชาย อายุ 46 ปี ประสบอุบัติเหตุรถยนต์ แพทย์ประเมินก้านสมองและทดสอบการหายใจแล้ว ยืนยันภาวะสมองตาย ญาติหน้าห้อง ICU มี ฟ้า (ลูกสาว), เมฆ (น้องชาย) และ พี่เอก (แฟนของฟ้า) เริ่มการเจรจาได้เลยค่ะ";
                 
-                // Set phase straight to giving context, skipping any modal.
-                setRoleplayPhase('giving_context'); 
-                setCurrentEmotion('SAD'); 
+                // 1. Immediately go into negotiation mode (Skip any start buttons)
+                setRoleplayPhase('negotiating'); 
+                setCurrentEmotion('NEUTRAL'); 
                 setCurrentSpeaker(isEnglish ? 'MICHAEL' : 'FAH');
                 
+                // 2. Load context message
                 const contextMsgId = Date.now(); 
                 setMessages(prev => [...prev, { id: contextMsgId, sender: 'ai', text: contextText, isVoiceOnly: false, speakerName: 'System', isContext: true }]);
                 
-                speakThai(contextText, () => {
-                    setRoleplayPhase('negotiating');
-                    if (selectedScenario?.initialMessage) {
-                        setTimeout(() => {
-                            handleAIResponse(selectedScenario.initialMessage);
-                        }, 500);
-                    }
-                }, 'FAH', true, 'NEUTRAL');
+                // 3. Trigger first AI greeting automatically after a short delay
+                setTimeout(() => {
+                    const greetingText = isEnglish ? "Hello... Are you the staff coming to talk to us? Who are you?" : "สวัสดีค่ะ... คุณคือใครคะ?";
+                    const msgId = Date.now() + 1;
+                    
+                    // Add message to chat (Hidden text, voice only)
+                    setMessages(prev => [...prev, { id: msgId, sender: 'ai', text: `(ฟ้า) ${greetingText}`, isVoiceOnly: true, speakerName: isEnglish ? 'Michael' : 'ฟ้า' }]);
+                    
+                    // Play audio (If blocked, the catch block in speakThai will handle it gracefully)
+                    speakThai(greetingText, null, isEnglish ? 'MICHAEL' : 'FAH', false, 'SAD');
+                }, 800);
             };
             
             const handleAIResponse = (rawResponse) => {
@@ -616,15 +626,17 @@
                 setSelectedScenario(sc); setMessages([]); setSmartSuggestions([]); setScenarioLang(sc.language || 'th'); setPressureTime(20);
                 const userPosition = user?.position || "Medical Professional";
                 
+                // 🏓 PING-PONG INSTRUCTION APPLIED
+                const pingPongInstruction = `\n[กฎเหล็กขั้นเด็ดขาด]: ห้ามคุณตอบยาวเกิน 2-3 ประโยคเด็ดขาด ให้ตอบแบบคนคุยกันจริงๆ (Turn-by-turn) และเมื่อญาติพูดจบ ต้องมีฝ่ายใดฝ่ายหนึ่งในครอบครัว "โยนคำถาม" กลับมาถามผู้เรียนเสมอ เพื่อกระตุ้นให้ผู้เรียนต้องพูดตอบ ห้ามร่ายยาวฝ่ายเดียวเด็ดขาด!`;
+
                 const dynamicPrompt = sc.systemPrompt.replace(/{{USER_POSITION}}/g, userPosition).replace(/{{PATIENT_GENDER}}/g, 'ชาย').replace(/{{PATIENT_AGE}}/g, `46 ปี`).replace(/{{PATIENT_CAUSE}}/g, 'อุบัติเหตุรถยนต์').replace(/{{PATIENT_RELATION}}/g, 'คนไข้').replace(/{{REL1_ROLE}}/g, sc.language === 'en' ? 'Fah' : 'ฟ้า').replace(/{{REL2_ROLE}}/g, sc.language === 'en' ? 'Mek' : 'เมฆ'); 
                 const clinicalDB = window.CLINICAL_KNOWLEDGE_BASE || "";
-                const finalPrompt = `[ฐานความรู้เฉพาะทาง (ห้ามบอกผู้เรียนว่ารู้ แต่ให้ใช้ประเมิน)]\n${clinicalDB}\n\n${dynamicPrompt}`;
+                const finalPrompt = `[ฐานความรู้เฉพาะทาง (ห้ามบอกผู้เรียนว่ารู้ แต่ให้ใช้ประเมิน)]\n${clinicalDB}\n\n${dynamicPrompt}${pingPongInstruction}`;
                 setCurrentScenarioPrompt(finalPrompt); 
                 
                 if (sc.videoUrl) {
                     setRoleplayPhase('playing_video');
                 } else {
-                    // Straight to negotiation
                     triggerScenarioNegotiation();
                 }
             };
@@ -745,7 +757,7 @@
                     <div className="sky-bg"></div>
                     <div className="clouds-wrapper"><div className="cloud-layer layer-1"></div><div className="cloud-layer layer-2"></div><div className="cloud-layer layer-3"></div></div>
                     
-                    {uiMessage.show && <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-[100] px-6 py-3 rounded-full font-bold shadow-xl animate-in slide-in-from-top-4 border backdrop-blur-md ${uiMessage.type === 'error' ? 'bg-rose-500/20 text-rose-300 border-rose-500/50' : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/50'}`}>{uiMessage.text}</div>}
+                    {uiMessage.show && <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-[100] px-6 py-3 rounded-full font-bold shadow-xl animate-in slide-in-from-top-4 border backdrop-blur-md ${uiMessage.type === 'error' ? 'bg-rose-500/80 text-white border-rose-400' : 'bg-emerald-500/80 text-white border-emerald-400'}`}>{uiMessage.text}</div>}
 
                     {/* Navbar */}
                     <div className="px-6 py-4 border-b border-white/10 bg-black/40 backdrop-blur-md flex justify-between items-center z-20 relative shadow-md">
@@ -843,8 +855,8 @@
                                                         
                                                         {/* IF SENDER IS AI AND IT'S VOICE ONLY -> BLINDFOLD MODE */}
                                                         {m.sender === 'ai' && !m.isContext && roleplayPhase !== 'evaluating' ? (
-                                                            <div className="flex items-center gap-3 p-3 rounded-full bg-slate-900/40 border border-cyan-500/20 backdrop-blur-md shadow-lg animate-in fade-in">
-                                                                <div className="w-10 h-10 rounded-full bg-cyan-500/20 flex items-center justify-center">
+                                                            <div className="flex items-center gap-3 p-3 rounded-2xl bg-slate-800/80 border border-slate-600/50 backdrop-blur-md shadow-lg animate-in fade-in self-start">
+                                                                <div className="w-10 h-10 rounded-full bg-cyan-500/20 flex items-center justify-center border border-cyan-500/30">
                                                                     <SafeIcon icon={Volume2} size={20} className="text-cyan-400 animate-pulse" />
                                                                 </div>
                                                                 <div className="flex flex-col pr-4">
@@ -859,8 +871,9 @@
                                                                 {m.text}
                                                             </div>
                                                         ) : m.isContext ? (
-                                                            <div className="p-3 rounded-2xl max-w-full text-xs md:text-sm leading-relaxed whitespace-pre-wrap shadow-lg backdrop-blur-md bg-slate-800/60 border border-slate-600 text-slate-300 text-center w-full">
-                                                                {m.text}
+                                                            <div className="p-4 rounded-2xl w-full max-w-lg mx-auto text-xs md:text-sm leading-relaxed shadow-xl backdrop-blur-xl bg-slate-900/80 border border-slate-700/80 text-slate-300 text-center relative z-40 mt-4 mb-8">
+                                                                <div className="font-bold text-white mb-2">ข้อมูลเบื้องต้น (Context)</div>
+                                                                {m.text.replace('ข้อมูลเบื้องต้น: ', '').replace("Initial Case Data: ", '')}
                                                             </div>
                                                         ) : (
                                                             <div className="p-3 rounded-2xl max-w-[85%] text-sm leading-relaxed whitespace-pre-wrap shadow-lg backdrop-blur-md bg-blue-600 border border-blue-400/50 text-white font-medium rounded-tr-none">
@@ -875,7 +888,7 @@
                                                 
                                                 {/* Actions after AI response */}
                                                 {!isTyping && messages[messages.length-1]?.sender === 'ai' && (
-                                                    <div className="flex flex-wrap gap-2 mt-2 animate-in fade-in">
+                                                    <div className="flex flex-wrap gap-2 mt-2 animate-in fade-in relative z-40">
                                                         {roleplayPhase === 'negotiating' && <button onClick={endScenarioAndEvaluate} className="text-xs bg-rose-500/20 backdrop-blur-md border border-rose-500/50 text-rose-300 px-4 py-2 rounded-full hover:bg-rose-500/40 hover:text-white active:scale-95 transition-all font-bold shadow-lg shadow-rose-500/20">{isEn ? "🛑 End Simulation (Evaluate)" : "🛑 จบการเจรจา (ประเมินผล)"}</button>}
                                                         {roleplayPhase === 'evaluating' && <><button onClick={() => startScenario(selectedScenario)} className="text-xs bg-cyan-500/20 backdrop-blur-md border border-cyan-500/50 text-cyan-300 px-4 py-2 rounded-full hover:bg-cyan-500/40 hover:text-white active:scale-95 transition-all font-bold shadow-lg shadow-cyan-500/20">{isEn ? "🔄 Retry This Case" : "🔄 ลองฝึกเคสนี้อีกครั้ง"}</button><button onClick={() => { setSelectedScenario(null); setMessages([]); setRoleplayPhase('none'); }} className="text-xs bg-slate-800/80 backdrop-blur-md border border-slate-600/50 text-slate-300 px-4 py-2 rounded-full hover:bg-slate-700 transition-all font-bold shadow-lg">{isEn ? "🔙 Back to Scenarios" : "🔙 กลับไปเลือกเคสอื่น"}</button></>}
                                                     </div>
@@ -884,7 +897,7 @@
                                             </div>
                                             
                                             {/* Input Area */}
-                                            <div className="shrink-0 p-3 md:p-4 relative z-30 pb-safe">
+                                            <div className="shrink-0 p-3 md:p-4 relative z-40 pb-safe">
                                                 
                                                 {/* ⏱️ Crisis Countdown Bar */}
                                                 {roleplayPhase === 'negotiating' && !isTyping && messages[messages.length-1]?.sender === 'ai' && (
