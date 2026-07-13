@@ -52,7 +52,6 @@
         body { font-family: 'Sarabun', sans-serif; margin: 0; overflow-x: hidden; background-color: #0f172a; color: white; }
         .font-signature { font-family: 'Charm', cursive; }
         
-        /* 🌟 GLOBAL BACKGROUND RESTORED 🌟 */
         .sky-bg { 
             position: fixed; 
             inset: 0; 
@@ -106,10 +105,8 @@
         import { getAuth, signInAnonymously } from 'firebase/auth';
         import { getFirestore, doc, setDoc } from 'firebase/firestore';
 
-        // 🌟 เพิ่มไอคอนทั้งหมดที่จำเป็น ป้องกันจอขาวจาก Missing Icons 🌟
         const { ArrowLeft, PlayCircle, Bot, Volume2, X, Send, Mic, Image: ImageIcon, Brain, Target, TrendingUp, CheckCircle2, Lock, Clock, Lightbulb, Activity, SkipForward, FileText, ArrowRight, CheckCircle, Info } = LucideIcons;
 
-        // 🌟 Error Boundary ป้องกันจอขาว 🌟
         class ErrorBoundary extends React.Component {
             constructor(props) {
                 super(props);
@@ -126,16 +123,16 @@
                 if (this.state.hasError) {
                     return (
                         <div className="min-h-screen flex flex-col items-center justify-center bg-rose-950 p-8 text-white font-sans">
-                            <div className="bg-rose-900/50 p-8 rounded-3xl border border-rose-500 max-w-3xl w-full">
+                            <div className="bg-rose-900/50 p-8 rounded-3xl border border-rose-500 max-w-3xl w-full shadow-2xl">
                                 <h1 className="text-3xl font-black text-rose-400 mb-4 flex items-center gap-3">
                                     <SafeIcon icon={Info} size={32} /> ระบบขัดข้อง (React Crash)
                                 </h1>
                                 <p className="mb-6 text-rose-200">กรุณาก๊อปปี้ข้อความสีแดงด้านล่างนี้ ส่งให้ AI เพื่อแก้ไขครับ</p>
-                                <div className="bg-black/50 p-4 rounded-xl overflow-x-auto text-sm font-mono text-rose-300">
+                                <div className="bg-black/50 p-4 rounded-xl overflow-x-auto text-sm font-mono text-rose-300 border border-rose-500/30">
                                     <p className="font-bold">{this.state.error && this.state.error.toString()}</p>
                                     <pre className="mt-4 text-xs opacity-70">{this.state.errorInfo && this.state.errorInfo.componentStack}</pre>
                                 </div>
-                                <button onClick={() => window.location.reload()} className="mt-8 px-6 py-3 bg-white text-rose-900 font-bold rounded-xl hover:bg-rose-100 transition-colors">
+                                <button onClick={() => window.location.reload()} className="mt-8 px-6 py-3 bg-white text-rose-900 font-bold rounded-xl hover:bg-rose-100 transition-colors shadow-lg">
                                     รีเฟรชหน้าจอใหม่
                                 </button>
                             </div>
@@ -147,7 +144,7 @@
         }
 
         function SafeIcon({ icon: Icon, size = 24, className = "" }) {
-          if (!Icon) return null; // ป้องกันพังถ้าหา Icon ไม่เจอ
+          if (!Icon) return null;
           return <Icon size={size} className={className} />;
         }
 
@@ -207,9 +204,6 @@
           );
         }
 
-        // ==========================================
-        // 🌟 COMPONENT: ใบยินยอมบริจาคอวัยวะ
-        // ==========================================
         function ConsentFormOverlay({ onClose }) {
             const [showStamp, setShowStamp] = useState(false);
             useEffect(() => { const timer = setTimeout(() => setShowStamp(true), 1000); return () => clearTimeout(timer); }, []);
@@ -306,6 +300,7 @@
             const ttsAnalyserRef = useRef(null);
             const ttsAnimFrameRef = useRef(null);
             const vimeoPlayerRef = useRef(null);
+            const currentSequenceIdRef = useRef(0);
 
             const isEn = selectedScenario && selectedScenario.language === 'en';
 
@@ -402,7 +397,15 @@
 
             const speakThai = async (text, onEndCallback = null, speaker = 'FAH', isSystemVoice = false, emotion = 'NEUTRAL') => {
                 stopAudio(); currentSpeechIdRef.current += 1; const speechId = currentSpeechIdRef.current; 
+                let callbackFired = false;
                 
+                const safeCallback = () => {
+                    if (!callbackFired) {
+                        callbackFired = true;
+                        if (onEndCallback) onEndCallback();
+                    }
+                };
+
                 let targetVoice = "Aoede"; 
                 let cleanSpeakText = text.replace(/\[.*?\]/g, '').replace(/\(.*?\)/g, '').replace(/\*.*?\*/g, '').replace(/#.*?#/g, '').replace(/^(ฟ้า|เมฆ|พี่เอก|เอก|น้องชาย|ลูกสาว|แฟน|แฟนของฟ้า|Fah|Mek|Brother|Sister|Boyfriend|AI|Michael)\s*:\s*/i, '').trim();
                 let emotionPrompt = "";
@@ -481,9 +484,7 @@
                         }
 
                         const freqData = new Uint8Array(ttsAnalyserRef.current.frequencyBinCount);
-                        const timeData = new Uint8Array(ttsAnalyserRef.current.frequencyBinCount);
                         ttsAnalyserRef.current.getByteFrequencyData(freqData);
-                        ttsAnalyserRef.current.getByteTimeDomainData(timeData);
 
                         ctx.clearRect(0, 0, canvas.width, canvas.height);
                         
@@ -557,22 +558,22 @@
                         lastAiSpeakEndRef.current = Date.now();
                         if(ttsAnimFrameRef.current) cancelAnimationFrame(ttsAnimFrameRef.current);
                         if(ttsCanvasRef.current) ttsCanvasRef.current.getContext('2d').clearRect(0, 0, ttsCanvasRef.current.width, ttsCanvasRef.current.height);
-                        if (onEndCallback) onEndCallback(); 
+                        safeCallback();
                     }; 
                     audio.onerror = () => { 
                         setIsAiSpeaking(false);
-                        if (onEndCallback) onEndCallback(); 
+                        safeCallback();
                     }; 
                     
                     audio.play().catch(e => { 
                         console.error("Audio Play Error:", e); 
                         setIsAiSpeaking(false);
-                        if (onEndCallback) onEndCallback(); 
+                        safeCallback();
                     }); 
                 } catch (error) { 
                     if (speechId === currentSpeechIdRef.current) { 
                         setIsAiSpeaking(false);
-                        if (onEndCallback) onEndCallback(); 
+                        safeCallback();
                     } 
                 }
             };
@@ -605,7 +606,7 @@
                     ? "Initial Case Data: Patient is a 46yo male, car accident. Brain stem reflexes and apnea test performed, confirming brain death. Relatives outside ICU include Michael (Spouse). Let's begin the negotiation." 
                     : "ข้อมูลเบื้องต้น: คนไข้ชาย อายุ 46 ปี ประสบอุบัติเหตุรถยนต์ แพทย์ประเมินก้านสมองและทดสอบการหายใจแล้ว ยืนยันภาวะสมองตาย ญาติหน้าห้อง ICU มี ฟ้า (ลูกสาว), เมฆ (น้องชาย) และ พี่เอก (แฟนของฟ้า) เริ่มการเจรจาได้เลยค่ะ";
                 
-                setRoleplayPhase('ready_to_start'); // หยุดรอให้ผู้เรียนกดปุ่ม
+                setRoleplayPhase('ready_to_start'); // Wait for user to push the start button
                 setCurrentEmotion('NEUTRAL'); 
                 setCurrentSpeaker(isEnglish ? 'MICHAEL' : 'FAH');
                 const contextMsgId = Date.now(); 
@@ -638,12 +639,11 @@
                 const dynamicPrompt = sc.systemPrompt.replace(/{{USER_POSITION}}/g, userPosition).replace(/{{PATIENT_GENDER}}/g, 'ชาย').replace(/{{PATIENT_AGE}}/g, `46 ปี`).replace(/{{PATIENT_CAUSE}}/g, 'อุบัติเหตุรถยนต์').replace(/{{PATIENT_RELATION}}/g, 'คนไข้').replace(/{{REL1_ROLE}}/g, sc.language === 'en' ? 'Fah' : 'ฟ้า').replace(/{{REL2_ROLE}}/g, sc.language === 'en' ? 'Mek' : 'เมฆ'); 
                 const clinicalDB = window.CLINICAL_KNOWLEDGE_BASE || "";
                 
-                // 🌟 บังคับกฎห้ามคิดในใจ 🌟
                 const criticalRule = sc.language === 'en' 
                     ? `[CRITICAL RULE]: You MUST NOT output any of your inner thoughts, subtext, or defense mechanism analysis in the chat. ONLY output the spoken dialogue of the characters. Format: [EMOTION] [Character Name] spoken text...`
                     : `[CRITICAL RULE]: ห้ามพิมพ์กระบวนการคิดวิเคราะห์ (Subtext/Defense Mechanism) ออกมาให้ผู้เรียนเห็นเด็ดขาด! ให้พิมพ์เฉพาะ "คำพูด" ของตัวละครเท่านั้น รูปแบบ: [อารมณ์] [ชื่อตัวละคร] คำพูด...`;
 
-                const finalPrompt = `[ฐานความรู้เฉพาะทาง (ห้ามบอกผู้เรียนว่ารู้ แต่ให้ใช้ประเมิน)]\n${clinicalDB}\n\n${dynamicPrompt}\n\n${criticalRule}`;
+                const finalPrompt = `[ฐานความรู้เฉพาะทาง]\n${clinicalDB}\n\n${dynamicPrompt}\n\n${criticalRule}`;
                 setCurrentScenarioPrompt(finalPrompt); 
                 
                 if (sc.videoUrl) {
@@ -652,17 +652,20 @@
                     triggerScenarioNegotiation();
                 }
             };
+
+            const handleVideoEnd = () => {
+                triggerScenarioNegotiation();
+            };
             
             useEffect(() => {
                 if (roleplayPhase === 'playing_video' && vimeoPlayerRef.current) {
                     if (window.Vimeo) {
                         const iframe = vimeoPlayerRef.current;
                         const player = new Vimeo.Player(iframe);
-                        player.on('ended', () => triggerScenarioNegotiation());
-                        player.on('error', () => triggerScenarioNegotiation());
+                        player.on('ended', () => handleVideoEnd());
+                        player.on('error', () => handleVideoEnd());
                     } else {
-                        // Fallback if Vimeo script fails to load
-                        setTimeout(() => triggerScenarioNegotiation(), 5000);
+                        setTimeout(() => handleVideoEnd(), 5000);
                     }
                 }
             }, [roleplayPhase]);
@@ -673,7 +676,7 @@
                 if (isListening) { recognitionRef.current?.stop(); setIsListening(false); setIsPacingFast(false); }
                 
                 const waitTime = Date.now() - lastAiSpeakEndRef.current;
-                if (['SAD', 'ANGRY'].includes(currentEmotionRef.current) && waitTime < 3500 && roleplayPhase === 'negotiating' && messages.length > 2) {
+                if (['SAD', 'ANGRY'].includes(currentEmotion) && waitTime < 3500 && roleplayPhase === 'negotiating' && messages.length > 2) {
                     setSilenceWarning(true);
                     setTimeout(() => setSilenceWarning(false), 4500);
                 }
