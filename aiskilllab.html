@@ -246,22 +246,34 @@
                 } catch (e) { safeRedirect('./index.html'); }
             }, []);
 
-            // 🌟 L8 MASTER FIX: Global Audio Unlocker 🌟
-            // ปลดล็อค AudioContext ทันทีที่ผู้เรียนกดหน้าจอ (เช่น กดเลือก Case Study)
+            // 🌟 THE SILENT AUDIO HACK: Unlock Autoplay Policy permanently on first click 🌟
             useEffect(() => {
-                const unlockAudio = () => {
-                    if (!ttsAudioCtxRef.current && audioElementRef.current) {
+                const unlockAudio = async () => {
+                    const audioEl = audioElementRef.current;
+                    if (audioEl && !audioEl.unlocked) {
+                        // Play a 0.1s silent base64 audio to trick browser into allowing all future audio
+                        audioEl.src = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA";
+                        try {
+                            await audioEl.play();
+                            audioEl.unlocked = true;
+                        } catch(e) {
+                            console.warn("Silent unlock failed, awaiting next interaction.", e);
+                        }
+                    }
+
+                    if (!ttsAudioCtxRef.current && audioEl) {
                         const AudioContext = window.AudioContext || window.webkitAudioContext;
                         ttsAudioCtxRef.current = new AudioContext();
                         ttsAnalyserRef.current = ttsAudioCtxRef.current.createAnalyser();
                         ttsAnalyserRef.current.fftSize = 512;
-                        const source = ttsAudioCtxRef.current.createMediaElementSource(audioElementRef.current);
+                        const source = ttsAudioCtxRef.current.createMediaElementSource(audioEl);
                         source.connect(ttsAnalyserRef.current);
                         ttsAnalyserRef.current.connect(ttsAudioCtxRef.current.destination);
                     }
                     if (ttsAudioCtxRef.current?.state === 'suspended') {
                         ttsAudioCtxRef.current.resume();
                     }
+                    // Remove listeners once unlocked to save resources
                     document.removeEventListener('click', unlockAudio);
                     document.removeEventListener('touchstart', unlockAudio);
                 };
@@ -336,7 +348,6 @@
                 } 
             }, []);
             
-            // 🌟 L8 MASTER FIX: Updated speakThai to use Single Persistent Audio Node 🌟
             const speakThai = async (text, onEndCallback = null, speaker = 'FAH', isSystemVoice = false, emotion = 'NEUTRAL') => {
                 stopAudio(); 
                 currentSpeechIdRef.current += 1; 
@@ -383,16 +394,7 @@
                     const audioEl = audioElementRef.current;
                     if (!audioEl) return;
                     
-                    // 🌟 L8 FIX: Ensure AudioContext is ready and resumed 🌟
-                    if (!ttsAudioCtxRef.current) {
-                        const AudioContext = window.AudioContext || window.webkitAudioContext;
-                        ttsAudioCtxRef.current = new AudioContext();
-                        ttsAnalyserRef.current = ttsAudioCtxRef.current.createAnalyser();
-                        ttsAnalyserRef.current.fftSize = 512;
-                        const source = ttsAudioCtxRef.current.createMediaElementSource(audioEl);
-                        source.connect(ttsAnalyserRef.current);
-                        ttsAnalyserRef.current.connect(ttsAudioCtxRef.current.destination);
-                    }
+                    // Resume context if needed
                     if (ttsAudioCtxRef.current?.state === 'suspended') {
                         await ttsAudioCtxRef.current.resume();
                     }
@@ -422,7 +424,6 @@
                                 }
                             };
                             
-                            // 🌟 CLUSTER ALIGNMENT: Grouping nodes closely, slightly overlapping
                             createCluster(canvas.brainNodes.FAH, canvas.width * 0.28, canvas.height * 0.38); 
                             createCluster(canvas.brainNodes.MEK, canvas.width * 0.20, canvas.height * 0.58); 
                             createCluster(canvas.brainNodes.PEK, canvas.width * 0.36, canvas.height * 0.58); 
@@ -436,7 +437,6 @@
 
                         ctx.clearRect(0, 0, canvas.width, canvas.height);
                         
-                        // 🎨 Dense 5-Color Emotion Palettes
                         const holographicColors = {
                             NEUTRAL: ['#000033', '#8A2BE2', '#FF00FF', '#00FFFF', '#00f2fe'], 
                             ADVISING: ['#0d1b2a', '#1b263b', '#415a77', '#778da9', '#e0e1dd'],
@@ -508,16 +508,13 @@
                                 labelText = clusterName === 'FAH' ? 'FAH (ลูกสาว)' : clusterName === 'MEK' ? 'MEK (น้องชาย)' : "P'EK (แฟนของฟ้า)";
                             }
                             ctx.fillText(labelText, nodes[0].ox, labelY);
-                            
                             ctx.restore();
                         };
 
-                        // Render active speaking profiles
                         drawBrainCluster(canvas.brainNodes.FAH, 'FAH', currentSpeaker === 'FAH' || currentSpeaker === 'MICHAEL');
                         drawBrainCluster(canvas.brainNodes.MEK, 'MEK', currentSpeaker === 'BROTHER');
                         drawBrainCluster(canvas.brainNodes.PEK, 'PEK', currentSpeaker === 'BOYFRIEND');
 
-                        // Render 3D Fluid Waves with Neon Rain lasers
                         const sliceWidth = canvas.width * 1.0 / timeData.length;
                         const waveCenterY = canvas.height * 0.78; 
 
@@ -586,11 +583,10 @@
                         if (onEndCallback) onEndCallback(); 
                     }; 
                     
-                    // 🛡️ Play Audio and Gracefully Catch Block Policy 🛡️
+                    // 🛡️ Play Audio and Gracefully Catch Policy 🛡️
                     audioEl.play().catch(e => { 
-                        console.warn("Audio Play Error (Autoplay blocked):", e); 
-                        showMsg(scenarioLang === 'en' ? 'Please tap screen to allow audio' : 'กรุณาแตะหน้าจอเพื่ออนุญาตเล่นเสียง', 'error'); 
-                        // Proceed UI flow so user isn't stuck
+                        console.warn("Audio Play Error:", e); 
+                        // Because we silent-unlocked on first click, this rarely hits unless connection drops.
                         if (onEndCallback) onEndCallback(); 
                     }); 
                 } catch (error) { 
@@ -601,7 +597,6 @@
                 }
             };
 
-            // 🌟 Zero-Friction Entry: Directly start negotiation without any overlay buttons 🌟
             const triggerScenarioNegotiation = () => {
                 const isEnglish = selectedScenario?.language === 'en';
                 const contextText = isEnglish 
@@ -613,13 +608,13 @@
                 setCurrentSpeaker(isEnglish ? 'MICHAEL' : 'FAH');
                 
                 const contextMsgId = Date.now(); 
-                setMessages(prev => [...prev, { id: contextMsgId, sender: 'ai', text: contextText, isVoiceOnly: false, speakerName: 'System', isContext: true }]);
+                setMessages([{ id: contextMsgId, sender: 'ai', text: contextText, isVoiceOnly: false, speakerName: 'System', isContext: true }]);
                 
                 setTimeout(() => {
                     const greetingText = isEnglish ? "Hello... Are you the staff? Who are you?" : "สวัสดีค่ะ... คุณคือใครคะ?";
                     const msgId = Date.now() + 1;
                     
-                    setMessages(prev => [...prev, { id: msgId, sender: 'ai', text: `(${isEnglish ? 'Michael' : 'ฟ้า'}) ${greetingText}`, isVoiceOnly: true, speakerName: isEnglish ? 'Michael' : 'ฟ้า' }]);
+                    setMessages(prev => [...prev, { id: msgId, sender: 'ai', text: greetingText, isVoiceOnly: true, speakerName: isEnglish ? 'Michael' : 'ฟ้า' }]);
                     
                     speakThai(greetingText, () => {
                         setMessages(prev => prev.map(m => m.id === msgId ? { ...m, isVoiceOnly: false } : m));
@@ -654,9 +649,9 @@
                 const isVoiceOnly = roleplayPhase === 'negotiating'; 
                 const speakerName = spk === 'BROTHER' ? 'เมฆ' : spk === 'BOYFRIEND' ? 'พี่เอก' : spk === 'MICHAEL' ? 'Michael' : 'ฟ้า'; 
                 const msgId = Date.now() + 1;
-                const displayChatText = (roleplayPhase === 'negotiating') ? `(${speakerName}) ${cleanText}` : cleanText;
                 
-                setMessages(prev => [...prev, { id: msgId, sender: 'ai', text: displayChatText, isVoiceOnly, speakerName }]); setIsTyping(false); 
+                // Keep the text raw, UI handles the blindfold rendering
+                setMessages(prev => [...prev, { id: msgId, sender: 'ai', text: cleanText, isVoiceOnly, speakerName }]); setIsTyping(false); 
                 
                 speakThai(cleanText, () => setMessages(prev => prev.map(m => m.id === msgId ? { ...m, isVoiceOnly: false } : m)), spk, false, foundEmotion);
             };
@@ -666,7 +661,7 @@
                 const userPosition = user?.position || "Medical Professional";
                 
                 // 🏓 PING-PONG INSTRUCTION
-                const pingPongInstruction = `\n[กฎเหล็กขั้นเด็ดขาด]: ห้ามคุณตอบยาวเกิน 2-3 ประโยคเด็ดขาด ให้ตอบแบบคนคุยกันจริงๆ (Turn-by-turn) และเมื่อญาติพูดจบ ต้องมีฝ่ายใดฝ่ายหนึ่งในครอบครัว "โยนคำถาม" กลับมาถามผู้เรียนเสมอ เพื่อกระตุ้นให้ผู้เรียนต้องพูดตอบ ห้ามร่ายยาวฝ่ายเดียวเด็ดขาด!`;
+                const pingPongInstruction = `\n[กฎเหล็กขั้นเด็ดขาด]: ห้ามคุณตอบยาวเกิน 2-3 ประโยคเด็ดขาด ให้ตอบแบบคนคุยกันจริงๆ (Turn-by-turn) ห้ามแสดงกระบวนการคิด และเมื่อญาติพูดจบ ต้องมีฝ่ายใดฝ่ายหนึ่งในครอบครัว "โยนคำถาม" กลับมาถามผู้เรียนเสมอ เพื่อกระตุ้นให้ผู้เรียนต้องพูดตอบ ห้ามร่ายยาวฝ่ายเดียวเด็ดขาด!`;
 
                 const dynamicPrompt = sc.systemPrompt.replace(/{{USER_POSITION}}/g, userPosition).replace(/{{PATIENT_GENDER}}/g, 'ชาย').replace(/{{PATIENT_AGE}}/g, `46 ปี`).replace(/{{PATIENT_CAUSE}}/g, 'อุบัติเหตุรถยนต์').replace(/{{PATIENT_RELATION}}/g, 'คนไข้').replace(/{{REL1_ROLE}}/g, sc.language === 'en' ? 'Fah' : 'ฟ้า').replace(/{{REL2_ROLE}}/g, sc.language === 'en' ? 'Mek' : 'เมฆ'); 
                 const clinicalDB = window.CLINICAL_KNOWLEDGE_BASE || "";
@@ -793,8 +788,8 @@
 
             return (
                 <div className="min-h-screen w-full font-sans antialiased overflow-hidden relative">
-                    {/* Hidden Audio Node for Persistent Audio Context */}
-                    <audio ref={audioElementRef} className="hidden" crossOrigin="anonymous" playsInline />
+                    {/* Hidden Audio Node for Persistent Audio Context Unlock */}
+                    <audio ref={audioElementRef} id="master-audio" className="hidden" crossOrigin="anonymous" playsInline />
                     
                     <div className="sky-bg"></div>
                     <div className="clouds-wrapper"><div className="cloud-layer layer-1"></div><div className="cloud-layer layer-2"></div><div className="cloud-layer layer-3"></div></div>
@@ -847,7 +842,7 @@
                                 {/* 🌟 100% Brightness Background Image Layer for Negotiation 🌟 */}
                                 <div className="absolute inset-0 z-0 bg-no-repeat" style={{ backgroundImage: `url('https://res.cloudinary.com/djwclucoz/image/upload/v1783830896/Gemini_Generated_Image_r508lgr508lgr508_exrlwo.png')`, backgroundSize: '100% 100%', backgroundPosition: 'left top' }}></div>
 
-                                {/* 🌟 Video Player (Plays first, completely covers everything else until skipped/ended) 🌟 */}
+                                {/* 🌟 Video Player 🌟 */}
                                 {roleplayPhase === 'playing_video' && selectedScenario?.videoUrl && (
                                     <div className="absolute inset-0 z-50 bg-black animate-in fade-in zoom-in duration-500 flex items-center justify-center">
                                         <iframe 
@@ -866,7 +861,7 @@
                                     </div>
                                 )}
 
-                                {/* 🌟 Neural Hologram & Chat Interface (Shows after video) 🌟 */}
+                                {/* 🌟 Neural Hologram & Chat Interface (Shows immediately after video) 🌟 */}
                                 {roleplayPhase !== 'playing_video' && (
                                     <div className="absolute inset-0 w-full h-full flex flex-col lg:flex-row z-10">
                                         
@@ -876,10 +871,10 @@
                                         {/* Spacer to push Chat Box to the right */}
                                         <div className="hidden lg:block lg:w-[60%] h-full relative z-30 pointer-events-none"></div>
 
-                                        {/* Chat Box (Transparent/Zero-Glass) */}
+                                        {/* Chat Box (Zero-Glass - Completely floating text) */}
                                         <div className="w-full lg:w-[40%] flex flex-col h-[50vh] lg:h-full relative z-30 ml-auto bg-transparent">
                                             
-                                            {/* Chat Header (Transparent Glass) */}
+                                            {/* Chat Header */}
                                             <div className="p-4 flex items-center justify-between shrink-0 bg-transparent">
                                                 <div className="flex items-center gap-3">
                                                     <div>
@@ -895,7 +890,7 @@
                                                 {messages.map((m, idx) => (
                                                     <div key={idx} className={`flex gap-2 ${m.sender === 'user' ? 'justify-end' : 'justify-start'} ${m.isHidden ? 'hidden' : ''}`}>
                                                         
-                                                        {/* 🌟 BLINDFOLD MODE: Hide AI text, show only Voice Icon 🌟 */}
+                                                        {/* 🌟 BLINDFOLD MODE: Hide AI text entirely, show ONLY Incoming Audio badge 🌟 */}
                                                         {m.sender === 'ai' && !m.isContext && roleplayPhase !== 'evaluating' ? (
                                                             <div className="flex items-center gap-3 p-3 rounded-2xl bg-slate-800/80 border border-slate-600/50 backdrop-blur-md shadow-lg animate-in fade-in self-start">
                                                                 <div className="w-10 h-10 rounded-full bg-cyan-500/20 flex items-center justify-center border border-cyan-500/30">
