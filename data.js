@@ -28,7 +28,7 @@ window.HOSPITAL_MAPPING = {
   "เขตสุขภาพที่ 9": [{ name: "รพ.มหาราชนครราชสีมา", prov: "นครราชสีมา" }], "เขตสุขภาพที่ 10": [{ name: "รพ.สรรพสิทธิประสงค์", prov: "อุบลราชธานี" }],
   "เขตสุขภาพที่ 11": [{ name: "รพ.สุราษฎร์ธานี", prov: "สุราษฎร์ธานี" }], "เขตสุขภาพที่ 12": [{ name: "รพ.หาดใหญ่", prov: "สงขลา" }],
   "กรมการแพทย์": [{ name: "รพ.ราชวิถี", prov: "กรุงเทพมหานคร" }, { name: "รพ.เลิดสิน", prov: "กรุงเทพมหานคร" }, { name: "รพ.นพรัตนราชธานี", prov: "กรุงเทพมหานคร" }],
-  "สำนักการแพทย์ กรุงเทพฯ": [{ name: "รพ.กลาง", prov: "กรุงเทพมหานคร" }, { name: "รพ.ตากสิน", prov: "กรุงเทพมหานคร" }, { name: "รพ.เจริญกรุงประชารักษ์", กรุงเทพมหานคร: "" }],
+  "สำนักการแพทย์ กรุงเทพฯ": [{ name: "รพ.กลาง", prov: "กรุงเทพมหานคร" }, { name: "รพ.ตากสิน", prov: "กรุงเทพมหานคร" }, { name: "รพ.เจริญกรุงประชารักษ์", prov: "กรุงเทพมหานคร" }],
   "สำนักอนามัย กรุงเทพฯ": [{ name: "ศูนย์บริการสาธารณสุข", prov: "กรุงเทพมหานคร" }], "อื่นๆ": [{ name: "อื่นๆ", prov: "" }]
 };
 
@@ -88,8 +88,8 @@ window.SKILL_LAB_SCENARIOS = [
     title: "Case Study (International): Expatriate Family Crisis", 
     description: "Advanced simulation following DTI (Spain) standards: Handling an expatriate family with cultural differences facing a brain death scenario.", 
     videoUrl: "https://player.vimeo.com/video/1202839934", 
-    characterName: "Mr. Michael (Foreign Spouse)", 
-    relation: "Foreign Spouse of Patient", 
+    characterName: "Michael (Foreign Spouse)", 
+    relation: "Spouse", 
     language: "en", 
     initialMessage: "[CONFUSED] [Michael] Doctor, please explain this to me again. The monitors are beeping, her heart is beating... What do you mean she is brain dead? I need a second opinion!",
     systemPrompt: `### 1. THE COGNITIVE MIRROR PROTOCOL (International/DTI Standard)
