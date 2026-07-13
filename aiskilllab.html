@@ -585,6 +585,40 @@
                 
                 speakThai(introText, null, spk, false, 'SAD');
             };
+            
+            const handleAIResponse = (rawResponse) => {
+                let aiText = rawResponse;
+                let sug1 = "", sug2 = "";
+                const sug1Match = aiText.match(/\[SUGGESTION 1\](.*?)(?=\[SUGGESTION 2\]|$)/is);
+                const sug2Match = aiText.match(/\[SUGGESTION 2\](.*?)$/is);
+                if (sug1Match) sug1 = sug1Match[1].trim();
+                if (sug2Match) sug2 = sug2Match[1].trim();
+                aiText = aiText.replace(/\[SUGGESTION 1\].*$/is, '').replace(/\[DIALOGUE\]/i, '').trim();
+                setSmartSuggestions([sug1, sug2].filter(Boolean));
+                
+                let spk = 'FAH'; let visualSpeaker = 'FAH'; let cleanText = aiText; const checkStr = cleanText.substring(0, 150).toLowerCase();
+                
+                if (checkStr.match(/\[\s*(เมฆ|น้องชาย|mek|brother)\s*\]|(^|\s)(เมฆ|น้องชาย|mek|brother)\s*:/)) { spk = 'BROTHER'; visualSpeaker = 'BROTHER'; } 
+                else if (checkStr.match(/\[\s*(พี่เอก|เอก|แฟน|แฟนของฟ้า|แฟนหนุ่ม|boyfriend)\s*\]|(^|\s)(พี่เอก|เอก|แฟน|แฟนของฟ้า|แฟนหนุ่ม|boyfriend)\s*:/)) { spk = 'BOYFRIEND'; visualSpeaker = 'PEK'; } 
+                else if (checkStr.match(/\[\s*(michael|spouse|สามี)\s*\]|(^|\s)(michael|spouse|สามี)\s*:/)) { spk = 'MICHAEL'; visualSpeaker = 'MICHAEL'; }
+                else { spk = 'FAH'; visualSpeaker = 'FAH'; }
+                
+                let foundEmotion = "SAD"; const emotionsList = ["SAD", "HESITANT", "CONFUSED", "ANGRY", "ADVISING", "NEUTRAL"]; 
+                for (const em of emotionsList) { if (new RegExp(`\\[\\s*${em}\\s*\\]`, 'i').test(checkStr)) { foundEmotion = em; break; } }
+                
+                setCurrentSpeaker(visualSpeaker); setCurrentEmotion(foundEmotion);
+                
+                cleanText = cleanText.replace(/\[.*?\]/g, '').replace(/\(.*?\)/g, '').replace(/^(ฟ้า|เมฆ|พี่เอก|เอก|น้องชาย|ลูกสาว|แฟน|แฟนของฟ้า|Fah|Mek|Brother|Sister|Boyfriend|Michael)\s*:\s*/i, '').replace(/[*#]/g, '').trim();
+                
+                const isVoiceOnly = roleplayPhase === 'negotiating'; 
+                const speakerName = spk === 'BROTHER' ? 'เมฆ' : spk === 'BOYFRIEND' ? 'พี่เอก' : spk === 'MICHAEL' ? 'Michael' : 'ฟ้า'; 
+                const msgId = Date.now() + 1;
+                const displayChatText = (roleplayPhase === 'negotiating') ? `(${speakerName}) ${cleanText}` : cleanText;
+                
+                setMessages(prev => [...prev, { id: msgId, sender: 'ai', text: displayChatText, isVoiceOnly, speakerName }]); setIsTyping(false); 
+                
+                speakThai(cleanText, () => setMessages(prev => prev.map(m => m.id === msgId ? { ...m, isVoiceOnly: false } : m)), spk, false, foundEmotion);
+            };
 
             const startScenario = (sc) => {
                 setSelectedScenario(sc); setMessages([]); setSmartSuggestions([]); setScenarioLang(sc.language || 'th'); setPressureTime(20);
@@ -631,7 +665,9 @@
                 
                 const suggestionInstruction = `\n\n[ข้อบังคับพิเศษ: SMART HOOKS]\nสร้างทางเลือกตอบกลับเบื้องต้นให้ผู้เรียน 2 ทางเลือกในตอนท้ายสุด (ห้ามพิมพ์บทสนทนาของญาติซ้ำในส่วนนี้) โดยให้จัดรูปแบบดังนี้:\n[SUGGESTION 1] (ทางเลือกที่ 1)\n[SUGGESTION 2] (ทางเลือกที่ 2)\n*หากเป็นเคสภาษาอังกฤษ ให้เขียน Suggestion เป็นภาษาอังกฤษ*`;
 
-                const roleplayPrompt = `${currentScenarioPrompt}${introGuideline}${suggestionInstruction}\n\nประวัติ:\n${historyContext}\nผู้เรียน: ${userMsg}\nญาติ (ใส่ Tag อารมณ์และชื่อคนพูดก่อนเสมอ):`;
+                const roleplayPrompt = `${currentScenarioPrompt}
+[CRITICAL RULE]: ห้ามพิมพ์กระบวนการคิด (Subtext/Defense Mechanism) ออกมาเด็ดขาด! พิมพ์เฉพาะบทสนทนาโต้ตอบสั้นๆ แบบปิงปองเท่านั้น
+${introGuideline}${suggestionInstruction}\n\nประวัติ:\n${historyContext}\nผู้เรียน: ${userMsg}\nญาติ (ใส่ Tag อารมณ์และชื่อคนพูดก่อนเสมอ):`;
                 
                 try {
                     let rawResponse = await callGeminiAPI(userMsg, roleplayPrompt, imageToSend); 
@@ -642,38 +678,7 @@
                         setIsTyping(false);
                         return; 
                     }
-                    
-                    let aiText = rawResponse;
-                    let sug1 = "", sug2 = "";
-                    const sug1Match = aiText.match(/\[SUGGESTION 1\](.*?)(?=\[SUGGESTION 2\]|$)/is);
-                    const sug2Match = aiText.match(/\[SUGGESTION 2\](.*?)$/is);
-                    if (sug1Match) sug1 = sug1Match[1].trim();
-                    if (sug2Match) sug2 = sug2Match[1].trim();
-                    aiText = aiText.replace(/\[SUGGESTION 1\].*$/is, '').replace(/\[DIALOGUE\]/i, '').trim();
-                    setSmartSuggestions([sug1, sug2].filter(Boolean));
-                    
-                    let spk = 'FAH'; let visualSpeaker = 'FAH'; let cleanText = aiText; const checkStr = cleanText.substring(0, 150).toLowerCase();
-                    
-                    if (checkStr.match(/\[\s*(เมฆ|น้องชาย|mek|brother)\s*\]|(^|\s)(เมฆ|น้องชาย|mek|brother)\s*:/)) { spk = 'BROTHER'; visualSpeaker = 'BROTHER'; } 
-                    else if (checkStr.match(/\[\s*(พี่เอก|เอก|แฟน|แฟนของฟ้า|แฟนหนุ่ม|boyfriend)\s*\]|(^|\s)(พี่เอก|เอก|แฟน|แฟนของฟ้า|แฟนหนุ่ม|boyfriend)\s*:/)) { spk = 'BOYFRIEND'; visualSpeaker = 'PEK'; } 
-                    else if (checkStr.match(/\[\s*(michael|spouse|สามี)\s*\]|(^|\s)(michael|spouse|สามี)\s*:/)) { spk = 'MICHAEL'; visualSpeaker = 'MICHAEL'; }
-                    else { spk = 'FAH'; visualSpeaker = 'FAH'; }
-                    
-                    let foundEmotion = "SAD"; const emotionsList = ["SAD", "HESITANT", "CONFUSED", "ANGRY", "ADVISING", "NEUTRAL"]; 
-                    for (const em of emotionsList) { if (new RegExp(`\\[\\s*${em}\\s*\\]`, 'i').test(checkStr)) { foundEmotion = em; break; } }
-                    
-                    setCurrentSpeaker(visualSpeaker); setCurrentEmotion(foundEmotion);
-                    
-                    cleanText = cleanText.replace(/\[.*?\]/g, '').replace(/\(.*?\)/g, '').replace(/^(ฟ้า|เมฆ|พี่เอก|เอก|น้องชาย|ลูกสาว|แฟน|แฟนของฟ้า|Fah|Mek|Brother|Sister|Boyfriend|Michael)\s*:\s*/i, '').replace(/[*#]/g, '').trim();
-                    
-                    const isVoiceOnly = roleplayPhase === 'negotiating'; 
-                    const speakerName = spk === 'BROTHER' ? 'เมฆ' : spk === 'BOYFRIEND' ? 'พี่เอก' : spk === 'MICHAEL' ? 'Michael' : 'ฟ้า'; 
-                    const msgId = Date.now() + 1;
-                    const displayChatText = (roleplayPhase === 'negotiating') ? `(${speakerName}) ${cleanText}` : cleanText;
-                    
-                    setMessages(prev => [...prev, { id: msgId, sender: 'ai', text: displayChatText, isVoiceOnly, speakerName }]); setIsTyping(false); 
-                    
-                    speakThai(cleanText, () => setMessages(prev => prev.map(m => m.id === msgId ? { ...m, isVoiceOnly: false } : m)), spk, false, foundEmotion);
+                    handleAIResponse(rawResponse);
                     
                 } catch (err) { 
                     setIsTyping(false); 
@@ -760,6 +765,7 @@
                         <div className="text-white/80 font-bold text-sm bg-white/10 px-4 py-1.5 rounded-full border border-white/20 shadow-sm hidden sm:flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> {user.name}</div>
                     </div>
 
+                    {}
                     <div className="p-4 md:p-6 lg:p-8 h-[calc(100vh-73px)] w-full relative z-10 flex">
                         
                         {!selectedScenario ? (
