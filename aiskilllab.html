@@ -92,6 +92,7 @@
 
         const { ArrowLeft, PlayCircle, Bot, Volume2, X, Send, Mic, Image: ImageIcon, Target, Lock, Lightbulb, ArrowRight, FileText, CheckCircle, Info, Activity, SkipForward } = LucideIcons;
 
+        // 🛡️ Error Boundary to catch any React rendering issues
         class ErrorBoundary extends React.Component {
             constructor(props) {
                 super(props);
@@ -262,7 +263,7 @@
             const [isAiSpeaking, setIsAiSpeaking] = useState(false);
             
             // Roleplay States
-            const [roleplayPhase, setRoleplayPhase] = useState('none'); 
+            const [roleplayPhase, setRoleplayPhase] = useState('none'); // 'none', 'playing_video', 'ready_to_start', 'negotiating', 'evaluating'
             const [currentEmotion, setCurrentEmotion] = useState('NEUTRAL');
             const [currentSpeaker, setCurrentSpeaker] = useState('FAH');
             const [scenarioLang, setScenarioLang] = useState('th');
@@ -533,25 +534,12 @@
 
                     setIsAiSpeaking(true);
 
-                    audio.onended = () => { 
-                        setIsAiSpeaking(false);
-                        safeCallback();
-                    }; 
-                    audio.onerror = () => { 
-                        setIsAiSpeaking(false);
-                        safeCallback();
-                    }; 
+                    audio.onended = () => { setIsAiSpeaking(false); safeCallback(); }; 
+                    audio.onerror = () => { setIsAiSpeaking(false); safeCallback(); }; 
                     
-                    audio.play().catch(e => { 
-                        console.error("Audio Play Error:", e); 
-                        setIsAiSpeaking(false);
-                        safeCallback();
-                    }); 
+                    audio.play().catch(e => { console.error("Audio Play Error:", e); setIsAiSpeaking(false); safeCallback(); }); 
                 } catch (error) { 
-                    if (speechId === currentSpeechIdRef.current) { 
-                        setIsAiSpeaking(false);
-                        safeCallback();
-                    } 
+                    if (speechId === currentSpeechIdRef.current) { setIsAiSpeaking(false); safeCallback(); } 
                 }
             };
 
@@ -625,6 +613,10 @@
                 }
             };
 
+            const handleVideoEnd = () => {
+                triggerScenarioNegotiation();
+            };
+
             const handleSendChat = async (e, quickActionText = null) => {
                 if (e) e.preventDefault(); const userMsg = quickActionText ?? chatInput.trim(); if ((!userMsg && !selectedImage) || isTyping) return;
                 stopAudio(); if (['ready_to_start', 'playing_scenario', 'playing_video'].includes(roleplayPhase)) return; 
@@ -637,8 +629,8 @@
 
                 let modifiedPrompt = currentScenarioPrompt.replace(/ให้คุณเลือกสวมบทบาทตอบกลับเพียง 1 ตัวละครต่อ 1 ครั้งเท่านั้น!/g, '');
                 modifiedPrompt += `\n\n[CRITICAL RULES FOR REAL-TIME VOICE SIMULATION]:
-1. **Strict Turn-by-Turn:** คุณต้องโต้ตอบสั้นๆ ทีละ 1-2 ประโยค แล้วรอให้ผู้เรียนพูดตอบ ห้ามร่ายยาว
-2. **Voice Only:** ผู้เรียนจะไม่ได้อ่านข้อความของคุณ เขาจะได้ยินแค่เสียง ดังนั้น "ห้ามพิมพ์วงเล็บการกระทำหรือ Subtext หรือกระบวนการคิดใดๆ ออกมาเด็ดขาด" พิมพ์เฉพาะคำพูดเท่านั้น
+1. **Strict Turn-by-Turn:** คุณต้องโต้ตอบสั้นๆ ทีละ 1-2 ประโยค แล้วรอให้ผู้เรียนพูดตอบ ห้ามร่ายยาวเด็ดขาด
+2. **Voice Only:** ผู้เรียนจะไม่ได้อ่านข้อความของคุณ เขาจะได้ยินแค่เสียง ดังนั้น "ห้ามพิมพ์วงเล็บการกระทำ หรือ Subtext หรือกระบวนการคิดใดๆ ออกมาเด็ดขาด" พิมพ์เฉพาะบทสนทนาเท่านั้น
 3. **Dynamic Interaction:** หากจำเป็นต้องให้ญาติคุยกันเอง ให้พูดสั้นๆ แล้วหันมาถามผู้เรียนต่อทันที
 4. รูปแบบบังคับ: [อารมณ์] [ชื่อตัวละคร] คำพูด...`;
 
@@ -646,7 +638,7 @@
                 
                 try {
                     let rawResponse = await callGeminiAPI(userMsg, roleplayPrompt, imageToSend); 
-                    if (rawResponse.startsWith('[ระบบขัดข้อง]')) { setMessages(prev => [...prev, { id: Date.now(), sender: 'ai', text: rawResponse, isVoiceOnly: false, speakerName: 'ระบบ' }]); showMsg(rawResponse, 'error'); setIsTyping(false); return; }
+                    if (rawResponse.startsWith('[ระบบขัดข้อง]')) { setMessages(prev => [...prev, { id: Date.now(), sender: 'ai', text: rawResponse, isVoiceOnly: false, speakerName: 'ระบบ', isHidden: false }]); showMsg(rawResponse, 'error'); setIsTyping(false); return; }
 
                     let aiText = rawResponse; let sug1 = "", sug2 = "";
                     let isResolved = false;
@@ -667,13 +659,14 @@
                     const msgId = Date.now() + 1;
                     const displayChatText = dialogues.map(d => `(${d.speaker}) ${d.text}`).join('\n\n');
                     
+                    // Add message as hidden during negotiating so the user only hears the voice
                     setMessages(prev => [...prev, { id: msgId, sender: 'ai', text: displayChatText, isVoiceOnly, speakerName: 'ครอบครัว', isHidden: isVoiceOnly }]); 
                     setIsTyping(false); 
                     
                     const seqId = Date.now(); currentSequenceIdRef.current = seqId;
                     speakThaiSequence(dialogues, seqId, isResolved);
 
-                } catch (err) { setIsTyping(false); setMessages(prev => [...prev, { id: Date.now(), sender: 'ai', text: `ข้อผิดพลาด (${err.message})`, isVoiceOnly: false, speakerName: 'ระบบ' }]); }
+                } catch (err) { setIsTyping(false); setMessages(prev => [...prev, { id: Date.now(), sender: 'ai', text: `ข้อผิดพลาด (${err.message})`, isVoiceOnly: false, speakerName: 'ระบบ', isHidden: false }]); }
             };
 
             const endScenarioAndEvaluate = async () => {
@@ -692,7 +685,7 @@ ${history}
                 
                 try {
                     const aiResponse = await callGeminiAPI("ประเมินผล", evalPrompt); 
-                    if (aiResponse.startsWith('[ระบบขัดข้อง]')) { setMessages(prev => [...prev, { id: Date.now(), sender: 'ai', text: aiResponse, isVoiceOnly: false, speakerName: 'ระบบ' }]); showMsg(aiResponse, 'error'); setIsTyping(false); return; }
+                    if (aiResponse.startsWith('[ระบบขัดข้อง]')) { setMessages(prev => [...prev, { id: Date.now(), sender: 'ai', text: aiResponse, isVoiceOnly: false, speakerName: 'ระบบ', isHidden: false }]); showMsg(aiResponse, 'error'); setIsTyping(false); return; }
                     
                     const isPass = aiResponse.includes('[PASS]'); 
                     const empathyMatch = aiResponse.match(/\[EMPATHY:\s*(\d+)\]/i); const empathyScore = empathyMatch ? parseInt(empathyMatch[1]) : (isPass ? 80 : 40);
@@ -706,7 +699,7 @@ ${history}
                     
                     showMsg(isEn ? `Result Recorded (Empathy Score: ${empathyScore})` : `บันทึกผลเรียบร้อย (Empathy Score: ${empathyScore})`, 'success'); 
                     speakThai(cleanResponse.replace(/[*#]/g, ''), null, 'FAH', true, 'ADVISING');
-                } catch (e) { setMessages(prev => [...prev, { id: Date.now(), sender: 'ai', text: `ข้อผิดพลาด: ${e.message}`, isVoiceOnly: false, speakerName: 'ระบบ' }]); }
+                } catch (e) { setMessages(prev => [...prev, { id: Date.now(), sender: 'ai', text: `ข้อผิดพลาด: ${e.message}`, isVoiceOnly: false, speakerName: 'ระบบ', isHidden: false }]); }
                 setIsTyping(false);
             };
 
@@ -730,8 +723,8 @@ ${history}
             );
 
             return (
+                <>
                 <div className="min-h-screen w-full font-sans antialiased overflow-hidden relative bg-slate-950 flex flex-col">
-                    <div className="sky-bg pointer-events-none"></div>
 
                     {uiMessage.show && <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-[100] px-6 py-3 rounded-full font-bold shadow-xl animate-in slide-in-from-top-4 border backdrop-blur-md ${uiMessage.type === 'error' ? 'bg-rose-500/20 text-rose-300 border-rose-500/50' : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/50'}`}>{uiMessage.text}</div>}
 
@@ -747,6 +740,7 @@ ${history}
                         
                         {!selectedScenario ? (
                             <div className="flex-1 w-full max-w-7xl mx-auto flex flex-col items-center justify-center p-4 md:p-8 animate-in fade-in zoom-in-95 relative z-20">
+                                <div className="absolute inset-0 sky-bg -z-10 rounded-3xl opacity-50 blur-3xl"></div>
                                 <div className="w-full flex flex-col gap-6 relative z-10">
                                     <div className="p-4 bg-blue-500/10 border border-blue-500/30 rounded-xl mb-4 backdrop-blur-md max-w-4xl mx-auto text-center w-full shadow-lg">
                                         <p className="text-sm md:text-base font-bold text-blue-200 flex items-center justify-center gap-2 leading-relaxed"><SafeIcon icon={Target} size={24} className="shrink-0 text-blue-400" /><span><strong>The Safe Sandbox:</strong> พื้นที่นี้คือสถานการณ์จำลองเพื่อฝึกความมั่นใจ ไม่มีผลต่อการตัดคะแนนสอบ ขอให้ผู้เรียนนำความเห็นอกเห็นใจมาใช้อย่างเต็มที่ค่ะ</span></p>
@@ -770,14 +764,14 @@ ${history}
                         ) : roleplayPhase === 'playing_video' ? (
                             <div className="absolute inset-0 z-50 bg-black animate-in fade-in zoom-in duration-500 flex items-center justify-center">
                                 <iframe ref={vimeoPlayerRef} src={`${selectedScenario.videoUrl}?autoplay=1&title=0&byline=0&portrait=0&api=1`} className="w-full h-full border-none" allow="autoplay; fullscreen" title={selectedScenario.title}></iframe>
-                                <button onClick={() => triggerScenarioNegotiation()} className="absolute bottom-10 right-10 z-[60] bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/30 text-white px-6 py-3 rounded-full font-bold flex items-center gap-2 shadow-lg transition-all active:scale-95"><SafeIcon icon={SkipForward} size={18} /> {isEn ? "Skip Video" : "ข้ามวิดีโอ (Skip)"}</button>
+                                <button onClick={() => handleVideoEnd()} className="absolute bottom-10 right-10 z-[60] bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/30 text-white px-6 py-3 rounded-full font-bold flex items-center gap-2 shadow-lg transition-all active:scale-95"><SafeIcon icon={SkipForward} size={18} /> {isEn ? "Skip Video" : "ข้ามวิดีโอ (Skip)"}</button>
                             </div>
                         ) : (
                             <div className="w-full h-full flex flex-col relative overflow-hidden bg-transparent">
                                 
-                                {/* Background - Perfect Aspect Ratio */}
-                                <div className="absolute inset-0 z-0 bg-slate-900">
-                                    <img src="https://res.cloudinary.com/djwclucoz/image/upload/v1783830896/Gemini_Generated_Image_r508lgr508lgr508_exrlwo.png" alt="Background" className="w-full h-full object-cover object-top opacity-90" />
+                                {/* 🌟 Background Image Layer: Center Crop (Anti-Head-Cut) 🌟 */}
+                                <div className="absolute inset-0 z-0 bg-slate-900 pointer-events-none">
+                                    <div className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-90" style={{ backgroundImage: `url('https://res.cloudinary.com/djwclucoz/image/upload/v1783830896/Gemini_Generated_Image_r508lgr508lgr508_exrlwo.png')` }}></div>
                                 </div>
 
                                 {/* Hologram Canvas Overlaying Background */}
@@ -804,15 +798,14 @@ ${history}
                                 {/* Transparent Right Panel / Zero-Glass UI */}
                                 <div className="absolute top-0 right-0 h-full w-full lg:w-[45%] flex flex-col z-30 pt-16 pointer-events-none">
                                     
-                                    {/* Messages Area (Hidden AI texts during roleplay) */}
+                                    {/* Messages Area (Hidden AI texts during roleplay - BLINDFOLD MODE) */}
                                     <div className="flex-1 p-6 pb-2 overflow-y-auto custom-scrollbar space-y-4 flex flex-col relative pointer-events-auto">
                                         {messages.map((m, idx) => {
-                                            // BLINDFOLD MODE: Hide AI text so user must listen
-                                            if (m.sender === 'ai' && roleplayPhase === 'negotiating' && !m.isContext) return null;
+                                            if (m.isHidden) return null;
                                             
                                             return (
-                                                <div key={idx} className={`flex gap-2 ${m.sender === 'user' ? 'justify-end' : 'justify-start'} ${m.isHidden ? 'hidden' : ''}`}>
-                                                    <div className={`p-4 rounded-3xl max-w-[90%] text-sm leading-relaxed whitespace-pre-wrap shadow-2xl backdrop-blur-md ${m.sender === 'ai' ? 'bg-slate-900/80 border border-slate-600/50 text-slate-100 rounded-tl-none' : 'bg-blue-600/90 border border-blue-400/50 text-white font-medium rounded-tr-none'}`}>
+                                                <div key={idx} className={`flex gap-2 ${m.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+                                                    <div className={`p-4 rounded-3xl max-w-[90%] text-sm leading-relaxed whitespace-pre-wrap shadow-2xl backdrop-blur-sm ${m.sender === 'ai' ? 'bg-slate-900/80 border border-slate-600/50 text-slate-100 rounded-tl-none' : 'bg-blue-600/90 border border-blue-400/50 text-white font-medium rounded-tr-none'}`}>
                                                         {m.text}
                                                     </div>
                                                 </div>
@@ -820,10 +813,14 @@ ${history}
                                         })}
                                         {isTyping && <div className="flex gap-2 justify-start animate-in fade-in"><div className="p-4 rounded-3xl bg-slate-900/80 backdrop-blur-md border border-slate-600/50 rounded-tl-none flex gap-1.5 shadow-2xl"><div className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-bounce"></div><div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div><div className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-bounce" style={{animationDelay: '0.4s'}}></div></div></div>}
                                         
-                                        {!isTyping && messages[messages.length-1]?.sender === 'ai' && (
+                                        {!isTyping && messages[messages.length-1]?.sender === 'ai' && roleplayPhase === 'negotiating' && (
                                             <div className="flex flex-wrap justify-end gap-2 mt-2 animate-in fade-in">
-                                                {roleplayPhase === 'negotiating' && <button onClick={endScenarioAndEvaluate} className="text-xs bg-rose-500/80 backdrop-blur-md border border-rose-500/50 text-white px-4 py-2 rounded-full hover:bg-rose-500 active:scale-95 transition-all font-bold shadow-xl">🛑 จบการเจรจา (ประเมินผล)</button>}
-                                                {roleplayPhase === 'evaluating' && <button onClick={() => startScenario(selectedScenario)} className="text-xs bg-cyan-500/80 backdrop-blur-md border border-cyan-500/50 text-white px-4 py-2 rounded-full hover:bg-cyan-500 active:scale-95 transition-all font-bold shadow-xl">🔄 ลองฝึกเคสนี้อีกครั้ง</button>}
+                                                <button onClick={endScenarioAndEvaluate} className="text-xs bg-rose-500/80 backdrop-blur-md border border-rose-500/50 text-white px-4 py-2 rounded-full hover:bg-rose-500 active:scale-95 transition-all font-bold shadow-xl">🛑 จบการเจรจา (ประเมินผล)</button>
+                                            </div>
+                                        )}
+                                        {!isTyping && roleplayPhase === 'evaluating' && (
+                                            <div className="flex flex-wrap justify-end gap-2 mt-2 animate-in fade-in">
+                                                <button onClick={() => startScenario(selectedScenario)} className="text-xs bg-cyan-500/80 backdrop-blur-md border border-cyan-500/50 text-white px-4 py-2 rounded-full hover:bg-cyan-500 active:scale-95 transition-all font-bold shadow-xl">🔄 ลองฝึกเคสนี้อีกครั้ง</button>
                                             </div>
                                         )}
                                         <div ref={messagesEndRef} />
@@ -861,7 +858,7 @@ ${history}
                 </div>
                 
                 {showConsentForm && <ConsentFormOverlay onClose={endScenarioAndEvaluate} />}
-            </>
+                </>
             );
         }
 
