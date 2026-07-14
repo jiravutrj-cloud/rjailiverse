@@ -104,6 +104,7 @@
                                 <p className="mb-6 text-rose-200">กรุณาก๊อปปี้ข้อความสีแดงด้านล่างนี้ ส่งให้ AI เพื่อแก้ไขครับ</p>
                                 <div className="bg-black/50 p-4 rounded-xl overflow-x-auto text-sm font-mono text-rose-300 border border-rose-500/30">
                                     <p className="font-bold">{this.state.error && this.state.error.toString()}</p>
+                                    <pre className="mt-4 text-xs opacity-70">{this.state.errorInfo && this.state.errorInfo.componentStack}</pre>
                                 </div>
                                 <button onClick={() => window.location.reload()} className="mt-8 px-6 py-3 bg-white text-rose-900 font-bold rounded-xl hover:bg-rose-100 transition-colors shadow-lg">รีเฟรชหน้าจอใหม่</button>
                             </div>
@@ -200,6 +201,9 @@
             const [scenarioLang, setScenarioLang] = useState('th');
             const [currentScenarioPrompt, setCurrentScenarioPrompt] = useState('');
 
+            // Define isEn variable correctly in component scope!
+            const isEn = selectedScenario?.language === 'en';
+
             // Refs
             const audioContextRef = useRef(null); const analyserRef = useRef(null); const microphoneRef = useRef(null); const vadSilenceTimerRef = useRef(null); const isSpeakingRef = useRef(false); const latestTranscriptRef = useRef('');
             const recognitionRef = useRef(null); const messagesEndRef = useRef(null); const audioRef = useRef(null); const currentSpeechIdRef = useRef(0);
@@ -218,7 +222,7 @@
                         const parsed = JSON.parse(saved);
                         if (parsed.loggedInUser) {
                             const uType = parsed.loggedInUser.userType;
-                            // จำกัดสิทธิ์ Masterclass
+                            // Masterclass restriction
                             if (uType !== 'Masterclass') {
                                 setAccessDenied(true);
                                 return;
@@ -257,7 +261,7 @@
             }, [roleplayPhase, isTyping, messages, isListening, chatInput, isAiSpeaking]);
 
             const handleAutoTimeout = () => { 
-                const timeoutText = scenarioLang === 'en' ? "[Learner silent, no timely response]" : "[ผู้เรียนเงียบ ไม่ตอบสนองทันเวลา]";
+                const timeoutText = isEn ? "[Learner silent, no timely response]" : "[ผู้เรียนเงียบ ไม่ตอบสนองทันเวลา]";
                 handleSendChat(null, timeoutText); 
             };
 
@@ -279,8 +283,8 @@
                 if (isListening && isVadMode) requestAnimationFrame(processAudio);
             }, [isListening, isVadMode]);
 
-            const startVAD = async () => { try { if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) throw new Error("NotSupportedError"); const stream = await navigator.mediaDevices.getUserMedia({ audio: true }); audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)(); analyserRef.current = audioContextRef.current.createAnalyser(); microphoneRef.current = audioContextRef.current.createMediaStreamSource(stream); microphoneRef.current.connect(analyserRef.current); analyserRef.current.fftSize = 256; setIsVadMode(true); setIsListening(true); recognitionRef.current?.start(); processAudio(); showMsg(scenarioLang === 'en' ? '🎙️ VAD Mic Active' : '🎙️ เปิดโหมด VAD'); } catch (err) { showMsg(scenarioLang === 'en' ? 'Mic Error' : 'ไมค์ไม่ทำงาน', 'error'); } };
-            const stopVAD = () => { setIsVadMode(false); setIsListening(false); recognitionRef.current?.stop(); if (audioContextRef.current) audioContextRef.current.close(); if (vadSilenceTimerRef.current) clearTimeout(vadSilenceTimerRef.current); showMsg(scenarioLang === 'en' ? 'Mic Suspended' : 'ปิดไมโครโฟนแล้ว', 'success'); };
+            const startVAD = async () => { try { if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) throw new Error("NotSupportedError"); const stream = await navigator.mediaDevices.getUserMedia({ audio: true }); audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)(); analyserRef.current = audioContextRef.current.createAnalyser(); microphoneRef.current = audioContextRef.current.createMediaStreamSource(stream); microphoneRef.current.connect(analyserRef.current); analyserRef.current.fftSize = 256; setIsVadMode(true); setIsListening(true); recognitionRef.current?.start(); processAudio(); showMsg(isEn ? '🎙️ VAD Mic Active' : '🎙️ เปิดโหมด VAD'); } catch (err) { showMsg(isEn ? 'Mic Error' : 'ไมค์ไม่ทำงาน', 'error'); } };
+            const stopVAD = () => { setIsVadMode(false); setIsListening(false); recognitionRef.current?.stop(); if (audioContextRef.current) audioContextRef.current.close(); if (vadSilenceTimerRef.current) clearTimeout(vadSilenceTimerRef.current); showMsg(isEn ? 'Mic Suspended' : 'ปิดไมโครโฟนแล้ว', 'success'); };
             const toggleMic = () => { if (isListening) stopVAD(); else { setChatInput(''); latestTranscriptRef.current = ''; startVAD(); } };
 
             const stopAudio = useCallback(() => { 
