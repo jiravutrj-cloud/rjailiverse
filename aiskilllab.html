@@ -191,7 +191,6 @@
             
             // Features States
             const [smartSuggestions, setSmartSuggestions] = useState([]); 
-            const [pressureTime, setPressureTime] = useState(20); 
             const [isAiSpeaking, setIsAiSpeaking] = useState(false);
             
             // Roleplay States
@@ -239,31 +238,6 @@
             }, []);
 
             useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, smartSuggestions]);
-
-            useEffect(() => {
-                let timer;
-                if (roleplayPhase === 'negotiating' && !isTyping && !isAiSpeaking && messages.length > 0 && messages[messages.length-1].sender === 'ai') {
-                    timer = setInterval(() => {
-                        setPressureTime(p => {
-                            if (isListening || chatInput.length > 0 || isAiSpeaking) return p; 
-                            if (p <= 1) {
-                                clearInterval(timer);
-                                handleAutoTimeout(); 
-                                return 20;
-                            }
-                            return p - 1;
-                        });
-                    }, 1000);
-                } else {
-                    setPressureTime(20); 
-                }
-                return () => clearInterval(timer);
-            }, [roleplayPhase, isTyping, messages, isListening, chatInput, isAiSpeaking]);
-
-            const handleAutoTimeout = () => { 
-                const timeoutText = isEn ? "[Learner silent, no timely response]" : "[ผู้เรียนเงียบ ไม่ตอบสนองทันเวลา]";
-                handleSendChat(null, timeoutText); 
-            };
 
             useEffect(() => {
                 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -407,7 +381,6 @@
                 setMessages([]); 
                 setSmartSuggestions([]); 
                 setScenarioLang(sc.language || 'th'); 
-                setPressureTime(20);
                 
                 const userPosition = user?.position || "บุคลากรทางการแพทย์";
                 
@@ -486,7 +459,7 @@
                 if (e) e.preventDefault(); const userMsg = quickActionText ?? chatInput.trim(); if ((!userMsg && !selectedImage) || isTyping) return;
                 stopAudio(); if (['speaking_intro', 'playing_scenario'].includes(roleplayPhase)) return; 
                 
-                setMessages(prev => [...prev, { id: Date.now(), sender: 'user', text: userMsg, image: selectedImage }]); setChatInput(''); const imageToSend = selectedImage; setSelectedImage(null); setIsTyping(true); setSmartSuggestions([]); setPressureTime(20);
+                setMessages(prev => [...prev, { id: Date.now(), sender: 'user', text: userMsg, image: selectedImage }]); setChatInput(''); const imageToSend = selectedImage; setSelectedImage(null); setIsTyping(true); setSmartSuggestions([]);
                 
                 const historyContext = messages.filter(m => !m.isContext).slice(-10).map(m => `${m.sender === 'user' ? 'Learner/Staff' : 'Family'}: ${m.text}`).join('\n');
                 
@@ -683,13 +656,6 @@
                                 {/* Input Area */}
                                 <div className="shrink-0 p-4 bg-white/5 border-t border-white/20 relative z-30 pb-safe rounded-b-[2rem]">
                                     
-                                    {/* ⏱️ Crisis Countdown Bar */}
-                                    {roleplayPhase === 'negotiating' && !isTyping && messages[messages.length-1]?.sender === 'ai' && (
-                                       <div className="absolute top-0 left-0 w-full h-1 bg-white/10">
-                                           <div className={`h-full transition-all duration-1000 ${pressureTime > 10 ? 'bg-emerald-400 shadow-[0_0_8px_#34d399]' : pressureTime > 5 ? 'bg-amber-400 shadow-[0_0_8px_#fbbf24]' : 'bg-rose-500 shadow-[0_0_10px_#f43f5e]'}`} style={{ width: `${(pressureTime/20)*100}%` }}></div>
-                                       </div>
-                                    )}
-                                    
                                     {/* 💡 Smart Suggestions Hooks */}
                                     {roleplayPhase === 'negotiating' && smartSuggestions.length > 0 && !isTyping && (
                                         <div className="flex flex-col gap-2 mb-3 px-1 animate-in fade-in slide-in-from-bottom-2">
@@ -708,11 +674,6 @@
                                         <input type="file" id="ai-image-upload" accept="image/*" className="hidden" onChange={handleImageUpload} />
                                         <label htmlFor="ai-image-upload" className="text-white hover:text-white/80 cursor-pointer p-1.5"><SafeIcon icon={ImageIcon} size={20} /></label>
                                         <input type="text" value={chatInput} onChange={e => setChatInput(e.target.value)} placeholder={isListening ? (isEn ? "Listening..." : "กำลังฟัง...") : (isEn ? "Type a message..." : "พิมพ์ตอบกลับ หรือกดไมค์...")} disabled={isTyping || roleplayPhase === 'playing_scenario'} className="flex-1 bg-transparent text-white placeholder-white/70 px-1 outline-none text-sm font-bold drop-shadow-sm" />
-                                        
-                                        {/* Timer Badge */}
-                                        {roleplayPhase === 'negotiating' && !isTyping && messages[messages.length-1]?.sender === 'ai' && (
-                                            <div className={`text-[10px] font-mono font-black px-2 py-1 rounded-lg shrink-0 shadow-inner border ${pressureTime <= 5 ? 'text-rose-600 bg-rose-200 border-rose-400 animate-pulse' : 'text-slate-700 bg-white/80 border-white/50'}`}>{pressureTime}s</div>
-                                        )}
 
                                         <button type="button" onClick={toggleMic} disabled={isTyping || roleplayPhase === 'playing_scenario'} className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all relative shrink-0 ${isListening ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/50' : 'bg-white/20 text-white hover:bg-white/30 border border-white/30'}`}><SafeIcon icon={Mic} size={16} />{isListening && <span className="absolute inset-0 rounded-xl border-2 border-rose-300 animate-ping opacity-75"></span>}</button>
                                         <button type="submit" disabled={(!chatInput.trim() && !selectedImage) || isTyping || roleplayPhase === 'playing_scenario'} className="w-9 h-9 rounded-xl bg-blue-600 hover:bg-blue-500 text-white flex items-center justify-center disabled:opacity-50 transition-colors shadow-lg shrink-0"><SafeIcon icon={Send} size={16} /></button>
