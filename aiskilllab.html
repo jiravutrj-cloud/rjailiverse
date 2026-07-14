@@ -19,11 +19,16 @@
             animation: {
               'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
               'glow': 'glow 2s ease-in-out infinite alternate',
+              'stamp-in': 'stamp-in 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards'
             },
             keyframes: {
               glow: {
                 '0%': { boxShadow: '0 0 5px rgba(59, 130, 246, 0.5)' },
                 '100%': { boxShadow: '0 0 20px rgba(59, 130, 246, 0.8), 0 0 30px rgba(59, 130, 246, 0.6)' }
+              },
+              'stamp-in': {
+                  '0%': { opacity: 0, transform: 'translate(-50%, -50%) scale(2) rotate(-25deg)' },
+                  '100%': { opacity: 1, transform: 'translate(-50%, -50%) scale(1) rotate(-15deg)' }
               }
             }
           }
@@ -35,12 +40,11 @@
         @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&display=swap');
         body { font-family: 'Sarabun', sans-serif; margin: 0; overflow-x: hidden; background-color: #0f172a; color: white; }
         
-        /* 🌟 GLOBAL BACKGROUND (100% BRIGHTNESS) 🌟 */
         .sky-bg { 
             position: fixed; 
             inset: 0; 
             z-index: 0; 
-            background-image: url('https://res.cloudinary.com/djwclucoz/image/upload/v1783830896/Gemini_Generated_Image_r508lgr508lgr508_exrlwo.png');
+            background-image: url('https://res.cloudinary.com/djwclucoz/image/upload/v1783834700/Gemini_Generated_Image_vu0rpvvu0rpvvu0r_td26sx.png');
             background-size: cover;
             background-position: center;
             background-attachment: fixed;
@@ -48,7 +52,7 @@
         
         .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background-color: rgba(255,255,255,0.4); border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background-color: rgba(255,255,255,0.3); border-radius: 10px; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background-color: rgba(255,255,255,0.6); }
         
         .pt-safe { padding-top: env(safe-area-inset-top, 20px); }
@@ -69,6 +73,7 @@
     }
     </script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://player.vimeo.com/api/player.js"></script>
 </head>
 <body>
     <div id="skilllab-root"></div>
@@ -81,7 +86,12 @@
         import { getAuth, signInAnonymously } from 'firebase/auth';
         import { getFirestore, doc, setDoc } from 'firebase/firestore';
 
-        const { ArrowLeft, PlayCircle, Bot, Volume2, X, Send, Mic, Image: ImageIcon, Target, Lock, ArrowRight, FileText, CheckCircle, Info, Lightbulb, SkipForward } = LucideIcons;
+        const { ArrowLeft, PlayCircle, Bot, Volume2, X, Send, Mic, Image: ImageIcon, Brain, Target, TrendingUp, CheckCircle2, Lock, Clock, Lightbulb, Activity, SkipForward, FileText, ArrowRight, Info } = LucideIcons;
+
+        function SafeIcon({ icon: Icon, size = 24, className = "" }) {
+          if (!Icon) return null;
+          return <Icon size={size} className={className} />;
+        }
 
         class ErrorBoundary extends React.Component {
             constructor(props) {
@@ -100,13 +110,17 @@
                     return (
                         <div className="min-h-screen flex flex-col items-center justify-center bg-rose-950 p-8 text-white font-sans z-[9999] relative">
                             <div className="bg-rose-900/50 p-8 rounded-3xl border border-rose-500 max-w-3xl w-full shadow-2xl backdrop-blur-md">
-                                <h1 className="text-3xl font-black text-rose-400 mb-4 flex items-center gap-3"><SafeIcon icon={Info} size={32} /> ระบบขัดข้อง (React Crash)</h1>
+                                <h1 className="text-3xl font-black text-rose-400 mb-4 flex items-center gap-3">
+                                    <SafeIcon icon={Info} size={32} /> ระบบขัดข้อง (React Crash)
+                                </h1>
                                 <p className="mb-6 text-rose-200">กรุณาก๊อปปี้ข้อความสีแดงด้านล่างนี้ ส่งให้ AI เพื่อแก้ไขครับ</p>
                                 <div className="bg-black/50 p-4 rounded-xl overflow-x-auto text-sm font-mono text-rose-300 border border-rose-500/30">
                                     <p className="font-bold">{this.state.error && this.state.error.toString()}</p>
                                     <pre className="mt-4 text-xs opacity-70">{this.state.errorInfo && this.state.errorInfo.componentStack}</pre>
                                 </div>
-                                <button onClick={() => window.location.reload()} className="mt-8 px-6 py-3 bg-white text-rose-900 font-bold rounded-xl hover:bg-rose-100 transition-colors shadow-lg">รีเฟรชหน้าจอใหม่</button>
+                                <button onClick={() => window.location.reload()} className="mt-8 px-6 py-3 bg-white text-rose-900 font-bold rounded-xl hover:bg-rose-100 transition-colors shadow-lg">
+                                    รีเฟรชหน้าจอใหม่
+                                </button>
                             </div>
                         </div>
                     );
@@ -115,11 +129,8 @@
             }
         }
 
-        function SafeIcon({ icon: Icon, size = 24, className = "" }) {
-          if (!Icon) return null;
-          return <Icon size={size} className={className} />;
-        }
-
+        const FAH_IDLE_VIDEO = window.FAH_IDLE_VIDEO || "";
+        const CHARACTER_VIDEOS = window.CHARACTER_VIDEOS || {};
         const SKILL_LAB_SCENARIOS = window.SKILL_LAB_SCENARIOS || [];
 
         let app, auth, db, appId = 'fah-elearning-prod';
@@ -129,6 +140,7 @@
             ? JSON.parse(__firebase_config) : { apiKey: fbP1 + fbP2 + fbP3, authDomain: "e-learning-with-fah-ai.firebaseapp.com", projectId: "e-learning-with-fah-ai", storageBucket: "e-learning-with-fah-ai.firebasestorage.app", messagingSenderId: "418946105960", appId: "1:418946105960:web:728e28070790975df231dd" };
           app = getApps().length === 0 ? initializeApp(fbConfig) : getApp();
           auth = getAuth(app); db = getFirestore(app);
+          appId = typeof __app_id !== 'undefined' && __app_id ? String(__app_id).replace(/\//g, '-') : 'fah-elearning-prod';
         } catch (error) { console.warn("Firebase init error", error); }
 
         const appsScriptUrl = 'https://script.google.com/macros/s/AKfycbwt9H-GVs2aijX_sgzjlpGP9314ereuA9ZECNs4Uc00VLz5rFcJm7aYmkduEMiFVKjA/exec';
@@ -167,11 +179,56 @@
           let radiusClass = 'rounded-[2rem]'; const m = className.match(/rounded-(?:\[.*?\]|\w+)/); if (m) radiusClass = m[0];
           let bgClass = className.replace(/\bbg-(?:white|slate-[12]00)(?:\/\d+)?\b/g, '').replace(/\bborder-white(?:\/\d+)?\b/g, '').replace(/\bbackdrop-blur-(?:sm|md|lg|xl|2xl|3xl)\b/g, '').replace(/\b!border-none\b/g, '').replace(/\bborder-none\b/g, '');
           return (
-            <div onClick={onClick} className={`relative overflow-hidden bg-white/10 backdrop-blur-xl border border-white/20 shadow-[0_15px_40px_rgba(0,0,0,0.4)] ${radiusClass} transition-all duration-300 ${onClick ? 'cursor-pointer hover:-translate-y-1 hover:bg-white/20' : ''} ${bgClass}`} {...rest}>
+            <div onClick={onClick} className={`relative overflow-hidden bg-white/10 backdrop-blur-xl border border-white/20 shadow-xl ${radiusClass} transition-all duration-300 ${onClick ? 'cursor-pointer hover:-translate-y-1 hover:bg-white/20' : ''} ${bgClass}`} {...rest}>
               <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-white/5 to-transparent pointer-events-none z-0" />
               <div className="relative z-10 w-full h-full text-white">{children}</div>
             </div>
           );
+        }
+
+        function ConsentFormOverlay({ onClose, isEn }) {
+            const [showStamp, setShowStamp] = useState(false);
+            useEffect(() => { const timer = setTimeout(() => setShowStamp(true), 1000); return () => clearTimeout(timer); }, []);
+            return (
+                <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in zoom-in duration-500">
+                    <div className="bg-[#fdfcf8] text-slate-900 p-6 md:p-10 rounded-lg max-w-2xl w-full shadow-[0_20px_60px_rgba(0,0,0,0.8)] relative border border-slate-300 transform rotate-1 overflow-hidden">
+                        {showStamp && (
+                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 pointer-events-none animate-stamp-in opacity-0">
+                                <div className="border-4 border-emerald-600 text-emerald-600 px-6 py-2 rounded-lg text-4xl font-black tracking-widest uppercase transform rotate-[-15deg] bg-white/50 backdrop-blur-sm">SUCCESS</div>
+                            </div>
+                        )}
+                        <div className="max-h-[70vh] overflow-y-auto custom-scrollbar pr-2 relative z-0">
+                            <h2 className="text-xl md:text-2xl font-bold text-center mb-6 border-b-2 border-slate-800 pb-4 tracking-wide">{isEn ? "Organ Donation Consent Form" : "ใบยินยอมของญาติผู้บริจาคอวัยวะ"}</h2>
+                            <div className="space-y-4 text-sm md:text-base leading-relaxed">
+                                <div className="flex justify-end gap-2"><span>{isEn ? "Date" : "วันที่"}</span> <span className="border-b border-dotted border-slate-500 w-12 text-center text-blue-800 font-[cursive]">{new Date().getDate()}</span> <span>{isEn ? "Month" : "เดือน"}</span> <span className="border-b border-dotted border-slate-500 w-24 text-center text-blue-800 font-[cursive]">{(new Date()).toLocaleString(isEn ? 'en-US' : 'th-TH', {month:'long'})}</span> <span>{isEn ? "Year" : "พ.ศ."}</span> <span className="border-b border-dotted border-slate-500 w-16 text-center text-blue-800 font-[cursive]">{isEn ? new Date().getFullYear() : new Date().getFullYear() + 543}</span></div>
+                                <div className="flex flex-wrap gap-2 mt-6"><span>{isEn ? "I, (Name)" : "ข้าพเจ้า ชื่อ"}</span> <span className="border-b border-dotted border-slate-500 flex-1 min-w-[200px] text-blue-800 font-[cursive] pl-4">{isEn ? "Michael Smith" : "นางสาว ฟ้า รักดี"}</span></div>
+                                <div className="flex flex-wrap gap-2"><span>{isEn ? "Relationship to patient" : "มีความสัมพันธ์เป็น"}</span> <span className="border-b border-dotted border-slate-500 flex-1 min-w-[100px] text-blue-800 font-[cursive] pl-4">{isEn ? "Spouse" : "บุตรสาว"}</span></div>
+                                <div className="flex flex-wrap gap-2"><span>{isEn ? "Of the deceased" : "ของผู้เสียชีวิตชื่อ"}</span> <span className="border-b border-dotted border-slate-500 flex-1 min-w-[200px] text-blue-800 font-[cursive] pl-4">{isEn ? "Sarah Smith" : "นาย สมชาย รักดี"}</span></div>
+                                <p className="mt-4 font-bold">{isEn ? "Wish to donate the following organs of the deceased without any compensation:" : "มีความประสงค์ที่จะบริจาคอวัยวะต่างๆ ของผู้เสียชีวิต ดังต่อไปนี้ โดยไม่รับค่าตอบแทน"}</p>
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-2 mb-6">
+                                    <label className="flex items-center gap-2"><div className="w-4 h-4 border border-slate-800 flex items-center justify-center text-blue-600 font-bold">✓</div> {isEn ? "Heart" : "หัวใจ"}</label>
+                                    <label className="flex items-center gap-2"><div className="w-4 h-4 border border-slate-800 flex items-center justify-center text-blue-600 font-bold">✓</div> {isEn ? "Liver" : "ตับ"}</label>
+                                    <label className="flex items-center gap-2"><div className="w-4 h-4 border border-slate-800 flex items-center justify-center text-blue-600 font-bold">✓</div> {isEn ? "Kidney" : "ไต"}</label>
+                                    <label className="flex items-center gap-2"><div className="w-4 h-4 border border-slate-800 flex items-center justify-center text-blue-600 font-bold">✓</div> {isEn ? "Lungs" : "ปอด"}</label>
+                                </div>
+                                <p className="text-center text-sm mt-6">{isEn ? "So that doctors may use them to treat and save other patients, or for medical education and research." : "เพื่อให้แพทย์นำไปใช้รักษาช่วยชีวิตผู้ป่วยอื่น หรือใช้เพื่อการศึกษาทางการแพทย์ หรือค้นคว้าวิจัยอื่นๆ ต่อไป"}</p>
+                            </div>
+                            <div className="mt-12 flex justify-end">
+                                <div className="text-center w-64">
+                                    <div className="flex items-center justify-center mb-1"><span className="mr-2">{isEn ? "Sign" : "ลงชื่อ"}</span><div className="flex-1 border-b border-dotted border-slate-500 relative"><span className="absolute bottom-1 left-1/2 -translate-x-1/2 font-[cursive] text-blue-800 text-4xl transform -rotate-12 select-none whitespace-nowrap">{isEn ? "M. Smith" : "ฟ้า รักดี"}</span></div></div>
+                                    <div className="text-sm">( {isEn ? "Michael Smith" : "นางสาว ฟ้า รักดี"} )</div>
+                                    <div className="text-xs text-slate-500 mt-1">{isEn ? "Consenter / Next of Kin" : "ผู้ยินยอม / ญาติสายตรง"}</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="mt-8 pt-6 border-t border-slate-200 flex justify-center relative z-20">
+                            <button onClick={onClose} className="px-8 py-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-lg rounded-xl shadow-[0_10px_20px_rgba(16,185,129,0.3)] transition-all active:scale-95 flex items-center gap-3">
+                                <SafeIcon icon={FileText} size={24} /> {isEn ? "Save & View Evaluation" : "เก็บเอกสาร และดูผลประเมิน"} <SafeIcon icon={ArrowRight} size={20} />
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
         }
 
         function SkillLabApp() {
@@ -189,9 +246,10 @@
             const [selectedImage, setSelectedImage] = useState(null);
             const [uiMessage, setUiMessage] = useState({ show: false, text: '', type: 'success' });
             
-            // Features States
+            // Next-Gen Features States
             const [smartSuggestions, setSmartSuggestions] = useState([]); 
-            const [pressureTime, setPressureTime] = useState(20); 
+            
+            // TTS & Waveform States
             const [isAiSpeaking, setIsAiSpeaking] = useState(false);
             
             // Roleplay States
@@ -200,21 +258,34 @@
             const [currentSpeaker, setCurrentSpeaker] = useState('FAH');
             const [scenarioLang, setScenarioLang] = useState('th');
             const [currentScenarioPrompt, setCurrentScenarioPrompt] = useState('');
+            const [showConsentForm, setShowConsentForm] = useState(false);
 
-            // Define isEn variable correctly in component scope!
-            const isEn = selectedScenario?.language === 'en';
-
-            // Refs
             const audioContextRef = useRef(null); const analyserRef = useRef(null); const microphoneRef = useRef(null); const vadSilenceTimerRef = useRef(null); const isSpeakingRef = useRef(false); const latestTranscriptRef = useRef('');
-            const recognitionRef = useRef(null); const messagesEndRef = useRef(null); const audioRef = useRef(null); const currentSpeechIdRef = useRef(0);
+            const recognitionRef = useRef(null); const messagesEndRef = useRef(null); const audioRef = useRef(null); const currentSpeechIdRef = useRef(0); const currentSequenceIdRef = useRef(0);
+            
+            const ttsCanvasRef = useRef(null);
+            const ttsAudioCtxRef = useRef(null);
+            const ttsAnalyserRef = useRef(null);
+            const ttsAnimFrameRef = useRef(null);
+            const vimeoPlayerRef = useRef(null);
+            
+            // 🌟 Hologram Sync Refs 🌟
+            const currentSpeakerRef = useRef('FAH');
+            const currentEmotionRef = useRef('NEUTRAL');
+            const isAiSpeakingRef = useRef(false);
+
+            const isEn = selectedScenario && selectedScenario.language === 'en';
 
             const showMsg = (text, type = 'success') => {
                 setUiMessage({ show: true, text, type });
                 setTimeout(() => setUiMessage({ show: false, text: '', type }), 3500);
             };
 
-            const safeRedirect = (url) => { try { window.location.href = url; } catch (e) {} };
+            const safeRedirect = (url) => {
+                try { window.location.href = url; } catch (e) { console.warn("Redirect blocked:", url); }
+            };
 
+            // ตรวจสอบการล็อกอิน และ สิทธิ์จาก LocalStorage
             useEffect(() => {
                 try {
                     const saved = localStorage.getItem('elearning_app_state');
@@ -222,7 +293,6 @@
                         const parsed = JSON.parse(saved);
                         if (parsed.loggedInUser) {
                             const uType = parsed.loggedInUser.userType;
-                            // Masterclass restriction
                             if (uType !== 'Masterclass') {
                                 setAccessDenied(true);
                                 return;
@@ -240,31 +310,12 @@
 
             useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, smartSuggestions]);
 
-            useEffect(() => {
-                let timer;
-                if (roleplayPhase === 'negotiating' && !isTyping && !isAiSpeaking && messages.length > 0 && messages[messages.length-1].sender === 'ai') {
-                    timer = setInterval(() => {
-                        setPressureTime(p => {
-                            if (isListening || chatInput.length > 0 || isAiSpeaking) return p; 
-                            if (p <= 1) {
-                                clearInterval(timer);
-                                handleAutoTimeout(); 
-                                return 20;
-                            }
-                            return p - 1;
-                        });
-                    }, 1000);
-                } else {
-                    setPressureTime(20); 
-                }
-                return () => clearInterval(timer);
-            }, [roleplayPhase, isTyping, messages, isListening, chatInput, isAiSpeaking]);
+            // Sync Refs for Canvas
+            useEffect(() => { currentSpeakerRef.current = currentSpeaker; }, [currentSpeaker]);
+            useEffect(() => { currentEmotionRef.current = currentEmotion; }, [currentEmotion]);
+            useEffect(() => { isAiSpeakingRef.current = isAiSpeaking; }, [isAiSpeaking]);
 
-            const handleAutoTimeout = () => { 
-                const timeoutText = isEn ? "[Learner silent, no timely response]" : "[ผู้เรียนเงียบ ไม่ตอบสนองทันเวลา]";
-                handleSendChat(null, timeoutText); 
-            };
-
+            // VAD Logic
             useEffect(() => {
                 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
                 if (SR) {
@@ -290,9 +341,120 @@
             const stopAudio = useCallback(() => { 
                 currentSpeechIdRef.current += 1; 
                 setIsAiSpeaking(false);
+                if(ttsAnimFrameRef.current) cancelAnimationFrame(ttsAnimFrameRef.current);
+                if(ttsCanvasRef.current) {
+                    const ctx = ttsCanvasRef.current.getContext('2d');
+                    if(ctx) ctx.clearRect(0, 0, ttsCanvasRef.current.width, ttsCanvasRef.current.height);
+                }
                 if (audioRef.current) { audioRef.current.pause(); audioRef.current.removeAttribute('src'); audioRef.current.load(); audioRef.current = null; } 
             }, []);
             
+            // 🌟 Holographic Canvas Drawing 🌟
+            useEffect(() => {
+                if (['giving_context', 'negotiating', 'evaluating'].includes(roleplayPhase)) {
+                    if (!ttsAnimFrameRef.current) startContinuousCanvasLoop();
+                } else {
+                    if (ttsAnimFrameRef.current) { cancelAnimationFrame(ttsAnimFrameRef.current); ttsAnimFrameRef.current = null; }
+                }
+                return () => { if (ttsAnimFrameRef.current) cancelAnimationFrame(ttsAnimFrameRef.current); };
+            }, [roleplayPhase]);
+
+            const startContinuousCanvasLoop = () => {
+                const renderFrame = () => {
+                    if (!ttsCanvasRef.current) { ttsAnimFrameRef.current = null; return; }
+                    const canvas = ttsCanvasRef.current; const ctx = canvas.getContext('2d');
+                    
+                    if (!canvas.brainNodes) {
+                        canvas.brainNodes = { FAH: [], MEK: [], PEK: [] };
+                        const createCluster = (arr, ox, oy) => {
+                            for(let i=0; i<30; i++) {
+                                let angle = Math.random() * Math.PI * 2; let radiusX = Math.random() * 50; let radiusY = Math.random() * 40;
+                                arr.push({ ox: ox + radiusX * Math.cos(angle), oy: oy + radiusY * Math.sin(angle), baseRadius: 0.5 + Math.random() * 1.5, pulseSpeed: 0.05 + Math.random() * 0.1, pulseOffset: Math.random() * Math.PI * 2 });
+                            }
+                        };
+                        createCluster(canvas.brainNodes.FAH, canvas.width * 0.28, canvas.height * 0.38); 
+                        createCluster(canvas.brainNodes.MEK, canvas.width * 0.20, canvas.height * 0.58); 
+                        createCluster(canvas.brainNodes.PEK, canvas.width * 0.36, canvas.height * 0.58); 
+                    }
+
+                    const freqData = new Uint8Array(512); 
+                    let avgAmp = 0;
+                    const now = performance.now() * 0.002;
+                    const isSpkNow = isAiSpeakingRef.current;
+                    const curEmo = currentEmotionRef.current;
+
+                    if (isSpkNow && ttsAnalyserRef.current) {
+                        ttsAnalyserRef.current.getByteFrequencyData(freqData);
+                        avgAmp = freqData.reduce((a,b)=>a+b,0)/freqData.length;
+                    }
+
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    
+                    const holographicColors = {
+                        NEUTRAL: ['#000033', '#8A2BE2', '#FF00FF', '#00FFFF', '#00f2fe'], 
+                        ADVISING: ['#0d1b2a', '#1b263b', '#415a77', '#778da9', '#e0e1dd'],
+                        ANGRY: ['#ff0844', '#ffb199', '#ff9a9e', '#fecfef', '#f12711'], 
+                        SAD: ['#1e1366', '#2a0845', '#6441A5', '#00c6ff', '#0072ff'], 
+                        CONFUSED: ['#b224ef', '#f6d365', '#fda085', '#ff9a9e', '#fecfef'], 
+                        HESITANT: ['#000033', '#00c6ff', '#0072ff', '#4facfe', '#00f2fe'] 
+                    };
+                    const colors = holographicColors[curEmo] || holographicColors['NEUTRAL'];
+                    
+                    ctx.globalCompositeOperation = 'screen'; 
+
+                    const drawBrainCluster = (nodes, clusterName, isActive) => {
+                        ctx.save();
+                        const activePulse = isActive ? (avgAmp / 255) * 2.0 : 0.2;
+                        ctx.strokeStyle = colors[3]; ctx.fillStyle = isActive ? colors[4] : colors[1]; ctx.lineWidth = 1;
+
+                        for(let i=0; i<nodes.length; i++) {
+                            let node = nodes[i];
+                            let jx = Math.sin(now + node.pulseOffset) * 3; let jy = Math.cos(now * 0.8 + node.pulseOffset) * 3;
+                            let nx = node.ox + jx; let ny = node.oy + jy;
+                            let currentRadius = node.baseRadius + Math.sin(now * node.pulseSpeed + node.pulseOffset) * 0.8 + (activePulse * 1.5);
+                            
+                            ctx.globalAlpha = isActive ? (0.4 + activePulse) : 0.15;
+                            ctx.beginPath(); ctx.arc(nx, ny, Math.max(0.1, currentRadius), 0, Math.PI * 2);
+                            ctx.shadowBlur = isActive ? (8 + (activePulse * 15)) : 3; ctx.shadowColor = isActive ? colors[3] : colors[1]; ctx.fill();
+
+                            ctx.globalAlpha = isActive ? (0.12 + (activePulse * 0.2)) : 0.03; ctx.shadowBlur = 0;
+                            for(let j=i+1; j<nodes.length; j++) {
+                                let node2 = nodes[j]; let dx = node.ox - node2.ox; let dy = node.oy - node2.oy;
+                                if(Math.sqrt(dx*dx + dy*dy) < 30) { 
+                                    ctx.beginPath(); ctx.moveTo(nx, ny);
+                                    let nx2 = node2.ox + Math.sin(now + node2.pulseOffset) * 3; let ny2 = node2.oy + Math.cos(now * 0.8 + node2.pulseOffset) * 3;
+                                    ctx.lineTo(nx2, ny2); ctx.stroke();
+                                }
+                            }
+                        }
+                        ctx.globalAlpha = 0.8;
+                        ctx.font = "bold 14px 'Sarabun', sans-serif";
+                        ctx.fillStyle = isActive ? colors[3] : colors[1];
+                        ctx.textAlign = "center";
+                        ctx.shadowBlur = 0;
+                        let labelY = nodes[0].oy + 115;
+                        let labelText = "";
+                        if (scenarioLang === 'en') {
+                            labelText = clusterName === 'FAH' ? 'EMILY (Daughter)' : clusterName === 'MEK' ? 'MICHAEL (Husband)' : "P'EK (Friend)";
+                        } else {
+                            labelText = clusterName === 'FAH' ? 'FAH (ลูกสาว)' : clusterName === 'MEK' ? 'MEK (น้องชาย)' : "P'EK (แฟนของฟ้า)";
+                        }
+                        ctx.fillText(labelText, nodes[0].ox, labelY);
+                        
+                        ctx.restore();
+                    };
+
+                    const curSpk = currentSpeakerRef.current;
+                    drawBrainCluster(canvas.brainNodes.FAH, 'FAH', curSpk === 'FAH' || curSpk === 'EMILY');
+                    drawBrainCluster(canvas.brainNodes.MEK, 'MEK', curSpk === 'BROTHER' || curSpk === 'MICHAEL');
+                    drawBrainCluster(canvas.brainNodes.PEK, 'PEK', curSpk === 'PEK' || curSpk === 'BOYFRIEND');
+
+                    ctx.globalCompositeOperation = 'source-over'; 
+                    ttsAnimFrameRef.current = requestAnimationFrame(renderFrame);
+                };
+                renderFrame();
+            };
+
             const speakThai = async (text, onEndCallback = null, speaker = 'FAH', isSystemVoice = false, emotion = 'NEUTRAL') => {
                 stopAudio(); currentSpeechIdRef.current += 1; const speechId = currentSpeechIdRef.current; 
                 let callbackFired = false;
@@ -305,10 +467,9 @@
                 };
 
                 let targetVoice = "Aoede"; 
-                // ทำความสะอาดข้อความ ลบ Tag ชื่อก่อนส่งให้ TTS
                 let cleanSpeakText = text.replace(/\[.*?\]/g, '').replace(/\(.*?\)/g, '').replace(/\*.*?\*/g, '').replace(/#.*?#/g, '');
-                cleanSpeakText = cleanSpeakText.replace(/^(ฟ้า|เมฆ|พี่เอก|เอก|น้องชาย|ลูกสาว|แฟน|แฟนของฟ้า|Fah|Mek|Brother|Sister|Boyfriend|AI|Michael)\s*:\s*/i, '');
-                cleanSpeakText = cleanSpeakText.replace(/^\[(ฟ้า|เมฆ|พี่เอก|เอก|น้องชาย|ลูกสาว|แฟน|แฟนของฟ้า|Fah|Mek|Brother|Sister|Boyfriend|AI|Michael)\]\s*/i, '').trim();
+                cleanSpeakText = cleanSpeakText.replace(/^(ฟ้า|เมฆ|พี่เอก|เอก|น้องชาย|ลูกสาว|แฟน|แฟนของฟ้า|Fah|Mek|Brother|Sister|Boyfriend|AI|Michael|Emily)\s*:\s*/i, '');
+                cleanSpeakText = cleanSpeakText.replace(/^\[(ฟ้า|เมฆ|พี่เอก|เอก|น้องชาย|ลูกสาว|แฟน|แฟนของฟ้า|Fah|Mek|Brother|Sister|Boyfriend|AI|Michael|Emily)\]\s*/i, '').trim();
 
                 let emotionPrompt = "";
                 
@@ -317,25 +478,25 @@
                 if (isSystemVoice) {
                     targetVoice = "Aoede";
                     emotionPrompt = scenarioLang === 'en' 
-                      ? `[Speak with a professional, warm, and highly supportive female announcer voice]: ${cleanSpeakText}`
+                      ? `[Speak with a professional, warm, and highly supportive female announcer voice in English]: ${cleanSpeakText}`
                       : `[พูดด้วยเสียงผู้ประกาศหญิง น้ำเสียงเป็นทางการ สุภาพ นุ่มนวล ใจดี ให้กำลังใจ ไม่ร้องไห้]: ${cleanSpeakText}`;
                 } else {
                     if (speaker === 'BROTHER' || speaker === 'MICHAEL') { 
                         targetVoice = "Charon"; 
                         emotionPrompt = scenarioLang === 'en'
-                          ? `[Speak with a vulnerable, sad, or frustrated male voice according to context]: ${cleanSpeakText}`
+                          ? `[Speak with an adult male voice, highly emotional, stressed, grieving in English]: ${cleanSpeakText}`
                           : `[พูดด้วยเสียงผู้ชาย น้ำเสียงตามอารมณ์บริบท]: ${cleanSpeakText}`; 
                     } 
                     else if (speaker === 'BOYFRIEND') { 
                         targetVoice = "Charon"; 
                         emotionPrompt = scenarioLang === 'en'
-                          ? `[Speak with an adult male voice, supportive, calm, and comforting]: ${cleanSpeakText}`
+                          ? `[Speak with a supportive adult male voice, calm in English]: ${cleanSpeakText}`
                           : `[พูดด้วยเสียงผู้ชายวัยผู้ใหญ่ นุ่มนวล อบอุ่น ใจเย็น สุภาพ และคอยให้กำลังใจ]: ${cleanSpeakText}`; 
                     } 
                     else { 
                         targetVoice = "Aoede"; 
                         emotionPrompt = scenarioLang === 'en'
-                          ? `[Speak with a 22-year-old female voice, emotionally charged according to context]: ${cleanSpeakText}`
+                          ? `[Speak with a young female voice, emotional, crying, in denial in English]: ${cleanSpeakText}`
                           : `[พูดด้วยเสียงผู้หญิงวัยรุ่น 22 ปี น้ำเสียงตามอารมณ์บริบท]: ${cleanSpeakText}`; 
                     }
                 }
@@ -349,6 +510,17 @@
                     audio.crossOrigin = "anonymous";
                     audioRef.current = audio; 
 
+                    if (!ttsAudioCtxRef.current) {
+                        ttsAudioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
+                        ttsAnalyserRef.current = ttsAudioCtxRef.current.createAnalyser();
+                        ttsAnalyserRef.current.fftSize = 512; 
+                    }
+                    if (ttsAudioCtxRef.current.state === 'suspended') ttsAudioCtxRef.current.resume();
+
+                    const source = ttsAudioCtxRef.current.createMediaElementSource(audio);
+                    source.connect(ttsAnalyserRef.current);
+                    ttsAnalyserRef.current.connect(ttsAudioCtxRef.current.destination);
+
                     setIsAiSpeaking(true);
 
                     audio.onended = () => { setIsAiSpeaking(false); safeCallback(); }; 
@@ -360,27 +532,41 @@
                 }
             };
 
+            const handleVimeoMessage = useCallback((event) => {
+                if (!event.origin.includes('vimeo.com')) return;
+                try {
+                    const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+                    if (data.event === 'ready' && data.player_id === 'scenario_vid') { 
+                        event.source.postMessage(JSON.stringify({method: 'addEventListener', value: 'finish'}), 'https://player.vimeo.com'); 
+                        event.source.postMessage(JSON.stringify({method: 'play'}), 'https://player.vimeo.com'); 
+                    } else if (data.event === 'finish' && roleplayPhase === 'playing_video') {
+                        triggerScenarioNegotiation();
+                    }
+                } catch (e) {}
+            }, [roleplayPhase, selectedScenario]);
+            
+            useEffect(() => { window.addEventListener('message', handleVimeoMessage); return () => window.removeEventListener('message', handleVimeoMessage); }, [handleVimeoMessage]);
+
             const triggerScenarioNegotiation = () => {
                 const isEnglish = selectedScenario?.language === 'en';
                 const contextText = isEnglish 
-                    ? "Initial Case Data: Patient is a 46yo male, car accident. Brain stem reflexes and apnea test performed, confirming brain death. Relatives outside ICU include Michael (Spouse). The negotiation has started." 
+                    ? "Initial Case Data: Patient is a 44yo female, car accident. Brain stem reflexes and apnea test performed, confirming brain death. Relatives outside ICU: Michael (Husband) and Emily (Daughter). Let's start the negotiation." 
                     : "ข้อมูลเบื้องต้น: คนไข้ชาย อายุ 46 ปี ประสบอุบัติเหตุรถยนต์ แพทย์ประเมินก้านสมองและทดสอบการหายใจแล้ว ยืนยันภาวะสมองตาย ญาติหน้าห้อง ICU มี ฟ้า (ลูกสาว), เมฆ (น้องชาย) และ พี่เอก (แฟนของฟ้า) เริ่มการเจรจาได้เลยค่ะ";
                 
                 setRoleplayPhase('giving_context'); setCurrentEmotion('NEUTRAL'); setCurrentSpeaker('FAH');
                 const contextMsgId = Date.now(); 
                 
-                setMessages([{ id: contextMsgId, sender: 'ai', text: contextText, isVoiceOnly: false, speakerName: 'System', isContext: true }]);
+                setMessages([{ id: contextMsgId, sender: 'ai', text: contextText, isVoiceOnly: false, speakerName: isEnglish ? 'System' : 'ระบบ', isContext: true }]);
                 
-                // The Intro-Hook
                 const introHookText = isEnglish
-                    ? "Hello... Are you the staff member coming to talk to me about my wife?"
+                    ? "Excuse me... Are you the doctor treating my wife? Please tell me she's okay..."
                     : "สวัสดีค่ะ... คุณเป็นเจ้าหน้าที่ที่จะมาคุยกับพวกเราเรื่องคุณพ่อหรือเปล่าคะ?";
                 const introSpeaker = isEnglish ? 'MICHAEL' : 'FAH';
 
                 speakThai(contextText, () => {
                     setRoleplayPhase('negotiating');
                     
-                    const introMsgId = 'static-intro-hook-msg'; // Static ID ป้องกันบั๊กเบิ้ล
+                    const introMsgId = Date.now() + 1;
                     const visualSpeakerName = isEnglish ? 'Michael' : 'ฟ้า';
                     
                     setMessages(prev => {
@@ -389,344 +575,226 @@
                     });
                     
                     setCurrentEmotion('CONFUSED');
-                    setCurrentSpeaker(introSpeaker);
+                    setCurrentSpeaker(introSpeaker === 'MICHAEL' ? 'BROTHER' : introSpeaker);
                     
                     speakThai(introHookText, () => {
                         setMessages(prev => prev.map(m => m.id === introMsgId ? { ...m, isVoiceOnly: false } : m));
-                    }, introSpeaker, false, 'CONFUSED');
+                    }, introSpeaker === 'MICHAEL' ? 'BROTHER' : introSpeaker, false, 'CONFUSED');
                     
                 }, 'FAH', true, 'NEUTRAL');
             };
 
             const startScenario = (sc) => {
-                // 🌟 AUTOPLAY UNLOCKER: เล่นเสียงเปล่าทันทีที่กดคลิกเลือกเคส เพื่อปลดล็อกสิทธิ์การเล่นเสียง
-                const silentAudio = new Audio("data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU5LjI3LjEwMAAAAAAAAAAAAAAA//OEAAAAAAAAAAAAAAAAAAAAAASW5mbwAAAA8AAAAEAAABIwADAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAw");
-                silentAudio.play().catch(e => console.log("Unlock audio failed", e));
-
-                setSelectedScenario(sc); 
-                setMessages([]); 
-                setSmartSuggestions([]); 
-                setScenarioLang(sc.language || 'th'); 
-                setPressureTime(20);
-                
-                const userPosition = user?.position || "บุคลากรทางการแพทย์";
-                
-                const isEnglish = sc.language === 'en';
-                const patientGender = isEnglish ? 'male' : 'ชาย';
-                const patientAge = isEnglish ? '46 years old' : '46 ปี';
-                const patientCause = isEnglish ? 'car accident' : 'อุบัติเหตุรถยนต์';
-                const patientRelation = isEnglish ? 'patient' : 'คนไข้';
-                
-                const dynamicPrompt = sc.systemPrompt.replace(/{{USER_POSITION}}/g, userPosition).replace(/{{PATIENT_GENDER}}/g, patientGender).replace(/{{PATIENT_AGE}}/g, patientAge).replace(/{{PATIENT_CAUSE}}/g, patientCause).replace(/{{PATIENT_RELATION}}/g, patientRelation).replace(/{{REL1_ROLE}}/g, sc.language === 'en' ? 'Fah' : 'ฟ้า').replace(/{{REL2_ROLE}}/g, sc.language === 'en' ? 'Mek' : 'เมฆ'); 
-                const clinicalDB = window.CLINICAL_KNOWLEDGE_BASE || "";
-                
-                const finalPromptInstruction = isEnglish 
-                    ? `[Specialized Knowledge Base]\n${clinicalDB}\n\n${dynamicPrompt}\n\n[CRITICAL RULE]: You must respond as ONLY ONE character per message. Never let characters talk to each other in a single message. Everything must be in English.`
-                    : `[ฐานความรู้เฉพาะทาง]\n${clinicalDB}\n\n${dynamicPrompt}\n\n[ข้อบังคับสำคัญที่สุด]: คุณต้องตอบกลับมาในฐานะตัวละครเพียง 1 ตัวละครต่อ 1 ข้อความเท่านั้น ห้ามให้ตัวละครคุยกันเองในข้อความเดียวเด็ดขาด`;
-                
-                setCurrentScenarioPrompt(finalPromptInstruction); 
-                
-                if (sc.videoUrl) {
-                    setRoleplayPhase('watching_video');
-                } else {
-                    triggerScenarioNegotiation();
-                }
-            };
-
-            const handleAIResponse = (rawResponse) => {
-                let aiText = rawResponse;
-                let sug1 = "", sug2 = "";
-                const sug1Match = aiText.match(/\[SUGGESTION 1\](.*?)(?=\[SUGGESTION 2\]|$)/is);
-                const sug2Match = aiText.match(/\[SUGGESTION 2\](.*?)$/is);
-                if (sug1Match) sug1 = sug1Match[1].trim();
-                if (sug2Match) sug2 = sug2Match[1].trim();
-                aiText = aiText.replace(/\[SUGGESTION 1\].*$/is, '').replace(/\[DIALOGUE\]/i, '').trim();
-                setSmartSuggestions([sug1, sug2].filter(Boolean));
-                
-                let spk = 'FAH'; let visualSpeaker = 'FAH'; 
-                let cleanText = aiText;
-                
-                // ค้นหา Tag ตัวละครแรกสุดที่โผล่มาในประโยค
-                const firstSpeakerMatch = cleanText.match(/\[\s*(ฟ้า|เมฆ|พี่เอก|เอก|น้องชาย|ลูกสาว|แฟน|แฟนของฟ้า|Fah|Mek|Brother|Sister|Boyfriend|AI|Michael)\s*\]/i);
-                
-                if (firstSpeakerMatch) {
-                    const speakerTag = firstSpeakerMatch[1].toLowerCase();
-                    if (speakerTag.match(/เมฆ|น้องชาย|mek|brother/)) { spk = 'BROTHER'; visualSpeaker = 'BROTHER'; }
-                    else if (speakerTag.match(/พี่เอก|เอก|แฟน|แฟนของฟ้า|แฟนหนุ่ม|boyfriend/)) { spk = 'BOYFRIEND'; visualSpeaker = 'FAH'; } // Using Fah's UI for boyfriend currently
-                    else if (speakerTag.match(/michael|spouse|สามี/)) { spk = 'MICHAEL'; visualSpeaker = 'FAH'; }
-                    else { spk = 'FAH'; visualSpeaker = 'FAH'; }
-                    
-                    // หากมี Tag ตัวละครคนที่สองตามมา ให้ตัดข้อความหลังจากนั้นทิ้งไปเลย เพื่อบังคับให้พูดทีละคน
-                    const secondSpeakerRegex = new RegExp(`(?<=\\].*?)\\[\\s*(ฟ้า|เมฆ|พี่เอก|เอก|น้องชาย|ลูกสาว|แฟน|แฟนของฟ้า|Fah|Mek|Brother|Sister|Boyfriend|AI|Michael)\\s*\\]`, 'is');
-                    const secondMatch = cleanText.match(secondSpeakerRegex);
-                    if (secondMatch && secondMatch.index) {
-                        cleanText = cleanText.substring(0, secondMatch.index).trim();
-                    }
-                }
-
-                let foundEmotion = "SAD"; const emotionsList = ["SAD", "HESITANT", "CONFUSED", "ANGRY", "ADVISING", "NEUTRAL"]; 
-                for (const em of emotionsList) { if (new RegExp(`\\[\\s*${em}\\s*\\]`, 'i').test(cleanText)) { foundEmotion = em; break; } }
-                
-                setCurrentSpeaker(visualSpeaker); setCurrentEmotion(foundEmotion);
-                
-                // ทำความสะอาดข้อความเพื่อแสดงผล
-                cleanText = cleanText.replace(/\[.*?\]/g, '').replace(/\(.*?\)/g, '').replace(/^(ฟ้า|เมฆ|พี่เอก|เอก|น้องชาย|ลูกสาว|แฟน|แฟนของฟ้า|Fah|Mek|Brother|Sister|Boyfriend|Michael)\s*:\s*/i, '').replace(/[*#]/g, '').trim();
-                
-                const isVoiceOnly = roleplayPhase === 'negotiating'; 
-                const speakerName = spk === 'BROTHER' ? 'เมฆ' : spk === 'BOYFRIEND' ? "พี่เอก" : spk === 'MICHAEL' ? 'Michael' : 'ฟ้า'; 
-                const msgId = Date.now() + 1;
-                const displayChatText = (roleplayPhase === 'negotiating') ? `(${speakerName}) ${cleanText}` : cleanText;
-                
-                setMessages(prev => [...prev, { id: msgId, sender: 'ai', text: displayChatText, isVoiceOnly, speakerName }]); setIsTyping(false); 
-                
-                speakThai(cleanText, () => setMessages(prev => prev.map(m => m.id === msgId ? { ...m, isVoiceOnly: false } : m)), spk, false, foundEmotion);
-            };
-
-            const handleSendChat = async (e, quickActionText = null) => {
-                if (e) e.preventDefault(); const userMsg = quickActionText ?? chatInput.trim(); if ((!userMsg && !selectedImage) || isTyping) return;
-                stopAudio(); if (['speaking_intro', 'playing_scenario'].includes(roleplayPhase)) return; 
-                
-                setMessages(prev => [...prev, { id: Date.now(), sender: 'user', text: userMsg, image: selectedImage }]); setChatInput(''); const imageToSend = selectedImage; setSelectedImage(null); setIsTyping(true); setSmartSuggestions([]); setPressureTime(20);
-                
-                const historyContext = messages.filter(m => !m.isContext).slice(-10).map(m => `${m.sender === 'user' ? 'Learner/Staff' : 'Family'}: ${m.text}`).join('\n');
-                
-                let introGuideline = "";
-                if (messages.length <= 4) {
-                    introGuideline = scenarioLang === 'en' 
-                        ? `\n[CRITICAL INITIALIZATION]: If the user just introduced themselves (e.g., Doctor, Nurse, Coordinator), acknowledge their role respectfully. Michael must introduce himself and ask about his wife's condition directly.`
-                        : `\n[การตอบรับการแนะนำตัว]: หากผู้เรียนเพิ่งแนะนำตัวว่าเป็นใคร ให้ญาติรับทราบอย่างสุภาพ และให้ญาติหลักแนะนำสมาชิกครอบครัวที่เหลือให้ผู้เรียนรู้จักพร้อมกัน และเข้าสู่บทสนทนาถามอาการพ่อทันที`;
-                }
-                
-                const suggestionInstruction = scenarioLang === 'en'
-                    ? `\n\n[SPECIAL HOOK: SMART SUGGESTIONS]\nProvide 2 realistic response options for the user at the very end in English. Format:\n[SUGGESTION 1] (Option 1)\n[SUGGESTION 2] (Option 2)`
-                    : `\n\n[ข้อบังคับพิเศษ: SMART HOOKS]\nสร้างทางเลือกตอบกลับเบื้องต้นให้ผู้เรียน 2 ทางเลือกในตอนท้ายสุด โดยให้จัดรูปแบบดังนี้:\n[SUGGESTION 1] (ทางเลือกที่ 1)\n[SUGGESTION 2] (ทางเลือกที่ 2)`;
-
-                const roleplayPrompt = `${currentScenarioPrompt}${introGuideline}${suggestionInstruction}\n\nHistory:\n${historyContext}\nLearner: ${userMsg}\nFamily (Respond as ONE character, prefix with Emotion and Name Tags):`;
-                
+                // 🌟 Autoplay Audio Unlocker
                 try {
-                    let rawResponse = await callGeminiAPI(userMsg, roleplayPrompt, imageToSend); 
-                    
-                    if (rawResponse.startsWith('[ระบบขัดข้อง]')) {
-                        setMessages(prev => [...prev, { id: Date.now(), sender: 'ai', text: rawResponse, isVoiceOnly: false, speakerName: 'System' }]);
-                        showMsg(rawResponse, 'error');
-                        setIsTyping(false);
-                        return; 
-                    }
-                    handleAIResponse(rawResponse);
-                    
-                } catch (err) { 
-                    setIsTyping(false); 
-                    setMessages(prev => [...prev, { id: Date.now(), sender: 'ai', text: `Error (${err.message})`, isVoiceOnly: false, speakerName: 'System' }]); 
-                }
-            };
+                    if (!ttsAudioCtxRef.current) { ttsAudioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)(); }
+                    if (ttsAudioCtxRef.current.state === 'suspended') ttsAudioCtxRef.current.resume();
+                    const silentAudio = new Audio("data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU5LjI3LjEwMAAAAAAAAAAAAAAA//OEAAAAAAAAAAAAAAAAAAAAAAAASW5mbwAAAA8AAAAEAAABIwDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAw\x0aICB9" title="http://www.w3.org/2000/01/rdf-schema#" />
+</head>
+<body xml:lang="en">
+<div class="row">
+  <main>
 
-            const endScenarioAndEvaluate = async () => {
-                stopAudio(); setIsTyping(true); setRoleplayPhase('evaluating'); setCurrentEmotion('ADVISING'); setCurrentSpeaker('FAH'); setSmartSuggestions([]);
-                setMessages(prev => [...prev, { id: Date.now(), sender: 'user', text: isEn ? "🛑 End simulation. Please evaluate my performance." : "🛑 จบการจำลองสถานการณ์ ช่วยประเมินให้หน่อยค่ะ" }]);
-                
-                const history = messages.slice(-15).map(m => `${m.sender === 'ai' ? 'Family' : 'Staff'}: ${m.text}`).join('\n');
-                const clinicalDB = window.CLINICAL_KNOWLEDGE_BASE || "";
-                
-                const evalPrompt = isEn 
-                    ? `You are a "Cognitive Profiler". Evaluate this negotiation based on the user's role (${user?.position || 'Professional'}) and DTI guidelines.\nHistory:\n${history}\n1. Score Empathy from 0-100 (Always include tag [EMPATHY: score]).\n2. If score > 60, write [PASS], else [FAIL].\n3. Analyze technique usage and cultural competence.\n4. Summarize strengths and weaknesses clearly in English.`
-                    : `คุณคือ "ปรมาจารย์ด้านจิตวิทยาการแพทย์" ประเมินการเจรจานี้อ้างอิงจากบทบาทผู้เรียน(${user?.position || 'บุคลากร'}) และความรู้ในคู่มือนี้:\n${clinicalDB}\n\nประวัติการสนทนา:\n${history}\n\n1. ให้คะแนนความเห็นอกเห็นใจ (Empathy Score) จาก 0-100 (ระบุแท็ก [EMPATHY: คะแนน] เสมอ)\n2. หากคะแนนเกิน 60 ถือว่าผ่าน พิมพ์ [PASS] ไม่ผ่านพิมพ์ [FAIL]\n3. วิเคราะห์ว่าผู้เรียนใช้เทคนิคได้เหมาะสมกับบริบทวัฒนธรรมหรือไม่\n4. สรุป จุดแข็ง และ จุดอ่อน ให้ชัดเจน`;
-                
-                try {
-                    const aiResponse = await callGeminiAPI(isEn ? "Please evaluate" : "ประเมินการเจรจาหน่อย", evalPrompt); 
-                    if (aiResponse.startsWith('[ระบบขัดข้อง]')) {
-                        setMessages(prev => [...prev, { id: Date.now(), sender: 'ai', text: aiResponse, isVoiceOnly: false, speakerName: 'System' }]);
-                        showMsg(aiResponse, 'error'); setIsTyping(false); return; 
-                    }
-                    
-                    const isPass = aiResponse.includes('[PASS]'); 
-                    const empathyMatch = aiResponse.match(/\[EMPATHY:\s*(\d+)\]/i);
-                    const empathyScore = empathyMatch ? parseInt(empathyMatch[1]) : (isPass ? 80 : 40);
-                    let cleanResponse = aiResponse.replace(/\[PASS\]/g, '').replace(/\[FAIL\]/g, '').replace(/\[EMPATHY:\s*\d+\]/gi, '').trim();
-                    
-                    setMessages(prev => [...prev, { id: Date.now()+1, sender: 'ai', text: cleanResponse, isVoiceOnly: false, speakerName: 'System' }]); 
-                    
-                    const evalRecord = { timestamp: new Date().toISOString(), scenarioId: selectedScenario.id, passed: isPass, score: empathyScore, evaluation: cleanResponse, chatLog: history }; 
-                    const upUser = { ...user, skillLabPassed: true, skillLabHistory: [...(user.skillLabHistory || []), evalRecord] }; 
-                    setUser(upUser);
-                    try {
-                        await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_users', upUser.id), upUser, { merge: true });
-                        const lState = JSON.parse(localStorage.getItem('elearning_app_state') || '{}');
-                        lState.loggedInUser = upUser; localStorage.setItem('elearning_app_state', JSON.stringify(lState));
-                    } catch(e) {}
-                    
-                    showMsg(isEn ? `Result Recorded (Empathy Score: ${empathyScore})` : `บันทึกผลเรียบร้อย (Empathy Score: ${empathyScore})`, 'success'); 
-                    speakThai(cleanResponse.replace(/[*#]/g, ''), null, 'FAH', true, 'ADVISING');
-                } catch (e) { setMessages(prev => [...prev, { id: Date.now(), sender: 'ai', text: `Error: ${e.message}`, isVoiceOnly: false, speakerName: 'System' }]); }
-                setIsTyping(false);
-            };
+    <div id="content">
+      <div class="row"><section class="page-content" id="the-shape-tool">
+        <h1>The Shape Tool</h1>
+        <p>The <img src="/images/tool/tool_shape.png" alt="Tool Shape icon" class="d-inline-block align-bottom" />  <a href="#id3" id="id1"><strong>Shape Tool</strong></a> is used to make adjustments to <a class="reference internal" href="Shape.html#shape"><span class="std std-ref">shape</span></a> layers. In the current iteration, this tool
+allows you to <a class="reference internal" href="Shape.html#edit-shape"><span class="std std-ref">add and remove anchors</span></a>, <a class="reference internal" href="Shape.html#edit-shape"><span class="std std-ref">change bounding box</span></a>, and <a class="reference internal" href="Shape.html#edit-shape"><span class="std std-ref">control handles</span></a>. Currently, when the shape tool
+is active, only the shape you last worked with is shown. You must
+first use <a class="reference internal" href="transform.html#transform"><span class="std std-ref">Transform Tool</span></a> to select a shape layer.</p>
+<figure class="align-center" id="id2">
+<img alt="../../_images/shape-tool-options.png" src="../../_images/shape-tool-options.png" />
+<figcaption>
+<p><span class="caption-text">Shape tool options</span><a class="headerlink" href="#id2" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+<dl>
+<dt>Edit Mode</dt><dd><p>Toggle between node editing and bounding box editing.</p>
+</dd>
+<dt>Curve Type</dt><dd><dl class="simple">
+<dt>Linear</dt><dd><p>When a curve becomes flat.</p>
+</dd>
+<dt>Curve</dt><dd><p>When a curve becomes round.</p>
+</dd>
+</dl>
+</dd>
+<dt>Join Type</dt><dd><dl class="simple">
+<dt>Straight</dt><dd><p>The two points won't be in line with each other.</p>
+</dd>
+<dt>Smooth</dt><dd><p>The two points will be kept as a straight line relative to the center, therefore making the curve smooth.</p>
+</dd>
+<dt>Symmetric</dt><dd><p>The two points will be kept as a straight line relative to the center, and the other will have the same length to the center point as the one you are moving.</p>
+</dd>
+</dl>
+</dd>
+<dt>Add node</dt><dd><p>Add a new node to the shape. Press <kbd class="kbd docutils literal notranslate">Backspace</kbd> or <kbd class="kbd docutils literal notranslate">Delete</kbd> to delete a selected node.</p>
+</dd>
+<dt>Delete Node</dt><dd><p>Remove a node.</p>
+</dd>
+<dt>Break path at selected point</dt><dd><p>Break the path.</p>
+</dd>
+<dt>Break path at selected segment</dt><dd><p>Split the path.</p>
+</dd>
+<dt>Join paths</dt><dd><p>Join two nodes.</p>
+</dd>
+<dt>Merge nodes</dt><dd><p>Merge two nodes.</p>
+</dd>
+<dt>Convert to line</dt><dd><p>Make the selected segment straight.</p>
+</dd>
+<dt>Convert to curve</dt><dd><p>Make the selected segment curvy.</p>
+</dd>
+</dl>
+</section>
 
-            const handleImageUpload = (e) => { const file = e.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onloadend = () => setSelectedImage(reader.result); reader.readAsDataURL(file); };
 
-            if (accessDenied) return (
-                <div className="min-h-screen sky-bg flex items-center justify-center p-4 relative z-50">
-                    <div className="bg-slate-900/80 backdrop-blur-xl border border-white/20 p-8 rounded-[2.5rem] text-center shadow-2xl max-w-md w-full animate-in zoom-in fade-in duration-500">
-                        <div className="w-20 h-20 bg-rose-500/10 rounded-full flex items-center justify-center mx-auto mb-6 border border-rose-500/30 shadow-[0_0_20px_rgba(244,63,94,0.3)]"><SafeIcon icon={Lock} size={40} className="text-rose-400" /></div>
-                        <h2 className="text-2xl font-black text-white mb-3 drop-shadow-md">สงวนสิทธิ์เฉพาะกลุ่ม</h2>
-                        <p className="text-slate-300 font-medium text-sm mb-8 leading-relaxed drop-shadow-sm">ขณะนี้ห้องจำลองเปิดให้ทดสอบเฉพาะสิทธิ์ <b>Masterclass</b> เท่านั้น</p>
-                        <button onClick={() => safeRedirect('./index.html#dashboard')} className="w-full py-4 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-bold transition-all border border-white/20 shadow-sm active:scale-95">กลับสู่ห้องเรียนหลัก</button>
-                    </div>
-                </div>
-            );
+    </div>
+    
+  </main>
+</div>
+<button tabindex="-1" id="go-to-top" class="go-to-top-btn"><i class="fa fa-chevron-up"></i></button>
+</body>
+</html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The Shape Tool &mdash; Krita Manual 5.2.0 documentation</title>
+  
+  
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/css/fontawesome.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/css/twemoji-awesome.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/css/design-style.1e8bd061cd6da7fc9cf755528e8ffc24.min.css" type="text/css" />
+  
+    <link rel="shortcut icon" href="../../_static/favicon.ico"/>
+  
+  
+  resources/docs-dom/reference_manual/resource_management/resource_tags.html
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Resource Tags &mdash; Krita Manual 5.2.0 documentation</title>
+  
+  
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/css/fontawesome.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/css/twemoji-awesome.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/css/design-style.1e8bd061cd6da7fc9cf755528e8ffc24.min.css" type="text/css" />
+  
+    <link rel="shortcut icon" href="../../_static/favicon.ico"/>
+  
+  
+  <link rel="index" title="Index" href="../../genindex.html" />
+  <link rel="search" title="Search" href="../../search.html" />
+  <link rel="next" title="Filters" href="../filters.html" />
+  <link rel="prev" title="Managing Workspaces" href="resource_workspace.html" /> 
+</head>
+<body xml:lang="en">
+<div class="row">
+  <main>
 
-            if (!user) return (
-                <div className="min-h-screen sky-bg flex items-center justify-center relative">
-                    <div className="bg-black/50 backdrop-blur-xl border border-white/20 p-8 rounded-3xl text-center shadow-2xl animate-in fade-in zoom-in">
-                        <div className="w-16 h-16 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin mx-auto mb-6"></div>
-                        <h2 className="text-2xl font-black text-white mb-2">ตรวจสอบสิทธิ์...</h2>
-                    </div>
-                </div>
-            );
+    <div id="content">
+      <div class="row"><section id="resource-tags">
+<span id="id1"></span><h1>Resource Tags<a class="headerlink" href="#resource-tags" title="Link to this heading">¶</a></h1>
+<p>Krita allows you to tag resources to make it more easier to sort them. A tag in Krita is simply a text-based keyword that is attached to a resource. To create a tag just click on the add a tag to the selected tag <img alt="addtag" src="../../_images/view-choose.png" /> icon.
+In the docker you have a drop-down to sort between various tags. The brush docker defaults to the “All” tag, which is pseudo-tag that means all resources.</p>
+<p>You can manage your tags <a class="reference internal" href="resource_manager.html#resource-management"><span class="std std-ref">Resource Management</span></a>.</p>
+<p>As you use Krita you will be adding, deleting or editing the <a class="reference internal" href="../preferences/brush_settings.html#brush-settings"><span class="std std-ref">Brush Settings</span></a>. These changes are saved inside your user folder.
+In Krita, there is no “Make new preset” button to save your changes to the original brush preset. Thus, you only have the option to make a new one.</p>
+<section id="assigning-an-existing-tag">
+<h2>Assigning an existing tag<a class="headerlink" href="#assigning-an-existing-tag" title="Link to this heading">¶</a></h2>
+<p>You can assign tags in the brush preset docker, by right clicking on a brush and selecting <span class="guilabel">assign to tag</span>.</p>
+</section>
+<section id="adding-a-new-tag">
+<h2>Adding a new tag<a class="headerlink" href="#adding-a-new-tag" title="Link to this heading">¶</a></h2>
+<p>To add a new tag, press the <img alt="addtag" src="../../_images/view-choose.png" /> button, and type the name of the new tag.</p>
+<p>Press the <kbd class="kbd docutils literal notranslate">Enter</kbd> key and the tag is created.</p>
+</section>
+<section id="changing-a-tag-s-name">
+<h2>Changing a tag’s name<a class="headerlink" href="#changing-a-tag-s-name" title="Link to this heading">¶</a></h2>
+<p>Select the tag you want to change from the drop-down, and press the <img alt="renametag" src="../../_images/edit-rename.png" /> icon. Then edit the name and press the <kbd class="kbd docutils literal notranslate">Enter</kbd> key to confirm.</p>
+</section>
+<section id="deleting-a-tag">
+<h2>Deleting a tag<a class="headerlink" href="#deleting-a-tag" title="Link to this heading">¶</a></h2>
+<p>Select the tag you want to delete from the drop-down, and press the <img alt="trash" src="../../_images/user-trash.png" /> icon.</p>
+</section>
+</section>
 
-            return (
-                <div className="min-h-screen w-full font-sans antialiased overflow-hidden relative">
-                    <div className="sky-bg"></div>
-                    
-                    {uiMessage.show && <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-[100] px-6 py-3 rounded-full font-bold shadow-xl animate-in slide-in-from-top-4 border backdrop-blur-md ${uiMessage.type === 'error' ? 'bg-rose-500/20 text-rose-300 border-rose-500/50' : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/50'}`}>{uiMessage.text}</div>}
 
-                    {/* Navbar */}
-                    <div className="px-6 py-4 border-b border-white/10 bg-white/5 backdrop-blur-lg flex justify-between items-center z-20 relative shadow-md">
-                        <div className="flex items-center gap-4">
-                            <button onClick={() => { stopAudio(); safeRedirect('./index.html#dashboard'); }} className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors border border-white/20 shadow-sm text-white"><SafeIcon icon={ArrowLeft} size={20} /></button>
-                            <h1 className="text-xl md:text-2xl font-black text-white flex items-center gap-2 drop-shadow-md"><SafeIcon icon={Bot} size={24} /> AI Skill Lab</h1>
-                        </div>
-                        <div className="text-white/90 font-bold text-sm bg-white/10 px-4 py-1.5 rounded-full border border-white/30 shadow-sm hidden sm:flex items-center gap-2 backdrop-blur-md"><span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> {user.name}</div>
-                    </div>
+    </div>
+    
+  </main>
+</div>
+<button tabindex="-1" id="go-to-top" class="go-to-top-btn"><i class="fa fa-chevron-up"></i></button>
+</body>
+</html>
+resources/docs-dom/reference_manual/tools/color_selector.html
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Color Selector Tool &mdash; Krita Manual 5.2.0 documentation</title>
+  
+  
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/css/fontawesome.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/css/twemoji-awesome.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/css/design-style.1e8bd061cd6da7fc9cf755528e8ffc24.min.css" type="text/css" />
+  
+    <link rel="shortcut icon" href="../../_static/favicon.ico"/>
+  
+  
+  <link rel="index" title="Index" href="../../genindex.html" />
+  <link rel="search" title="Search" href="../../search.html" />
+  <link rel="next" title="Colorize Mask" href="colorize_mask.html" />
+  <link rel="prev" title="Calligraphy Tool" href="calligraphy.html" /> 
+</head>
+<body xml:lang="en">
+<div class="row">
+  <main>
 
-                    <div className={`flex-1 w-full relative z-10 flex flex-col md:flex-row items-center p-4 md:p-8 ${!selectedScenario || roleplayPhase === 'watching_video' ? 'justify-center' : 'justify-end'}`}>
-                        
-                        {!selectedScenario ? (
-                            // MENU SCREEN
-                            <div className="w-full max-w-5xl mx-auto flex flex-col gap-8 h-full justify-center animate-in fade-in zoom-in-95">
-                                <div className="p-4 bg-white/10 border border-white/20 rounded-2xl mb-4 backdrop-blur-xl max-w-3xl mx-auto text-center shadow-lg">
-                                    <p className="text-sm md:text-base font-bold text-white flex flex-col sm:flex-row items-center justify-center gap-2 leading-relaxed"><SafeIcon icon={Target} size={24} className="shrink-0 text-cyan-300" /><span><strong>คำชี้แจง:</strong> พื้นที่นี้คือสถานการณ์จำลอง AI ขอให้ผู้เรียนนำความรู้การเจรจามาประยุกต์ใช้อย่างเต็มที่</span></p>
-                                </div>
-                                <h2 className="text-3xl font-black text-white drop-shadow-lg text-center">เลือกกรณีศึกษาเพื่อเริ่มฝึกเจรจา</h2>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-10 max-w-3xl mx-auto w-full">
-                                    {SKILL_LAB_SCENARIOS.map((sc, idx) => (
-                                        <GlassCard key={sc.id} onClick={() => startScenario(sc)} className="p-8 text-center border-t-4 border-t-cyan-400 hover:border-t-cyan-300 group hover:scale-[1.02]">
-                                            <div className={`w-20 h-20 rounded-full mx-auto mb-6 flex items-center justify-center text-white shadow-[0_10px_30px_rgba(0,0,0,0.4)] ${sc.language === 'en' ? 'bg-gradient-to-br from-indigo-500 to-purple-600' : 'bg-gradient-to-br from-cyan-500 to-blue-600'}`}>
-                                                <span className="text-2xl font-black">{sc.language === 'en' ? 'EN' : 'TH'}</span>
-                                            </div>
-                                            <h3 className="font-extrabold text-2xl text-white mb-3 group-hover:text-cyan-300 transition-colors drop-shadow-sm">{sc.title}</h3>
-                                            <p className="text-base text-white/80 line-clamp-3">{sc.description}</p>
-                                        </GlassCard>
-                                    ))}
-                                </div>
-                            </div>
-                        ) : roleplayPhase === 'watching_video' ? (
-                            
-                            // VIDEO SCENARIO PHASE
-                            <div className="w-full max-w-5xl mx-auto flex flex-col items-center justify-center animate-in fade-in zoom-in duration-500 z-50">
-                                <div className="w-full aspect-video bg-black rounded-3xl overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.8)] border border-white/20 relative">
-                                    <iframe src={`${selectedScenario.videoUrl}?autoplay=1&title=0&byline=0&portrait=0`} className="absolute inset-0 w-full h-full border-none" allow="autoplay; fullscreen"></iframe>
-                                </div>
-                                <div className="mt-8 flex flex-col items-center gap-4">
-                                    <p className="text-white/80 text-sm font-medium animate-pulse">{isEn ? "Watch the scenario to understand the context before starting." : "ชมวิดีโอเพื่อทำความเข้าใจสถานการณ์ก่อนเริ่มฝึกเจรจา"}</p>
-                                    <button onClick={triggerScenarioNegotiation} className="px-8 py-4 bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/30 text-white rounded-full font-bold flex items-center gap-3 transition-all active:scale-95 shadow-lg group">
-                                        <SafeIcon icon={SkipForward} size={20} className="text-cyan-300" />
-                                        {isEn ? "Skip Video & Start" : "ข้ามวิดีโอ (เริ่มฝึกเจรจา)"} <SafeIcon icon={ArrowRight} size={20} className="group-hover:translate-x-1 transition-transform" />
-                                    </button>
-                                </div>
-                            </div>
-                            
-                        ) : (
-                        
-                            // CHAT PHASE (GLASSMORPHISM ON RIGHT)
-                            <div className="w-full max-w-lg lg:max-w-[450px] h-[85vh] flex flex-col relative rounded-[2rem] shadow-[0_20px_60px_rgba(0,0,0,0.5)] border border-white/40 bg-white/10 backdrop-blur-2xl animate-in fade-in slide-in-from-right-8 shrink-0 mr-0 lg:mr-8 xl:mr-16">
-                                
-                                {/* Chat Header */}
-                                <div className="p-5 border-b border-white/20 flex items-center justify-between shrink-0 bg-white/5 rounded-t-[2rem]">
-                                    <div className="flex items-center gap-3">
-                                        <div>
-                                            <h3 className="font-extrabold text-sm text-white drop-shadow-md">{selectedScenario.title}</h3>
-                                            <p className="text-[10px] text-white/80 font-bold flex items-center gap-1 mt-0.5"><SafeIcon icon={Volume2} size={12}/> {currentSpeaker === 'BROTHER' ? 'Charon Neural' : 'Aoede Neural'}</p>
-                                        </div>
-                                    </div>
-                                    <button onClick={() => { stopAudio(); setSelectedScenario(null); setMessages([]); setRoleplayPhase('none'); }} className="p-2 rounded-full bg-white/10 hover:bg-rose-500/80 text-white transition-colors shadow-sm" title={isEn ? "Close" : "ปิด"}><SafeIcon icon={X} size={18} /></button>
-                                </div>
-                                
-                                {/* Messages Area */}
-                                <div className="flex-1 p-4 overflow-y-auto custom-scrollbar space-y-4 flex flex-col relative z-30">
-                                    {messages.map((m, idx) => (
-                                        <div key={idx} className={`flex w-full ${m.sender === 'user' ? 'justify-end' : 'justify-start'} ${m.isHidden ? 'hidden' : ''}`}>
-                                            <div className={`p-3.5 rounded-2xl max-w-[85%] text-sm leading-relaxed whitespace-pre-wrap shadow-lg backdrop-blur-md border ${m.sender === 'ai' ? 'bg-white/60 border-white/50 text-slate-900 font-bold rounded-tl-none' : 'bg-blue-600/90 border-blue-400/50 text-white font-medium rounded-tr-none'}`}>
-                                                {m.image && <img src={m.image} className="w-full rounded-lg mb-2 object-cover border border-white/20" />}
-                                                {m.text}
-                                            </div>
-                                        </div>
-                                    ))}
-                                    {isTyping && (
-                                        <div className="flex justify-start animate-in fade-in">
-                                            <div className="p-4 rounded-2xl bg-white/60 backdrop-blur-md border border-white/50 rounded-tl-none flex gap-1.5 shadow-lg">
-                                                <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce"></div>
-                                                <div className="w-1.5 h-1.5 bg-cyan-500 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
-                                                <div className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-bounce" style={{animationDelay: '0.4s'}}></div>
-                                            </div>
-                                        </div>
-                                    )}
-                                    
-                                    {/* Actions after AI response */}
-                                    {!isTyping && messages[messages.length-1]?.sender === 'ai' && (
-                                        <div className="flex flex-wrap justify-end gap-2 mt-2 animate-in fade-in">
-                                            {roleplayPhase === 'negotiating' && <button onClick={endScenarioAndEvaluate} className="text-[11px] bg-rose-600/90 backdrop-blur-md border border-rose-400 text-white px-4 py-2 rounded-full hover:bg-rose-500 active:scale-95 transition-all font-bold shadow-lg">{isEn ? "🛑 End Simulation (Evaluate)" : "🛑 จบการเจรจา (ประเมินผล)"}</button>}
-                                            {roleplayPhase === 'evaluating' && <><button onClick={() => startScenario(selectedScenario)} className="text-[11px] bg-cyan-600/90 backdrop-blur-md border border-cyan-400 text-white px-4 py-2 rounded-full hover:bg-cyan-500 active:scale-95 transition-all font-bold shadow-lg">{isEn ? "🔄 Retry This Case" : "🔄 ลองฝึกเคสนี้อีกครั้ง"}</button></>}
-                                        </div>
-                                    )}
-                                    <div ref={messagesEndRef} />
-                                </div>
-                                
-                                {/* Input Area */}
-                                <div className="shrink-0 p-4 bg-white/5 border-t border-white/20 relative z-30 pb-safe rounded-b-[2rem]">
-                                    
-                                    {/* ⏱️ Crisis Countdown Bar */}
-                                    {roleplayPhase === 'negotiating' && !isTyping && messages[messages.length-1]?.sender === 'ai' && (
-                                       <div className="absolute top-0 left-0 w-full h-1 bg-white/10">
-                                           <div className={`h-full transition-all duration-1000 ${pressureTime > 10 ? 'bg-emerald-400 shadow-[0_0_8px_#34d399]' : pressureTime > 5 ? 'bg-amber-400 shadow-[0_0_8px_#fbbf24]' : 'bg-rose-500 shadow-[0_0_10px_#f43f5e]'}`} style={{ width: `${(pressureTime/20)*100}%` }}></div>
-                                       </div>
-                                    )}
-                                    
-                                    {/* 💡 Smart Suggestions Hooks */}
-                                    {roleplayPhase === 'negotiating' && smartSuggestions.length > 0 && !isTyping && (
-                                        <div className="flex flex-col gap-2 mb-3 px-1 animate-in fade-in slide-in-from-bottom-2">
-                                            <div className="flex flex-col gap-2">
-                                                {smartSuggestions.map((sug, i) => (
-                                                    <button key={i} onClick={() => handleSendChat(null, sug)} className="text-xs bg-white/80 hover:bg-white backdrop-blur-md border border-white/50 text-slate-800 font-medium px-4 py-2.5 rounded-xl text-left transition-colors active:scale-95 break-words line-clamp-2 shadow-lg shadow-black/10">{sug}</button>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
+    <div id="content">
+      <div class="row"><section class="page-content" id="color-selector-tool">
+<span id="color-selector"></span><h1>Color Selector Tool<a class="headerlink" href="#color-selector-tool" title="Link to this heading">¶</a></h1>
+<p><img alt="tool_color_picker" src="../../_images/tool_color_picker.png" /> This tool allows you to choose a point from the canvas and make the color of that point the active foreground color. When a painting or drawing tool is selected the Color Selector tool can be quickly accessed by pressing the <kbd class="kbd docutils literal notranslate">Ctrl</kbd> key.</p>
+<figure class="align-center" id="id1">
+<img alt="../../_images/color-selector-options.png" src="../../_images/color-selector-options.png" />
+<figcaption>
+<p><span class="caption-text">Color selector tool options</span><a class="headerlink" href="#id1" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+<p>There are several options shown in the <span class="guilabel">Tool Options</span> docker when the Color Selector tool is active:</p>
+<dl>
+<dt>Sample</dt><dd><p>If you pick from the current layer it will only pick up the color from the currently selected layer. If you pick from all visible layers it will use the flattened, visible, image.</p>
+</dd>
+<dt>Radius</dt><dd><p>The radius of the color picker.
+Usually it takes 1 pixel, but with this you can pick the averaged color of a larger area.</p>
+</dd>
+<dt>Blend</dt><dd><p>This controls the color picked with the current color, and mix the two colors according to the percentage.</p>
+</dd>
+<dt>Update color</dt><dd><p>This controls whether to update the current foreground color, background color, or to add it to the <a class="reference internal" href="../dockers/palette_docker.html#palette-docker"><span class="std std-ref">current palette</span></a>.</p>
+</dd>
+<dt>Add to Palette</dt><dd><p>This switch works with the <em>Update Color</em> option so that a picked color is also added to the current active <a class="reference internal" href="../dockers/palette_docker.html#palette-docker"><span class="std std-ref">palette</span></a>. If there are no palettes yet, then a new palette will be added.</p>
+<div class="versionadded">
+<p><span class="versionmodified added">New in version 4.1.</span></p>
+</div>
+</dd>
+<dt>Update Selection</dt><dd><p>When enabled, updates the <a class="reference internal" href="../dockers/advanced_color_selector.html#advanced-color-selector-docker"><span class="std std-ref">Advanced Color Selector Docker</span></a> to show the picked color as the central color. This allows you to quickly pick a new shape or shade from the current color.</p>
+<div class="versionadded">
+<p><span class="versionmodified added">New in version 4.4.</span></p>
+</div>
+</dd>
+<dt>Show colors</dt><dd><p>When this is turned on, the color picker will display a small circle showing the previous color on the top left, and the color you are currently picking on the bottom right.</p>
+</dd>
+</dl>
+</section>
 
-                                    {isVadMode && <div className="absolute -top-1 left-8 right-8 h-1 bg-transparent"><div className="h-full bg-cyan-400 transition-all duration-100 rounded-full shadow-[0_0_8px_rgba(34,211,238,1)]" style={{ width: `${Math.min(100, audioLevel * 2)}%` }}></div></div>}
-                                    {selectedImage && <div className="mb-2 relative inline-block"><img src={selectedImage} alt="Preview" className="h-14 w-14 object-cover rounded-xl border border-white/40 shadow-lg" /><button onClick={() => setSelectedImage(null)} className="absolute -top-2 -right-2 bg-slate-900 text-white rounded-full p-0.5 border border-slate-700 hover:bg-rose-500"><SafeIcon icon={X} size={14} /></button></div>}
-                                    
-                                    <form onSubmit={handleSendChat} className={`flex items-center gap-2 bg-white/20 backdrop-blur-xl border border-white/40 rounded-2xl p-1.5 pl-3 transition-colors shadow-[0_5px_15px_rgba(0,0,0,0.2)] ${isVadMode ? '!border-cyan-400 bg-cyan-900/40' : ''}`}>
-                                        <input type="file" id="ai-image-upload" accept="image/*" className="hidden" onChange={handleImageUpload} />
-                                        <label htmlFor="ai-image-upload" className="text-white hover:text-white/80 cursor-pointer p-1.5"><SafeIcon icon={ImageIcon} size={20} /></label>
-                                        <input type="text" value={chatInput} onChange={e => setChatInput(e.target.value)} placeholder={isListening ? (isEn ? "Listening..." : "กำลังฟัง...") : (isEn ? "Type a message..." : "พิมพ์ตอบกลับ หรือกดไมค์...")} disabled={isTyping || roleplayPhase === 'playing_scenario'} className="flex-1 bg-transparent text-white placeholder-white/70 px-1 outline-none text-sm font-bold drop-shadow-sm" />
-                                        
-                                        {/* Timer Badge */}
-                                        {roleplayPhase === 'negotiating' && !isTyping && messages[messages.length-1]?.sender === 'ai' && (
-                                            <div className={`text-[10px] font-mono font-black px-2 py-1 rounded-lg shrink-0 shadow-inner border ${pressureTime <= 5 ? 'text-rose-600 bg-rose-200 border-rose-400 animate-pulse' : 'text-slate-700 bg-white/80 border-white/50'}`}>{pressureTime}s</div>
-                                        )}
 
-                                        <button type="button" onClick={toggleMic} disabled={isTyping || roleplayPhase === 'playing_scenario'} className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all relative shrink-0 ${isListening ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/50' : 'bg-white/20 text-white hover:bg-white/30 border border-white/30'}`}><SafeIcon icon={Mic} size={16} />{isListening && <span className="absolute inset-0 rounded-xl border-2 border-rose-300 animate-ping opacity-75"></span>}</button>
-                                        <button type="submit" disabled={(!chatInput.trim() && !selectedImage) || isTyping || roleplayPhase === 'playing_scenario'} className="w-9 h-9 rounded-xl bg-blue-600 hover:bg-blue-500 text-white flex items-center justify-center disabled:opacity-50 transition-colors shadow-lg shrink-0"><SafeIcon icon={Send} size={16} /></button>
-                                    </form>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            );
-        }
-
-        const root = createRoot(document.getElementById('skilllab-root'));
-        root.render(<ErrorBoundary><SkillLabApp /></ErrorBoundary>);
-    </script>
+    </div>
+    
+  </main>
+</div>
+<button tabindex="-1" id="go-to-top" class="go-to-top-btn"><i class="fa fa-chevron-up"></i></button>
 </body>
 </html>
