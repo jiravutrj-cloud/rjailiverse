@@ -667,8 +667,8 @@
 
                 {tab === 'video' && (
                   <div className="flex flex-col gap-6 animate-in fade-in w-full max-w-full overflow-hidden px-1 md:px-0">
-                    <div className="w-full aspect-video bg-black relative rounded-2xl md:rounded-[2rem] overflow-hidden shadow-2xl border border-white/20 z-20 flex items-center justify-center">
-                        <iframe src={activeLesson?.videoId ? `https://drive.google.com/file/d/${activeLesson.videoId}/preview` : ''} className="absolute inset-0 w-full h-full border-none bg-black" allow="autoplay; fullscreen" />
+                    <div className="w-full relative rounded-2xl md:rounded-[2rem] overflow-hidden shadow-[0_15px_40px_rgba(0,0,0,0.4)] border border-white/30 z-20 bg-slate-900/50" style={{ paddingTop: '56.25%' }}>
+                        <iframe src={activeLesson?.videoId ? `https://drive.google.com/file/d/${activeLesson.videoId}/preview` : ''} className="absolute inset-0 w-full h-full border-none bg-transparent" allow="autoplay; fullscreen" />
                     </div>
                     <GlassCard className="p-6 md:p-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-6"><div><h3 className="text-xl md:text-2xl font-black text-slate-800 drop-shadow-md">บทที่ {vId || 1}: {activeLesson?.title}</h3><p className="text-sm text-slate-700 mt-1 font-medium drop-shadow-sm">เนื้อหาภาคบังคับ กรุณาดูให้จบเพื่อสะสมเวลาเรียน</p></div>{activeLesson?.documentUrl && (<a href={activeLesson.documentUrl} target="_blank" rel="noreferrer" className="flex items-center gap-2 bg-white/60 text-line-700 hover:bg-white/80 border border-white/80 px-6 py-3 rounded-xl font-bold text-sm shadow-lg active:scale-95 backdrop-blur-md"><SafeIcon name="FileText" size={18} /> โหลดเอกสารประกอบ</a>)}</GlassCard>
                     <div className="mt-4"><h3 className="text-lg font-extrabold text-slate-800 mb-4 flex items-center gap-2 drop-shadow-md"><SafeIcon name="MonitorPlay" className="text-line-600" /> บทเรียนทั้งหมด ({lessons?.length || 0} บท)</h3>
