@@ -35,12 +35,13 @@
         @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&display=swap');
         body { font-family: 'Sarabun', sans-serif; margin: 0; overflow-x: hidden; background-color: #0f172a; color: white; }
         
-        /* 🌟 GLOBAL BACKGROUND (100% BRIGHTNESS) 🌟 */
+        /* 🌟 GLOBAL BACKGROUND 🌟 */
         .sky-bg { 
             position: fixed; 
             inset: 0; 
             z-index: 0; 
-            background-image: url('https://res.cloudinary.com/djwclucoz/image/upload/v1783830896/Gemini_Generated_Image_r508lgr508lgr508_exrlwo.png');
+            /* เปลี่ยนภาพพื้นหลังหลักเป็นภาพใหม่ เพื่อไม่ให้ซ้ำซ้อนกับใน Card */
+            background-image: url('https://res.cloudinary.com/djwclucoz/image/upload/v1783834700/Gemini_Generated_Image_vu0rpvvu0rpvvu0r_td26sx.png');
             background-size: cover;
             background-position: center;
             background-attachment: fixed;
@@ -429,21 +430,21 @@
                 let spk = 'FAH'; let visualSpeaker = 'FAH'; 
                 let cleanText = aiText;
                 
-                // ค้นหา Tag ตัวละครในประโยค (ใช้ RegExp ตรวจจับ Tag ทั้งหมดก่อน)
-                const allTagsRegex = /\[\s*(ฟ้า|เมฆ|พี่เอก|เอก|น้องชาย|ลูกสาว|แฟน|แฟนของฟ้า|Fah|Mek|Brother|Sister|Boyfriend|AI|Michael)\s*\]/gi;
-                const matches = [...cleanText.matchAll(allTagsRegex)];
+                // ค้นหา Tag ตัวละครแรกสุดที่โผล่มาในประโยค
+                const firstSpeakerMatch = cleanText.match(/\[\s*(ฟ้า|เมฆ|พี่เอก|เอก|น้องชาย|ลูกสาว|แฟน|แฟนของฟ้า|Fah|Mek|Brother|Sister|Boyfriend|AI|Michael)\s*\]/i);
                 
-                if (matches.length > 0) {
-                    // ดึงตัวละครคนแรกที่พูด
-                    const firstSpeakerTag = matches[0][1].toLowerCase();
-                    if (firstSpeakerTag.match(/เมฆ|น้องชาย|mek|brother/)) { spk = 'BROTHER'; visualSpeaker = 'BROTHER'; }
-                    else if (firstSpeakerTag.match(/พี่เอก|เอก|แฟน|แฟนของฟ้า|แฟนหนุ่ม|boyfriend/)) { spk = 'BOYFRIEND'; visualSpeaker = 'FAH'; }
-                    else if (firstSpeakerTag.match(/michael|spouse|สามี/)) { spk = 'MICHAEL'; visualSpeaker = 'FAH'; }
+                if (firstSpeakerMatch) {
+                    const speakerTag = firstSpeakerMatch[1].toLowerCase();
+                    if (speakerTag.match(/เมฆ|น้องชาย|mek|brother/)) { spk = 'BROTHER'; visualSpeaker = 'BROTHER'; }
+                    else if (speakerTag.match(/พี่เอก|เอก|แฟน|แฟนของฟ้า|แฟนหนุ่ม|boyfriend/)) { spk = 'BOYFRIEND'; visualSpeaker = 'FAH'; } // Using Fah's UI for boyfriend currently
+                    else if (speakerTag.match(/michael|spouse|สามี/)) { spk = 'MICHAEL'; visualSpeaker = 'FAH'; }
                     else { spk = 'FAH'; visualSpeaker = 'FAH'; }
                     
-                    // หากมี Tag ตัวละครคนที่สองตามมา ให้ตัดข้อความหลังจากนั้นทิ้งไปเลย (บังคับพูดทีละคน)
-                    if (matches.length > 1) {
-                        cleanText = cleanText.substring(0, matches[1].index).trim();
+                    // หากมี Tag ตัวละครคนที่สองตามมา ให้ตัดข้อความหลังจากนั้นทิ้งไปเลย เพื่อบังคับให้พูดทีละคน
+                    const secondSpeakerRegex = new RegExp(`(?<=\\].*?)\\[\\s*(ฟ้า|เมฆ|พี่เอก|เอก|น้องชาย|ลูกสาว|แฟน|แฟนของฟ้า|Fah|Mek|Brother|Sister|Boyfriend|AI|Michael)\\s*\\]`, 'is');
+                    const secondMatch = cleanText.match(secondSpeakerRegex);
+                    if (secondMatch && secondMatch.index) {
+                        cleanText = cleanText.substring(0, secondMatch.index).trim();
                     }
                 }
 
@@ -618,7 +619,7 @@
                         ) : (
                         
                             <div className="w-full max-w-[1200px] mx-auto h-[85vh] flex flex-col md:flex-row relative rounded-[2rem] shadow-[0_30px_80px_rgba(0,0,0,0.8)] border border-white/20 bg-black overflow-hidden animate-in fade-in zoom-in duration-500 z-30">
-                                {/* Background Image Layer */}
+                                {/* Background Image Layer (Inside Card) */}
                                 <div className="absolute inset-0 z-0" style={{ backgroundImage: `url('https://res.cloudinary.com/djwclucoz/image/upload/v1783830896/Gemini_Generated_Image_r508lgr508lgr508_exrlwo.png')`, backgroundSize: 'cover', backgroundPosition: 'center' }}></div>
 
                                 {/* Dark Gradient Overlay */}
