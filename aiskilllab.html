@@ -81,7 +81,7 @@
         import { getAuth, signInAnonymously } from 'firebase/auth';
         import { getFirestore, doc, setDoc } from 'firebase/firestore';
 
-        const { ArrowLeft, PlayCircle, Bot, Volume2, X, Send, Mic, Image: ImageIcon, Target, Lock, ArrowRight, FileText, CheckCircle, Info, Lightbulb } = LucideIcons;
+        const { ArrowLeft, PlayCircle, Bot, Volume2, X, Send, Mic, Image: ImageIcon, Target, Lock, ArrowRight, FileText, CheckCircle, Info, Lightbulb, SkipForward } = LucideIcons;
 
         class ErrorBoundary extends React.Component {
             constructor(props) {
@@ -403,7 +403,12 @@
                 const silentAudio = new Audio("data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU5LjI3LjEwMAAAAAAAAAAAAAAA//OEAAAAAAAAAAAAAAAAAAAAAASW5mbwAAAA8AAAAEAAABIwADAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAw");
                 silentAudio.play().catch(e => console.log("Unlock audio failed", e));
 
-                setSelectedScenario(sc); setRoleplayPhase('giving_context'); setMessages([]); setSmartSuggestions([]); setScenarioLang(sc.language || 'th'); setPressureTime(20);
+                setSelectedScenario(sc); 
+                setMessages([]); 
+                setSmartSuggestions([]); 
+                setScenarioLang(sc.language || 'th'); 
+                setPressureTime(20);
+                
                 const userPosition = user?.position || "บุคลากรทางการแพทย์";
                 
                 const isEnglish = sc.language === 'en';
@@ -420,7 +425,12 @@
                     : `[ฐานความรู้เฉพาะทาง]\n${clinicalDB}\n\n${dynamicPrompt}\n\n[ข้อบังคับสำคัญที่สุด]: คุณต้องตอบกลับมาในฐานะตัวละครเพียง 1 ตัวละครต่อ 1 ข้อความเท่านั้น ห้ามให้ตัวละครคุยกันเองในข้อความเดียวเด็ดขาด`;
                 
                 setCurrentScenarioPrompt(finalPromptInstruction); 
-                triggerScenarioNegotiation();
+                
+                if (sc.videoUrl) {
+                    setRoleplayPhase('watching_video');
+                } else {
+                    triggerScenarioNegotiation();
+                }
             };
 
             const handleAIResponse = (rawResponse) => {
@@ -587,7 +597,7 @@
                         <div className="text-white/90 font-bold text-sm bg-white/10 px-4 py-1.5 rounded-full border border-white/30 shadow-sm hidden sm:flex items-center gap-2 backdrop-blur-md"><span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> {user.name}</div>
                     </div>
 
-                    <div className={`flex-1 w-full relative z-10 flex flex-col md:flex-row items-center p-4 md:p-8 ${!selectedScenario ? 'justify-center' : 'justify-end'}`}>
+                    <div className={`flex-1 w-full relative z-10 flex flex-col md:flex-row items-center p-4 md:p-8 ${!selectedScenario || roleplayPhase === 'watching_video' ? 'justify-center' : 'justify-end'}`}>
                         
                         {!selectedScenario ? (
                             // MENU SCREEN
@@ -608,6 +618,22 @@
                                     ))}
                                 </div>
                             </div>
+                        ) : roleplayPhase === 'watching_video' ? (
+                            
+                            // VIDEO SCENARIO PHASE
+                            <div className="w-full max-w-5xl mx-auto flex flex-col items-center justify-center animate-in fade-in zoom-in duration-500 z-50">
+                                <div className="w-full aspect-video bg-black rounded-3xl overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.8)] border border-white/20 relative">
+                                    <iframe src={`${selectedScenario.videoUrl}?autoplay=1&title=0&byline=0&portrait=0`} className="absolute inset-0 w-full h-full border-none" allow="autoplay; fullscreen"></iframe>
+                                </div>
+                                <div className="mt-8 flex flex-col items-center gap-4">
+                                    <p className="text-white/80 text-sm font-medium animate-pulse">{isEn ? "Watch the scenario to understand the context before starting." : "ชมวิดีโอเพื่อทำความเข้าใจสถานการณ์ก่อนเริ่มฝึกเจรจา"}</p>
+                                    <button onClick={triggerScenarioNegotiation} className="px-8 py-4 bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/30 text-white rounded-full font-bold flex items-center gap-3 transition-all active:scale-95 shadow-lg group">
+                                        <SafeIcon icon={SkipForward} size={20} className="text-cyan-300" />
+                                        {isEn ? "Skip Video & Start" : "ข้ามวิดีโอ (เริ่มฝึกเจรจา)"} <SafeIcon icon={ArrowRight} size={20} className="group-hover:translate-x-1 transition-transform" />
+                                    </button>
+                                </div>
+                            </div>
+                            
                         ) : (
                         
                             // CHAT PHASE (GLASSMORPHISM ON RIGHT)
