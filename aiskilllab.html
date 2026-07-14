@@ -1,265 +1,17 @@
-<!DOCTYPE html>
-<html lang="th">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AI Skill Lab - RJ Ailiverse</title>
-    
-    <script src="./data.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-    <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            colors: {
-              line: { 50: '#e5f8e5', 100: '#cbf1cb', 200: '#9ce49c', 300: '#6dd66d', 400: '#3ec93e', 500: '#00B900', 600: '#009400', 700: '#006f00', 800: '#004a00', 900: '#002500' },
-              gold: { 200: '#FDE68A', 300: '#FCD34D', 400: '#FBBF24', 500: '#F59E0B', 600: '#D97706' }
-            },
-            animation: {
-              'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-              'glow': 'glow 2s ease-in-out infinite alternate',
-            },
-            keyframes: {
-              glow: {
-                '0%': { boxShadow: '0 0 5px rgba(59, 130, 246, 0.5)' },
-                '100%': { boxShadow: '0 0 20px rgba(59, 130, 246, 0.8), 0 0 30px rgba(59, 130, 246, 0.6)' }
-              }
-            }
-          }
-        }
-      }
-    </script>
-    
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&display=swap');
-        body { font-family: 'Sarabun', sans-serif; margin: 0; overflow-x: hidden; background-color: #0f172a; color: white; }
-        
-        /* 🌟 GLOBAL BACKGROUND (100% BRIGHTNESS) 🌟 */
-        .sky-bg { 
-            position: fixed; 
-            inset: 0; 
-            z-index: 0; 
-            background-image: url('https://res.cloudinary.com/djwclucoz/image/upload/v1783830896/Gemini_Generated_Image_r508lgr508lgr508_exrlwo.png');
-            background-size: cover;
-            background-position: center;
-            background-attachment: fixed;
-        }
-        
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background-color: rgba(255,255,255,0.4); border-radius: 10px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background-color: rgba(255,255,255,0.6); }
-        
-        .pt-safe { padding-top: env(safe-area-inset-top, 20px); }
-        .pb-safe { padding-bottom: env(safe-area-inset-bottom, 20px); }
-    </style>
-
-    <script type="importmap">
-    {
-      "imports": {
-        "react": "https://esm.sh/react@18.2.0",
-        "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
-        "react-dom": "https://esm.sh/react-dom@18.2.0",
-        "lucide-react": "https://esm.sh/lucide-react@0.294.0?external=react",
-        "firebase/app": "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js",
-        "firebase/auth": "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js",
-        "firebase/firestore": "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js"
-      }
-    }
-    </script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-</head>
-<body>
-    <div id="skilllab-root"></div>
-
-    <script type="text/babel" data-type="module">
-        import React, { useState, useEffect, useRef, useCallback } from 'react';
-        import { createRoot } from 'react-dom/client';
-        import * as LucideIcons from 'lucide-react';
-        import { initializeApp, getApps, getApp } from 'firebase/app';
-        import { getAuth, signInAnonymously } from 'firebase/auth';
-        import { getFirestore, doc, setDoc } from 'firebase/firestore';
-
-        const { ArrowLeft, PlayCircle, Bot, Volume2, X, Send, Mic, Image: ImageIcon, Target, Lock, ArrowRight, FileText, CheckCircle, Info, Lightbulb, SkipForward } = LucideIcons;
-
-        class ErrorBoundary extends React.Component {
-            constructor(props) {
-                super(props);
-                this.state = { hasError: false, error: null, errorInfo: null };
-            }
-            static getDerivedStateFromError(error) {
-                return { hasError: true, error };
-            }
-            componentDidCatch(error, errorInfo) {
-                console.error("ErrorBoundary caught an error", error, errorInfo);
-                this.setState({ errorInfo });
-            }
-            render() {
-                if (this.state.hasError) {
-                    return (
-                        <div className="min-h-screen flex flex-col items-center justify-center bg-rose-950 p-8 text-white font-sans z-[9999] relative">
-                            <div className="bg-rose-900/50 p-8 rounded-3xl border border-rose-500 max-w-3xl w-full shadow-2xl backdrop-blur-md">
-                                <h1 className="text-3xl font-black text-rose-400 mb-4 flex items-center gap-3"><SafeIcon icon={Info} size={32} /> ระบบขัดข้อง (React Crash)</h1>
-                                <p className="mb-6 text-rose-200">กรุณาก๊อปปี้ข้อความสีแดงด้านล่างนี้ ส่งให้ AI เพื่อแก้ไขครับ</p>
-                                <div className="bg-black/50 p-4 rounded-xl overflow-x-auto text-sm font-mono text-rose-300 border border-rose-500/30">
-                                    <p className="font-bold">{this.state.error && this.state.error.toString()}</p>
-                                    <pre className="mt-4 text-xs opacity-70">{this.state.errorInfo && this.state.errorInfo.componentStack}</pre>
-                                </div>
-                                <button onClick={() => window.location.reload()} className="mt-8 px-6 py-3 bg-white text-rose-900 font-bold rounded-xl hover:bg-rose-100 transition-colors shadow-lg">รีเฟรชหน้าจอใหม่</button>
+<!-- ... existing code ... -->
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 overflow-y-auto custom-scrollbar pb-10">
+                                {SKILL_LAB_SCENARIOS.map((sc, idx) => (
+                                    <GlassCard key={sc.id} onClick={() => startScenario(sc)} className="p-6 text-center border-t-4 border-t-cyan-500 hover:border-t-cyan-400 group">
+                                        <div className={`w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center text-white shadow-[0_0_20px_rgba(0,0,0,0.5)] ${sc.language === 'en' ? 'bg-gradient-to-br from-indigo-500 to-purple-600' : 'bg-gradient-to-br from-cyan-500 to-blue-600'}`}>
+                                            <span className="text-xl font-black">{sc.language === 'en' ? 'EN' : 'TH'}</span>
+                                        </div>
+                                        <div className="text-xs font-black text-white/80 bg-white/10 px-3 py-1 rounded-full mx-auto w-fit mb-3 border border-white/20">{sc.language === 'en' ? `Case ${idx + 1}` : `เคสที่ ${idx + 1}`}</div>
+                                        <h3 className="font-extrabold text-xl text-white mb-3 group-hover:text-cyan-400 transition-colors">{sc.title}</h3>
+                                        <p className="text-sm text-white/60 line-clamp-3">{sc.description}</p>
+                                    </GlassCard>
+                                ))}
                             </div>
-                        </div>
-                    );
-                }
-                return this.props.children;
-            }
-        }
-
-        function SafeIcon({ icon: Icon, size = 24, className = "" }) {
-          if (!Icon) return null;
-          return <Icon size={size} className={className} />;
-        }
-
-        const SKILL_LAB_SCENARIOS = window.SKILL_LAB_SCENARIOS || [];
-
-        let app, auth, db, appId = 'fah-elearning-prod';
-        try {
-          const fbP1 = "AIzaSyBs275"; const fbP2 = "NY99gdv1uZdAnb"; const fbP3 = "mx3UlWO8K4o5a0";
-          let fbConfig = (typeof __firebase_config !== 'undefined' && __firebase_config) 
-            ? JSON.parse(__firebase_config) : { apiKey: fbP1 + fbP2 + fbP3, authDomain: "e-learning-with-fah-ai.firebaseapp.com", projectId: "e-learning-with-fah-ai", storageBucket: "e-learning-with-fah-ai.firebasestorage.app", messagingSenderId: "418946105960", appId: "1:418946105960:web:728e28070790975df231dd" };
-          app = getApps().length === 0 ? initializeApp(fbConfig) : getApp();
-          auth = getAuth(app); db = getFirestore(app);
-        } catch (error) { console.warn("Firebase init error", error); }
-
-        const appsScriptUrl = 'https://script.google.com/macros/s/AKfycbwt9H-GVs2aijX_sgzjlpGP9314ereuA9ZECNs4Uc00VLz5rFcJm7aYmkduEMiFVKjA/exec';
-
-        const fetchAppsScript = async (payload) => { 
-            try { const res = await fetch(appsScriptUrl, { method: 'POST', body: JSON.stringify(payload) }); return await res.json(); } catch(e) { return { status: 'error', message: e.message }; } 
-        };
-
-        const callGeminiAPI = async (prompt, systemInstruction, base64Image = null) => {
-            try {
-                const res = await fetchAppsScript({ action: 'callGemini', prompt: prompt, systemInstruction: systemInstruction, base64Image: base64Image });
-                if (res.status === 'success' && res.text) return res.text;
-                throw new Error(res.message || "ไม่มีข้อมูลตอบกลับจาก AI");
-            } catch (e) { return `[ระบบขัดข้อง] ${e.message}`; }
-        };
-
-        const callGeminiTTS = async (text, voiceName = "Aoede") => {
-            for (let i = 0; i < 3; i++) {
-                try {
-                    const res = await fetchAppsScript({ action: 'callGeminiTTS', text: text, voiceName: voiceName });
-                    if (res.status === 'success' && res.inlineData) return res.inlineData;
-                    throw new Error(res.message || 'TTS Error');
-                } catch (e) { if (i < 2) await new Promise(r => setTimeout(r, 2000)); else throw e; }
-            }
-        };
-
-        const pcm16ToWav = (base64PCM, sampleRate = 24000) => {
-          const binaryString = window.atob(base64PCM); const bytes = new Uint8Array(binaryString.length); for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
-          const buffer = new ArrayBuffer(44 + bytes.length); const view = new DataView(buffer);
-          const writeStr = (offset, str) => { for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i)); };
-          writeStr(0, 'RIFF'); view.setUint32(4, 36 + bytes.length, true); writeStr(8, 'WAVE'); writeStr(12, 'fmt '); view.setUint32(16, 16, true); view.setUint16(20, 1, true); view.setUint16(22, 1, true); view.setUint32(24, sampleRate, true); view.setUint32(28, sampleRate * 2, true); view.setUint16(32, 2, true); view.setUint16(34, 16, true); writeStr(36, 'data'); view.setUint32(40, bytes.length, true);
-          new Uint8Array(buffer, 44).set(bytes); return URL.createObjectURL(new Blob([buffer], { type: 'audio/wav' }));
-        };
-
-        function GlassCard({ children, className = "", onClick, ...rest }) {
-          let radiusClass = 'rounded-[2rem]'; const m = className.match(/rounded-(?:\[.*?\]|\w+)/); if (m) radiusClass = m[0];
-          let bgClass = className.replace(/\bbg-(?:white|slate-[12]00)(?:\/\d+)?\b/g, '').replace(/\bborder-white(?:\/\d+)?\b/g, '').replace(/\bbackdrop-blur-(?:sm|md|lg|xl|2xl|3xl)\b/g, '').replace(/\b!border-none\b/g, '').replace(/\bborder-none\b/g, '');
-          return (
-            <div onClick={onClick} className={`relative overflow-hidden bg-white/10 backdrop-blur-xl border border-white/20 shadow-[0_15px_40px_rgba(0,0,0,0.4)] ${radiusClass} transition-all duration-300 ${onClick ? 'cursor-pointer hover:-translate-y-1 hover:bg-white/20' : ''} ${bgClass}`} {...rest}>
-              <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-white/5 to-transparent pointer-events-none z-0" />
-              <div className="relative z-10 w-full h-full text-white">{children}</div>
-            </div>
-          );
-        }
-
-        function SkillLabApp() {
-            const [user, setUser] = useState(null);
-            const [selectedScenario, setSelectedScenario] = useState(null);
-            const [accessDenied, setAccessDenied] = useState(false); 
-            
-            // Chatbot States
-            const [chatInput, setChatInput] = useState(''); 
-            const [isTyping, setIsTyping] = useState(false); 
-            const [messages, setMessages] = useState([]); 
-            const [isListening, setIsListening] = useState(false); 
-            const [isVadMode, setIsVadMode] = useState(false); 
-            const [audioLevel, setAudioLevel] = useState(0); 
-            const [selectedImage, setSelectedImage] = useState(null);
-            const [uiMessage, setUiMessage] = useState({ show: false, text: '', type: 'success' });
-            
-            // Features States
-            const [smartSuggestions, setSmartSuggestions] = useState([]); 
-            const [pressureTime, setPressureTime] = useState(20); 
-            const [isAiSpeaking, setIsAiSpeaking] = useState(false);
-            
-            // Roleplay States
-            const [roleplayPhase, setRoleplayPhase] = useState('none'); 
-            const [currentEmotion, setCurrentEmotion] = useState('NEUTRAL');
-            const [currentSpeaker, setCurrentSpeaker] = useState('FAH');
-            const [scenarioLang, setScenarioLang] = useState('th');
-            const [currentScenarioPrompt, setCurrentScenarioPrompt] = useState('');
-
-            // Define isEn variable correctly in component scope!
-            const isEn = selectedScenario?.language === 'en';
-
-            // Refs
-            const audioContextRef = useRef(null); const analyserRef = useRef(null); const microphoneRef = useRef(null); const vadSilenceTimerRef = useRef(null); const isSpeakingRef = useRef(false); const latestTranscriptRef = useRef('');
-            const recognitionRef = useRef(null); const messagesEndRef = useRef(null); const audioRef = useRef(null); const currentSpeechIdRef = useRef(0);
-
-            const showMsg = (text, type = 'success') => {
-                setUiMessage({ show: true, text, type });
-                setTimeout(() => setUiMessage({ show: false, text: '', type }), 3500);
-            };
-
-            const safeRedirect = (url) => { try { window.location.href = url; } catch (e) {} };
-
-            useEffect(() => {
-                try {
-                    const saved = localStorage.getItem('elearning_app_state');
-                    if (saved) {
-                        const parsed = JSON.parse(saved);
-                        if (parsed.loggedInUser) {
-                            const uType = parsed.loggedInUser.userType;
-                            // Masterclass restriction
-                            if (uType !== 'Masterclass') {
-                                setAccessDenied(true);
-                                return;
-                            }
-                            setUser(parsed.loggedInUser);
-                            signInAnonymously(auth).catch(e => console.warn(e));
-                        } else {
-                            safeRedirect('./index.html');
-                        }
-                    } else {
-                        safeRedirect('./index.html');
-                    }
-                } catch (e) { safeRedirect('./index.html'); }
-            }, []);
-
-            useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, smartSuggestions]);
-
-            useEffect(() => {
-                let timer;
-                if (roleplayPhase === 'negotiating' && !isTyping && !isAiSpeaking && messages.length > 0 && messages[messages.length-1].sender === 'ai') {
-                    timer = setInterval(() => {
-                        setPressureTime(p => {
-                            if (isListening || chatInput.length > 0 || isAiSpeaking) return p; 
-                            if (p <= 1) {
-                                clearInterval(timer);
-                                handleAutoTimeout(); 
-                                return 20;
-                            }
-                            return p - 1;
-                        });
-                    }, 1000);
-                } else {
-                    setPressureTime(20); 
-                }
-                return () => clearInterval(timer);
-            }, [roleplayPhase, isTyping, messages, isListening, chatInput, isAiSpeaking]);
-
+<!-- ... existing code ... -->
             const handleAutoTimeout = () => { 
                 const timeoutText = isEn ? "[Learner silent, no timely response]" : "[ผู้เรียนเงียบ ไม่ตอบสนองทันเวลา]";
                 handleSendChat(null, timeoutText); 
@@ -269,30 +21,10 @@
                 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
                 if (SR) {
                     recognitionRef.current = new SR(); recognitionRef.current.continuous = true; recognitionRef.current.interimResults = true; recognitionRef.current.lang = scenarioLang === 'en' ? 'en-US' : 'th-TH'; 
-                    recognitionRef.current.onresult = (e) => { let finalT = ''; let interT = ''; for (let i = e.resultIndex; i < e.results.length; ++i) { if (e.results[i].isFinal) finalT += e.results[i][0].transcript; else interT += e.results[i][0].transcript; } setChatInput(p => { const newText = p + finalT; latestTranscriptRef.current = newText || interT; return newText || interT; }); };
-                    recognitionRef.current.onend = () => { if (isVadMode && isListening) { try { recognitionRef.current.start(); } catch(err){} } else { setIsListening(false); setChatInput(curr => { const corText = curr.trim(); if (corText && corText !== 'พร้อม') handleSendChat(null, corText); return curr; }); } };
-                    recognitionRef.current.onerror = (e) => { if(e.error !== 'no-speech') setIsListening(false); };
-                }
-            }, [selectedScenario, messages, isVadMode, isListening, scenarioLang]);
-
-            const processAudio = useCallback(() => {
-                if (!analyserRef.current || !isListening || !isVadMode) return;
-                const dataArr = new Uint8Array(analyserRef.current.frequencyBinCount); analyserRef.current.getByteFrequencyData(dataArr);
-                let sum = 0; for (let i = 0; i < dataArr.length; i++) sum += dataArr[i]; const avg = sum / dataArr.length; setAudioLevel(avg);
-                if (avg > 15) { if (!isSpeakingRef.current) isSpeakingRef.current = true; if (vadSilenceTimerRef.current) { clearTimeout(vadSilenceTimerRef.current); vadSilenceTimerRef.current = null; } } else { if (isSpeakingRef.current && !vadSilenceTimerRef.current) { vadSilenceTimerRef.current = setTimeout(() => { isSpeakingRef.current = false; const finalSp = latestTranscriptRef.current.trim(); if (finalSp) { handleSendChat(null, finalSp); setChatInput(''); latestTranscriptRef.current = ''; } vadSilenceTimerRef.current = null; }, 800); } }
-                if (isListening && isVadMode) requestAnimationFrame(processAudio);
-            }, [isListening, isVadMode]);
-
+<!-- ... existing code ... -->
             const startVAD = async () => { try { if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) throw new Error("NotSupportedError"); const stream = await navigator.mediaDevices.getUserMedia({ audio: true }); audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)(); analyserRef.current = audioContextRef.current.createAnalyser(); microphoneRef.current = audioContextRef.current.createMediaStreamSource(stream); microphoneRef.current.connect(analyserRef.current); analyserRef.current.fftSize = 256; setIsVadMode(true); setIsListening(true); recognitionRef.current?.start(); processAudio(); showMsg(isEn ? '🎙️ VAD Mic Active' : '🎙️ เปิดโหมด VAD'); } catch (err) { showMsg(isEn ? 'Mic Error' : 'ไมค์ไม่ทำงาน', 'error'); } };
             const stopVAD = () => { setIsVadMode(false); setIsListening(false); recognitionRef.current?.stop(); if (audioContextRef.current) audioContextRef.current.close(); if (vadSilenceTimerRef.current) clearTimeout(vadSilenceTimerRef.current); showMsg(isEn ? 'Mic Suspended' : 'ปิดไมโครโฟนแล้ว', 'success'); };
-            const toggleMic = () => { if (isListening) stopVAD(); else { setChatInput(''); latestTranscriptRef.current = ''; startVAD(); } };
-
-            const stopAudio = useCallback(() => { 
-                currentSpeechIdRef.current += 1; 
-                setIsAiSpeaking(false);
-                if (audioRef.current) { audioRef.current.pause(); audioRef.current.removeAttribute('src'); audioRef.current.load(); audioRef.current = null; } 
-            }, []);
-            
+<!-- ... existing code ... -->
             const speakThai = async (text, onEndCallback = null, speaker = 'FAH', isSystemVoice = false, emotion = 'NEUTRAL') => {
                 stopAudio(); currentSpeechIdRef.current += 1; const speechId = currentSpeechIdRef.current; 
                 let callbackFired = false;
@@ -305,10 +37,9 @@
                 };
 
                 let targetVoice = "Aoede"; 
-                // ทำความสะอาดข้อความ ลบ Tag ชื่อก่อนส่งให้ TTS
                 let cleanSpeakText = text.replace(/\[.*?\]/g, '').replace(/\(.*?\)/g, '').replace(/\*.*?\*/g, '').replace(/#.*?#/g, '');
-                cleanSpeakText = cleanSpeakText.replace(/^(ฟ้า|เมฆ|พี่เอก|เอก|น้องชาย|ลูกสาว|แฟน|แฟนของฟ้า|Fah|Mek|Brother|Sister|Boyfriend|AI|Michael)\s*:\s*/i, '');
-                cleanSpeakText = cleanSpeakText.replace(/^\[(ฟ้า|เมฆ|พี่เอก|เอก|น้องชาย|ลูกสาว|แฟน|แฟนของฟ้า|Fah|Mek|Brother|Sister|Boyfriend|AI|Michael)\]\s*/i, '').trim();
+                cleanSpeakText = cleanSpeakText.replace(/^(ฟ้า|เมฆ|พี่เอก|เอก|น้องชาย|ลูกสาว|แฟน|แฟนของฟ้า|Fah|Mek|Brother|Sister|Boyfriend|AI|Michael|Emily)\s*:\s*/i, '');
+                cleanSpeakText = cleanSpeakText.replace(/^\[(ฟ้า|เมฆ|พี่เอก|เอก|น้องชาย|ลูกสาว|แฟน|แฟนของฟ้า|Fah|Mek|Brother|Sister|Boyfriend|AI|Michael|Emily)\]\s*/i, '').trim();
 
                 let emotionPrompt = "";
                 
@@ -316,71 +47,95 @@
                 
                 if (isSystemVoice) {
                     targetVoice = "Aoede";
-                    emotionPrompt = scenarioLang === 'en' 
-                      ? `[Speak with a professional, warm, and highly supportive female announcer voice]: ${cleanSpeakText}`
+                    emotionPrompt = isEn 
+                      ? `[Speak with a professional, warm, and highly supportive female announcer voice in English]: ${cleanSpeakText}`
                       : `[พูดด้วยเสียงผู้ประกาศหญิง น้ำเสียงเป็นทางการ สุภาพ นุ่มนวล ใจดี ให้กำลังใจ ไม่ร้องไห้]: ${cleanSpeakText}`;
                 } else {
                     if (speaker === 'BROTHER' || speaker === 'MICHAEL') { 
                         targetVoice = "Charon"; 
-                        emotionPrompt = scenarioLang === 'en'
-                          ? `[Speak with a vulnerable, sad, or frustrated male voice according to context]: ${cleanSpeakText}`
+                        emotionPrompt = isEn
+                          ? `[Speak with an adult male voice, highly emotional, stressed, grieving in English]: ${cleanSpeakText}`
                           : `[พูดด้วยเสียงผู้ชาย น้ำเสียงตามอารมณ์บริบท]: ${cleanSpeakText}`; 
                     } 
                     else if (speaker === 'BOYFRIEND') { 
                         targetVoice = "Charon"; 
-                        emotionPrompt = scenarioLang === 'en'
-                          ? `[Speak with an adult male voice, supportive, calm, and comforting]: ${cleanSpeakText}`
+                        emotionPrompt = isEn
+                          ? `[Speak with a supportive adult male voice, calm in English]: ${cleanSpeakText}`
                           : `[พูดด้วยเสียงผู้ชายวัยผู้ใหญ่ นุ่มนวล อบอุ่น ใจเย็น สุภาพ และคอยให้กำลังใจ]: ${cleanSpeakText}`; 
                     } 
                     else { 
                         targetVoice = "Aoede"; 
-                        emotionPrompt = scenarioLang === 'en'
-                          ? `[Speak with a 22-year-old female voice, emotionally charged according to context]: ${cleanSpeakText}`
+                        emotionPrompt = isEn
+                          ? `[Speak with a young female voice, emotional, crying, in denial in English]: ${cleanSpeakText}`
                           : `[พูดด้วยเสียงผู้หญิงวัยรุ่น 22 ปี น้ำเสียงตามอารมณ์บริบท]: ${cleanSpeakText}`; 
                     }
                 }
 
                 try {
-                    const inlineData = await callGeminiTTS(emotionPrompt, targetVoice); 
-                    if (speechId !== currentSpeechIdRef.current) return;
-                    const sampleRate = parseInt(inlineData.mimeType.match(/rate=(\d+)/)?.[1] ?? "24000", 10); 
-                    const audioUrl = pcm16ToWav(inlineData.data, sampleRate);
-                    const audio = new Audio(audioUrl); 
-                    audio.crossOrigin = "anonymous";
-                    audioRef.current = audio; 
+<!-- ... existing code ... -->
+                            ctx.globalAlpha = 0.8;
+                            ctx.font = "bold 14px 'Sarabun', sans-serif";
+                            ctx.fillStyle = isActive ? colors[3] : colors[1];
+                            ctx.textAlign = "center";
+                            ctx.shadowBlur = 0;
+                            let labelY = nodes[0].oy + 115;
+                            let labelText = "";
+                            if (scenarioLang === 'en') {
+                                labelText = clusterName === 'FAH' ? 'EMILY (Daughter)' : clusterName === 'MEK' ? 'MICHAEL (Husband)' : "P'EK (Friend)";
+                            } else {
+                                labelText = clusterName === 'FAH' ? 'FAH (ลูกสาว)' : clusterName === 'MEK' ? 'MEK (น้องชาย)' : "P'EK (แฟนของฟ้า)";
+                            }
+                            ctx.fillText(labelText, nodes[0].ox, labelY);
+                            
+                            ctx.restore();
+                        };
 
-                    setIsAiSpeaking(true);
-
-                    audio.onended = () => { setIsAiSpeaking(false); safeCallback(); }; 
-                    audio.onerror = () => { setIsAiSpeaking(false); safeCallback(); }; 
+                        // 🌟 Synchronized Hologram: วาดให้สว่างเฉพาะคนที่กำลังพูด 🌟
+                        const curSpk = currentSpeakerRef.current;
+                        drawBrainCluster(canvas.brainNodes.FAH, 'FAH', curSpk === 'FAH' || curSpk === 'EMILY');
+                        drawBrainCluster(canvas.brainNodes.MEK, 'MEK', curSpk === 'BROTHER' || curSpk === 'MICHAEL');
+                        drawBrainCluster(canvas.brainNodes.PEK, 'PEK', curSpk === 'PEK' || curSpk === 'BOYFRIEND');
+<!-- ... existing code ... -->
+            const speakThaiSequence = async (dialogues, seqId, isResolved = false) => {
+                for (let i = 0; i < dialogues.length; i++) {
+                    if (currentSequenceIdRef.current !== seqId) break; 
+                    const dlg = dialogues[i];
                     
-                    audio.play().catch(e => { console.error("Audio Play Error:", e); setIsAiSpeaking(false); safeCallback(); }); 
-                } catch (error) { 
-                    if (speechId === currentSpeechIdRef.current) { setIsAiSpeaking(false); safeCallback(); } 
+                    let spkCode = 'FAH'; let visualSpk = 'FAH';
+                    if (dlg.speaker.match(/เมฆ|mek|brother|michael|husband/i)) { spkCode = 'BROTHER'; visualSpk = 'BROTHER'; }
+                    if (dlg.speaker.match(/เอก|pek|boyfriend/i)) { spkCode = 'BOYFRIEND'; visualSpk = 'PEK'; }
+                    if (dlg.speaker.match(/emily|daughter/i)) { spkCode = 'FAH'; visualSpk = 'FAH'; }
+                    
+                    setCurrentSpeaker(visualSpk); setCurrentEmotion(dlg.emotion);
+                    
+                    await new Promise((resolve) => { speakThai(dlg.text, resolve, spkCode, false, dlg.emotion); });
+                }
+                
+                if (currentSequenceIdRef.current === seqId && isResolved) {
+                    setTimeout(() => setShowConsentForm(true), 500); 
                 }
             };
 
             const triggerScenarioNegotiation = () => {
                 const isEnglish = selectedScenario?.language === 'en';
                 const contextText = isEnglish 
-                    ? "Initial Case Data: Patient is a 46yo male, car accident. Brain stem reflexes and apnea test performed, confirming brain death. Relatives outside ICU include Michael (Spouse). The negotiation has started." 
+                    ? "Initial Case Data: Patient is a 44yo female, car accident. Brain stem reflexes and apnea test performed, confirming brain death. Relatives outside ICU: Michael (Husband) and Emily (Daughter). Let's start the negotiation." 
                     : "ข้อมูลเบื้องต้น: คนไข้ชาย อายุ 46 ปี ประสบอุบัติเหตุรถยนต์ แพทย์ประเมินก้านสมองและทดสอบการหายใจแล้ว ยืนยันภาวะสมองตาย ญาติหน้าห้อง ICU มี ฟ้า (ลูกสาว), เมฆ (น้องชาย) และ พี่เอก (แฟนของฟ้า) เริ่มการเจรจาได้เลยค่ะ";
                 
                 setRoleplayPhase('giving_context'); setCurrentEmotion('NEUTRAL'); setCurrentSpeaker('FAH');
                 const contextMsgId = Date.now(); 
                 
-                setMessages([{ id: contextMsgId, sender: 'ai', text: contextText, isVoiceOnly: false, speakerName: 'System', isContext: true }]);
+                setMessages([{ id: contextMsgId, sender: 'ai', text: contextText, isVoiceOnly: false, speakerName: isEnglish ? 'System' : 'ระบบ', isContext: true }]);
                 
-                // The Intro-Hook
                 const introHookText = isEnglish
-                    ? "Hello... Are you the staff member coming to talk to me about my wife?"
+                    ? "Excuse me... Are you the doctor treating my wife? Please tell me she's okay..."
                     : "สวัสดีค่ะ... คุณเป็นเจ้าหน้าที่ที่จะมาคุยกับพวกเราเรื่องคุณพ่อหรือเปล่าคะ?";
                 const introSpeaker = isEnglish ? 'MICHAEL' : 'FAH';
 
                 speakThai(contextText, () => {
                     setRoleplayPhase('negotiating');
                     
-                    const introMsgId = 'static-intro-hook-msg'; // Static ID ป้องกันบั๊กเบิ้ล
+                    const introMsgId = Date.now() + 1;
                     const visualSpeakerName = isEnglish ? 'Michael' : 'ฟ้า';
                     
                     setMessages(prev => {
@@ -389,344 +144,121 @@
                     });
                     
                     setCurrentEmotion('CONFUSED');
-                    setCurrentSpeaker(introSpeaker);
+                    setCurrentSpeaker(introSpeaker === 'MICHAEL' ? 'BROTHER' : introSpeaker);
                     
                     speakThai(introHookText, () => {
                         setMessages(prev => prev.map(m => m.id === introMsgId ? { ...m, isVoiceOnly: false } : m));
-                    }, introSpeaker, false, 'CONFUSED');
+                    }, introSpeaker === 'MICHAEL' ? 'BROTHER' : introSpeaker, false, 'CONFUSED');
                     
                 }, 'FAH', true, 'NEUTRAL');
             };
 
             const startScenario = (sc) => {
-                // 🌟 AUTOPLAY UNLOCKER: เล่นเสียงเปล่าทันทีที่กดคลิกเลือกเคส เพื่อปลดล็อกสิทธิ์การเล่นเสียง
-                const silentAudio = new Audio("data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU5LjI3LjEwMAAAAAAAAAAAAAAA//OEAAAAAAAAAAAAAAAAAAAAAASW5mbwAAAA8AAAAEAAABIwADAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAw");
-                silentAudio.play().catch(e => console.log("Unlock audio failed", e));
-
-                setSelectedScenario(sc); 
-                setMessages([]); 
-                setSmartSuggestions([]); 
-                setScenarioLang(sc.language || 'th'); 
-                setPressureTime(20);
-                
-                const userPosition = user?.position || "บุคลากรทางการแพทย์";
-                
-                const isEnglish = sc.language === 'en';
-                const patientGender = isEnglish ? 'male' : 'ชาย';
-                const patientAge = isEnglish ? '46 years old' : '46 ปี';
-                const patientCause = isEnglish ? 'car accident' : 'อุบัติเหตุรถยนต์';
-                const patientRelation = isEnglish ? 'patient' : 'คนไข้';
-                
-                const dynamicPrompt = sc.systemPrompt.replace(/{{USER_POSITION}}/g, userPosition).replace(/{{PATIENT_GENDER}}/g, patientGender).replace(/{{PATIENT_AGE}}/g, patientAge).replace(/{{PATIENT_CAUSE}}/g, patientCause).replace(/{{PATIENT_RELATION}}/g, patientRelation).replace(/{{REL1_ROLE}}/g, sc.language === 'en' ? 'Fah' : 'ฟ้า').replace(/{{REL2_ROLE}}/g, sc.language === 'en' ? 'Mek' : 'เมฆ'); 
+                setSelectedScenario(sc); setRoleplayPhase('giving_context'); setMessages([]); setSmartSuggestions([]); setScenarioLang(sc.language || 'th'); setPressureTime(20);
+                const userPosition = user?.position || (sc.language === 'en' ? "Medical Professional" : "บุคลากรทางการแพทย์");
+                const dynamicPrompt = sc.systemPrompt.replace(/{{USER_POSITION}}/g, userPosition).replace(/{{PATIENT_GENDER}}/g, sc.language === 'en' ? 'female' : 'ชาย').replace(/{{PATIENT_AGE}}/g, sc.language === 'en' ? '44 years old' : `46 ปี`).replace(/{{PATIENT_CAUSE}}/g, sc.language === 'en' ? 'car accident' : 'อุบัติเหตุรถยนต์').replace(/{{PATIENT_RELATION}}/g, sc.language === 'en' ? 'patient' : 'คนไข้').replace(/{{REL1_ROLE}}/g, sc.language === 'en' ? 'Emily' : 'ฟ้า').replace(/{{REL2_ROLE}}/g, sc.language === 'en' ? 'Michael' : 'เมฆ'); 
                 const clinicalDB = window.CLINICAL_KNOWLEDGE_BASE || "";
                 
-                const finalPromptInstruction = isEnglish 
-                    ? `[Specialized Knowledge Base]\n${clinicalDB}\n\n${dynamicPrompt}\n\n[CRITICAL RULE]: You must respond as ONLY ONE character per message. Never let characters talk to each other in a single message. Everything must be in English.`
-                    : `[ฐานความรู้เฉพาะทาง]\n${clinicalDB}\n\n${dynamicPrompt}\n\n[ข้อบังคับสำคัญที่สุด]: คุณต้องตอบกลับมาในฐานะตัวละครเพียง 1 ตัวละครต่อ 1 ข้อความเท่านั้น ห้ามให้ตัวละครคุยกันเองในข้อความเดียวเด็ดขาด`;
+                const finalPrompt = sc.language === 'en' 
+                    ? `[Specialized Knowledge Base (Do not explicitly tell the user you have this, use it to evaluate)]\n${clinicalDB}\n\n${dynamicPrompt}`
+                    : `[ฐานความรู้เฉพาะทาง (ห้ามบอกผู้เรียนว่ารู้ แต่ให้ใช้ประเมิน)]\n${clinicalDB}\n\n${dynamicPrompt}`;
                 
-                setCurrentScenarioPrompt(finalPromptInstruction); 
+                setCurrentScenarioPrompt(finalPrompt); setCurrentEmotion('NEUTRAL'); setCurrentSpeaker('FAH');
                 
                 if (sc.videoUrl) {
-                    setRoleplayPhase('watching_video');
+                    setRoleplayPhase('playing_video');
                 } else {
                     triggerScenarioNegotiation();
                 }
             };
 
-            const handleAIResponse = (rawResponse) => {
-                let aiText = rawResponse;
-                let sug1 = "", sug2 = "";
-                const sug1Match = aiText.match(/\[SUGGESTION 1\](.*?)(?=\[SUGGESTION 2\]|$)/is);
-                const sug2Match = aiText.match(/\[SUGGESTION 2\](.*?)$/is);
-                if (sug1Match) sug1 = sug1Match[1].trim();
-                if (sug2Match) sug2 = sug2Match[1].trim();
-                aiText = aiText.replace(/\[SUGGESTION 1\].*$/is, '').replace(/\[DIALOGUE\]/i, '').trim();
-                setSmartSuggestions([sug1, sug2].filter(Boolean));
-                
-                let spk = 'FAH'; let visualSpeaker = 'FAH'; 
-                let cleanText = aiText;
-                
-                // ค้นหา Tag ตัวละครแรกสุดที่โผล่มาในประโยค
-                const firstSpeakerMatch = cleanText.match(/\[\s*(ฟ้า|เมฆ|พี่เอก|เอก|น้องชาย|ลูกสาว|แฟน|แฟนของฟ้า|Fah|Mek|Brother|Sister|Boyfriend|AI|Michael)\s*\]/i);
-                
-                if (firstSpeakerMatch) {
-                    const speakerTag = firstSpeakerMatch[1].toLowerCase();
-                    if (speakerTag.match(/เมฆ|น้องชาย|mek|brother/)) { spk = 'BROTHER'; visualSpeaker = 'BROTHER'; }
-                    else if (speakerTag.match(/พี่เอก|เอก|แฟน|แฟนของฟ้า|แฟนหนุ่ม|boyfriend/)) { spk = 'BOYFRIEND'; visualSpeaker = 'FAH'; } // Using Fah's UI for boyfriend currently
-                    else if (speakerTag.match(/michael|spouse|สามี/)) { spk = 'MICHAEL'; visualSpeaker = 'FAH'; }
-                    else { spk = 'FAH'; visualSpeaker = 'FAH'; }
-                    
-                    // หากมี Tag ตัวละครคนที่สองตามมา ให้ตัดข้อความหลังจากนั้นทิ้งไปเลย เพื่อบังคับให้พูดทีละคน
-                    const secondSpeakerRegex = new RegExp(`(?<=\\].*?)\\[\\s*(ฟ้า|เมฆ|พี่เอก|เอก|น้องชาย|ลูกสาว|แฟน|แฟนของฟ้า|Fah|Mek|Brother|Sister|Boyfriend|AI|Michael)\\s*\\]`, 'is');
-                    const secondMatch = cleanText.match(secondSpeakerRegex);
-                    if (secondMatch && secondMatch.index) {
-                        cleanText = cleanText.substring(0, secondMatch.index).trim();
-                    }
-                }
-
-                let foundEmotion = "SAD"; const emotionsList = ["SAD", "HESITANT", "CONFUSED", "ANGRY", "ADVISING", "NEUTRAL"]; 
-                for (const em of emotionsList) { if (new RegExp(`\\[\\s*${em}\\s*\\]`, 'i').test(cleanText)) { foundEmotion = em; break; } }
-                
-                setCurrentSpeaker(visualSpeaker); setCurrentEmotion(foundEmotion);
-                
-                // ทำความสะอาดข้อความเพื่อแสดงผล
-                cleanText = cleanText.replace(/\[.*?\]/g, '').replace(/\(.*?\)/g, '').replace(/^(ฟ้า|เมฆ|พี่เอก|เอก|น้องชาย|ลูกสาว|แฟน|แฟนของฟ้า|Fah|Mek|Brother|Sister|Boyfriend|Michael)\s*:\s*/i, '').replace(/[*#]/g, '').trim();
-                
-                const isVoiceOnly = roleplayPhase === 'negotiating'; 
-                const speakerName = spk === 'BROTHER' ? 'เมฆ' : spk === 'BOYFRIEND' ? "พี่เอก" : spk === 'MICHAEL' ? 'Michael' : 'ฟ้า'; 
-                const msgId = Date.now() + 1;
-                const displayChatText = (roleplayPhase === 'negotiating') ? `(${speakerName}) ${cleanText}` : cleanText;
-                
-                setMessages(prev => [...prev, { id: msgId, sender: 'ai', text: displayChatText, isVoiceOnly, speakerName }]); setIsTyping(false); 
-                
-                speakThai(cleanText, () => setMessages(prev => prev.map(m => m.id === msgId ? { ...m, isVoiceOnly: false } : m)), spk, false, foundEmotion);
-            };
-
             const handleSendChat = async (e, quickActionText = null) => {
                 if (e) e.preventDefault(); const userMsg = quickActionText ?? chatInput.trim(); if ((!userMsg && !selectedImage) || isTyping) return;
-                stopAudio(); if (['speaking_intro', 'playing_scenario'].includes(roleplayPhase)) return; 
+                stopAudio(); if (['speaking_intro', 'playing_scenario', 'playing_video'].includes(roleplayPhase)) return; 
                 
                 setMessages(prev => [...prev, { id: Date.now(), sender: 'user', text: userMsg, image: selectedImage }]); setChatInput(''); const imageToSend = selectedImage; setSelectedImage(null); setIsTyping(true); setSmartSuggestions([]); setPressureTime(20);
                 
-                const historyContext = messages.filter(m => !m.isContext).slice(-10).map(m => `${m.sender === 'user' ? 'Learner/Staff' : 'Family'}: ${m.text}`).join('\n');
+                const historyContext = messages.filter(m => !m.isContext).slice(-10).map(m => `${m.sender === 'user' ? (isEn ? 'Learner' : 'ผู้เรียน') : (isEn ? 'Family' : 'ครอบครัว')}: ${m.text}`).join('\n');
                 
                 let introGuideline = "";
-                if (messages.length <= 4) {
-                    introGuideline = scenarioLang === 'en' 
-                        ? `\n[CRITICAL INITIALIZATION]: If the user just introduced themselves (e.g., Doctor, Nurse, Coordinator), acknowledge their role respectfully. Michael must introduce himself and ask about his wife's condition directly.`
-                        : `\n[การตอบรับการแนะนำตัว]: หากผู้เรียนเพิ่งแนะนำตัวว่าเป็นใคร ให้ญาติรับทราบอย่างสุภาพ และให้ญาติหลักแนะนำสมาชิกครอบครัวที่เหลือให้ผู้เรียนรู้จักพร้อมกัน และเข้าสู่บทสนทนาถามอาการพ่อทันที`;
+                if (userMsg.match(/(ชื่อ|แนะนำตัว|พยาบาล|หมอ|แพทย์|สวัสดี|hello|hi|doctor|nurse|name)/i) && messages.length <= 4) {
+                    introGuideline = isEn 
+                        ? `\n[CRITICAL INITIALIZATION]: If the user just introduced themselves, acknowledge their role respectfully. Ensure Michael introduces both himself and Emily without any romantic subtext.`
+                        : `\n[กฎระบบแนะนำตัวเพิ่มเติม]: ให้ตัวละคร "ฟ้า" แนะนำตัวเธอและทุกคนในครอบครัวทีเดียวพร้อมกัน คือ 1.ฟ้า 2.เมฆ 3.พี่เอก โดยไม่มีคำพูดชู้สาว`;
                 }
                 
-                const suggestionInstruction = scenarioLang === 'en'
+                const suggestionInstruction = isEn 
                     ? `\n\n[SPECIAL HOOK: SMART SUGGESTIONS]\nProvide 2 realistic response options for the user at the very end in English. Format:\n[SUGGESTION 1] (Option 1)\n[SUGGESTION 2] (Option 2)`
-                    : `\n\n[ข้อบังคับพิเศษ: SMART HOOKS]\nสร้างทางเลือกตอบกลับเบื้องต้นให้ผู้เรียน 2 ทางเลือกในตอนท้ายสุด โดยให้จัดรูปแบบดังนี้:\n[SUGGESTION 1] (ทางเลือกที่ 1)\n[SUGGESTION 2] (ทางเลือกที่ 2)`;
+                    : `\n\n[ข้อบังคับพิเศษ: SMART HOOKS]\nสร้างทางเลือกตอบกลับเบื้องต้นให้ผู้เรียน 2 ทางเลือกในตอนท้ายสุด (ห้ามพิมพ์บทสนทนาของญาติซ้ำในส่วนนี้) โดยให้จัดรูปแบบดังนี้:\n[SUGGESTION 1] (ทางเลือกที่ 1)\n[SUGGESTION 2] (ทางเลือกที่ 2)`;
 
-                const roleplayPrompt = `${currentScenarioPrompt}${introGuideline}${suggestionInstruction}\n\nHistory:\n${historyContext}\nLearner: ${userMsg}\nFamily (Respond as ONE character, prefix with Emotion and Name Tags):`;
+                let modifiedPrompt = currentScenarioPrompt;
+                modifiedPrompt += isEn 
+                    ? `\n\n[CRITICAL RULE FOR PING-PONG CONVERSATION]:\n1. KEEP IT SHORT. One or two sentences per turn.\n2. DO NOT output subtext, inner thoughts, or defense mechanisms.\n3. End with a question directed at the user when appropriate.`
+                    : `\n\n[CRITICAL RULE FOR PING-PONG CONVERSATION]:\n1. ห้ามพิมพ์ร่ายยาวเด็ดขาด! ให้ตอบโต้สั้นๆ ตรงประเด็น\n2. ห้ามพิมพ์ข้อความกระบวนการคิด (Subtext) ออกมาให้ผู้เรียนเห็นโดยเด็ดขาด! ให้แสดงออกผ่านคำพูดเท่านั้น\n3. เมื่อครอบครัวปรึกษากันเสร็จ ให้โยนคำถามกลับไปหาผู้เรียน (Turn-by-turn)`;
+
+                const roleplayPrompt = `[ข้อมูลพื้นฐานสำหรับ AI ทำความเข้าใจบทบาทของผู้เรียน]:\n${window.CLINICAL_KNOWLEDGE_BASE || ''}\n\n${modifiedPrompt}${introGuideline}${suggestionInstruction}\n\n${isEn ? 'History' : 'ประวัติ'}:\n${historyContext}\n${isEn ? 'Learner' : 'ผู้เรียน'}: ${userMsg}\n${isEn ? 'Family (Include Emotion and Name Tag first)' : 'ญาติ (ใส่ Tag อารมณ์และชื่อคนพูดก่อนเสมอ)'}:`;
                 
                 try {
                     let rawResponse = await callGeminiAPI(userMsg, roleplayPrompt, imageToSend); 
                     
                     if (rawResponse.startsWith('[ระบบขัดข้อง]')) {
-                        setMessages(prev => [...prev, { id: Date.now(), sender: 'ai', text: rawResponse, isVoiceOnly: false, speakerName: 'System' }]);
+                        setMessages(prev => [...prev, { id: Date.now(), sender: 'ai', text: rawResponse, isVoiceOnly: false, speakerName: isEn ? 'System' : 'ระบบ' }]);
                         showMsg(rawResponse, 'error');
                         setIsTyping(false);
                         return; 
                     }
-                    handleAIResponse(rawResponse);
+
+                    let aiText = rawResponse;
+                    let isResolved = false;
+                    if (aiText.includes('[SCENARIO_RESOLVED]')) { isResolved = true; aiText = aiText.replace(/\[SCENARIO_RESOLVED\]/g, '').trim(); }
+
+                    let sug1 = "", sug2 = "";
+                    const sug1Match = aiText.match(/\[SUGGESTION 1\](.*?)(?=\[SUGGESTION 2\]|$)/is);
+                    const sug2Match = aiText.match(/\[SUGGESTION 2\](.*?)$/is);
+                    if (sug1Match) sug1 = sug1Match[1].trim();
+                    if (sug2Match) sug2 = sug2Match[1].trim();
+                    aiText = aiText.replace(/\[SUGGESTION 1\].*$/is, '').replace(/\[DIALOGUE\]/i, '').trim();
+                    setSmartSuggestions([sug1, sug2].filter(Boolean));
+
+                    const dialogues = []; const regex = /(?:\[([A-Z]+)\])?\s*\[(.*?)\]\s*(.*?)(?=(?:\[[A-Z]+\])?\s*\[.*?\]|$)/gis;
+                    let match; let found = false;
+                    while ((match = regex.exec(aiText)) !== null) { found = true; dialogues.push({ emotion: (match[1] || 'NEUTRAL').toUpperCase(), speaker: match[2].trim(), text: match[3].trim().replace(/[*#]/g, '') }); }
+                    if (!found) { const regex2 = /(?:^|\n)(ฟ้า|เมฆ|พี่เอก|michael|emily)\s*:\s*(.*?)(?=(?:\n(?:ฟ้า|เมฆ|พี่เอก|michael|emily)\s*:)|$)/gis; while ((match = regex2.exec(aiText)) !== null) { found = true; dialogues.push({ emotion: 'NEUTRAL', speaker: match[1].trim(), text: match[2].trim().replace(/[*#]/g, '') }); } }
+                    if (!found) dialogues.push({ emotion: 'NEUTRAL', speaker: isEn ? 'Michael' : 'ฟ้า', text: aiText.replace(/[*#]/g, '') });
                     
-                } catch (err) { 
+                    const msgId = Date.now() + 1;
+                    const displayChatText = dialogues.map(d => `(${d.speaker}) ${d.text}`).join('\n\n');
+                    
+                    // 🙈 BLINDFOLD MODE: Set isHidden to TRUE to completely hide AI text
+                    setMessages(prev => [...prev, { id: msgId, sender: 'ai', text: displayChatText, isVoiceOnly: true, speakerName: isEn ? 'Family' : 'ครอบครัว', isHidden: true }]); 
                     setIsTyping(false); 
-                    setMessages(prev => [...prev, { id: Date.now(), sender: 'ai', text: `Error (${err.message})`, isVoiceOnly: false, speakerName: 'System' }]); 
-                }
+                    
+                    const seqId = Date.now(); currentSequenceIdRef.current = seqId;
+                    speakThaiSequence(dialogues, seqId, isResolved);
+
+                } catch (err) { setIsTyping(false); setMessages(prev => [...prev, { id: Date.now(), sender: 'ai', text: `Error (${err.message})`, isVoiceOnly: false, speakerName: isEn ? 'System' : 'ระบบ', isHidden: false }]); }
             };
 
             const endScenarioAndEvaluate = async () => {
-                stopAudio(); setIsTyping(true); setRoleplayPhase('evaluating'); setCurrentEmotion('ADVISING'); setCurrentSpeaker('FAH'); setSmartSuggestions([]);
+                stopAudio(); setIsTyping(true); setRoleplayPhase('evaluating'); setCurrentEmotion('ADVISING'); setCurrentSpeaker('FAH'); setShowConsentForm(false);
                 setMessages(prev => [...prev, { id: Date.now(), sender: 'user', text: isEn ? "🛑 End simulation. Please evaluate my performance." : "🛑 จบการจำลองสถานการณ์ ช่วยประเมินให้หน่อยค่ะ" }]);
                 
-                const history = messages.slice(-15).map(m => `${m.sender === 'ai' ? 'Family' : 'Staff'}: ${m.text}`).join('\n');
+                const history = messages.filter(m => !m.isContext).map(m => `${m.sender === 'ai' ? (isEn ? 'Family' : 'ญาติ') : (isEn ? 'Learner' : 'ผู้เรียน')}: ${m.text}`).join('\n');
                 const clinicalDB = window.CLINICAL_KNOWLEDGE_BASE || "";
                 
                 const evalPrompt = isEn 
-                    ? `You are a "Cognitive Profiler". Evaluate this negotiation based on the user's role (${user?.position || 'Professional'}) and DTI guidelines.\nHistory:\n${history}\n1. Score Empathy from 0-100 (Always include tag [EMPATHY: score]).\n2. If score > 60, write [PASS], else [FAIL].\n3. Analyze technique usage and cultural competence.\n4. Summarize strengths and weaknesses clearly in English.`
-                    : `คุณคือ "ปรมาจารย์ด้านจิตวิทยาการแพทย์" ประเมินการเจรจานี้อ้างอิงจากบทบาทผู้เรียน(${user?.position || 'บุคลากร'}) และความรู้ในคู่มือนี้:\n${clinicalDB}\n\nประวัติการสนทนา:\n${history}\n\n1. ให้คะแนนความเห็นอกเห็นใจ (Empathy Score) จาก 0-100 (ระบุแท็ก [EMPATHY: คะแนน] เสมอ)\n2. หากคะแนนเกิน 60 ถือว่าผ่าน พิมพ์ [PASS] ไม่ผ่านพิมพ์ [FAIL]\n3. วิเคราะห์ว่าผู้เรียนใช้เทคนิคได้เหมาะสมกับบริบทวัฒนธรรมหรือไม่\n4. สรุป จุดแข็ง และ จุดอ่อน ให้ชัดเจน`;
+                    ? `You are a "Cognitive Profiler". Evaluate this negotiation based on the user's role (${user?.position || 'Medical Professional'}) and 5W1H/Empathy guidelines.\n\nConversation History:\n${history}\n\n1. Score Empathy from 0-100 (Always include tag [EMPATHY: score]).\n2. If score > 60, write [PASS], else [FAIL].\n3. Analyze if the user applied techniques like Decoupling or Positive Framing correctly in a cross-cultural context.\n4. Summarize Strengths and Weaknesses clearly in English.`
+                    : `คุณคือ "ปรมาจารย์ด้านจิตวิทยาการแพทย์ (Cognitive Profiler)" ประเมินการเจรจานี้อ้างอิงจากบทบาทผู้เรียน(${user?.position || 'บุคลากร'}) และความรู้ 5W1H/เทคนิคเจรจาในคู่มือนี้:\n${clinicalDB}\n\nประวัติการสนทนา:\n${history}\n\n1. ให้คะแนนความเห็นอกเห็นใจ (Empathy Score) จาก 0-100 (ระบุแท็ก [EMPATHY: คะแนน] เสมอ)\n2. หากคะแนนเกิน 60 ถือว่าผ่าน พิมพ์ [PASS] ไม่ผ่านพิมพ์ [FAIL]\n3. วิเคราะห์ว่าผู้เรียนใช้เทคนิค (เช่น Decoupling, Positive Framing) ได้เหมาะสมกับบริบทสังคมไทยหรือไม่ และทำหน้าที่ตรงตามวิชาชีพหรือไม่\n4. สรุป จุดแข็ง และ จุดอ่อน ให้ชัดเจน`;
                 
                 try {
                     const aiResponse = await callGeminiAPI(isEn ? "Please evaluate" : "ประเมินการเจรจาหน่อย", evalPrompt); 
-                    if (aiResponse.startsWith('[ระบบขัดข้อง]')) {
-                        setMessages(prev => [...prev, { id: Date.now(), sender: 'ai', text: aiResponse, isVoiceOnly: false, speakerName: 'System' }]);
-                        showMsg(aiResponse, 'error'); setIsTyping(false); return; 
-                    }
-                    
-                    const isPass = aiResponse.includes('[PASS]'); 
-                    const empathyMatch = aiResponse.match(/\[EMPATHY:\s*(\d+)\]/i);
-                    const empathyScore = empathyMatch ? parseInt(empathyMatch[1]) : (isPass ? 80 : 40);
-                    let cleanResponse = aiResponse.replace(/\[PASS\]/g, '').replace(/\[FAIL\]/g, '').replace(/\[EMPATHY:\s*\d+\]/gi, '').trim();
-                    
-                    setMessages(prev => [...prev, { id: Date.now()+1, sender: 'ai', text: cleanResponse, isVoiceOnly: false, speakerName: 'System' }]); 
-                    
-                    const evalRecord = { timestamp: new Date().toISOString(), scenarioId: selectedScenario.id, passed: isPass, score: empathyScore, evaluation: cleanResponse, chatLog: history }; 
-                    const upUser = { ...user, skillLabPassed: true, skillLabHistory: [...(user.skillLabHistory || []), evalRecord] }; 
-                    setUser(upUser);
-                    try {
-                        await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'elearning_users', upUser.id), upUser, { merge: true });
-                        const lState = JSON.parse(localStorage.getItem('elearning_app_state') || '{}');
-                        lState.loggedInUser = upUser; localStorage.setItem('elearning_app_state', JSON.stringify(lState));
-                    } catch(e) {}
-                    
-                    showMsg(isEn ? `Result Recorded (Empathy Score: ${empathyScore})` : `บันทึกผลเรียบร้อย (Empathy Score: ${empathyScore})`, 'success'); 
-                    speakThai(cleanResponse.replace(/[*#]/g, ''), null, 'FAH', true, 'ADVISING');
-                } catch (e) { setMessages(prev => [...prev, { id: Date.now(), sender: 'ai', text: `Error: ${e.message}`, isVoiceOnly: false, speakerName: 'System' }]); }
-                setIsTyping(false);
-            };
-
-            const handleImageUpload = (e) => { const file = e.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onloadend = () => setSelectedImage(reader.result); reader.readAsDataURL(file); };
-
-            if (accessDenied) return (
-                <div className="min-h-screen sky-bg flex items-center justify-center p-4 relative z-50">
-                    <div className="bg-slate-900/80 backdrop-blur-xl border border-white/20 p-8 rounded-[2.5rem] text-center shadow-2xl max-w-md w-full animate-in zoom-in fade-in duration-500">
-                        <div className="w-20 h-20 bg-rose-500/10 rounded-full flex items-center justify-center mx-auto mb-6 border border-rose-500/30 shadow-[0_0_20px_rgba(244,63,94,0.3)]"><SafeIcon icon={Lock} size={40} className="text-rose-400" /></div>
-                        <h2 className="text-2xl font-black text-white mb-3 drop-shadow-md">สงวนสิทธิ์เฉพาะกลุ่ม</h2>
-                        <p className="text-slate-300 font-medium text-sm mb-8 leading-relaxed drop-shadow-sm">ขณะนี้ห้องจำลองเปิดให้ทดสอบเฉพาะสิทธิ์ <b>Masterclass</b> เท่านั้น</p>
-                        <button onClick={() => safeRedirect('./index.html#dashboard')} className="w-full py-4 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-bold transition-all border border-white/20 shadow-sm active:scale-95">กลับสู่ห้องเรียนหลัก</button>
-                    </div>
-                </div>
-            );
-
-            if (!user) return (
-                <div className="min-h-screen sky-bg flex items-center justify-center relative">
-                    <div className="bg-black/50 backdrop-blur-xl border border-white/20 p-8 rounded-3xl text-center shadow-2xl animate-in fade-in zoom-in">
-                        <div className="w-16 h-16 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin mx-auto mb-6"></div>
-                        <h2 className="text-2xl font-black text-white mb-2">ตรวจสอบสิทธิ์...</h2>
-                    </div>
-                </div>
-            );
-
-            return (
-                <div className="min-h-screen w-full font-sans antialiased overflow-hidden relative">
-                    <div className="sky-bg"></div>
-                    
-                    {uiMessage.show && <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-[100] px-6 py-3 rounded-full font-bold shadow-xl animate-in slide-in-from-top-4 border backdrop-blur-md ${uiMessage.type === 'error' ? 'bg-rose-500/20 text-rose-300 border-rose-500/50' : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/50'}`}>{uiMessage.text}</div>}
-
-                    {/* Navbar */}
-                    <div className="px-6 py-4 border-b border-white/10 bg-white/5 backdrop-blur-lg flex justify-between items-center z-20 relative shadow-md">
-                        <div className="flex items-center gap-4">
-                            <button onClick={() => { stopAudio(); safeRedirect('./index.html#dashboard'); }} className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors border border-white/20 shadow-sm text-white"><SafeIcon icon={ArrowLeft} size={20} /></button>
-                            <h1 className="text-xl md:text-2xl font-black text-white flex items-center gap-2 drop-shadow-md"><SafeIcon icon={Bot} size={24} /> AI Skill Lab</h1>
-                        </div>
-                        <div className="text-white/90 font-bold text-sm bg-white/10 px-4 py-1.5 rounded-full border border-white/30 shadow-sm hidden sm:flex items-center gap-2 backdrop-blur-md"><span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> {user.name}</div>
-                    </div>
-
-                    <div className={`flex-1 w-full relative z-10 flex flex-col md:flex-row items-center p-4 md:p-8 ${!selectedScenario || roleplayPhase === 'watching_video' ? 'justify-center' : 'justify-end'}`}>
-                        
-                        {!selectedScenario ? (
-                            // MENU SCREEN
-                            <div className="w-full max-w-5xl mx-auto flex flex-col gap-8 h-full justify-center animate-in fade-in zoom-in-95">
-                                <div className="p-4 bg-white/10 border border-white/20 rounded-2xl mb-4 backdrop-blur-xl max-w-3xl mx-auto text-center shadow-lg">
-                                    <p className="text-sm md:text-base font-bold text-white flex flex-col sm:flex-row items-center justify-center gap-2 leading-relaxed"><SafeIcon icon={Target} size={24} className="shrink-0 text-cyan-300" /><span><strong>คำชี้แจง:</strong> พื้นที่นี้คือสถานการณ์จำลอง AI ขอให้ผู้เรียนนำความรู้การเจรจามาประยุกต์ใช้อย่างเต็มที่</span></p>
-                                </div>
-                                <h2 className="text-3xl font-black text-white drop-shadow-lg text-center">เลือกกรณีศึกษาเพื่อเริ่มฝึกเจรจา</h2>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-10 max-w-3xl mx-auto w-full">
-                                    {SKILL_LAB_SCENARIOS.map((sc, idx) => (
-                                        <GlassCard key={sc.id} onClick={() => startScenario(sc)} className="p-8 text-center border-t-4 border-t-cyan-400 hover:border-t-cyan-300 group hover:scale-[1.02]">
-                                            <div className={`w-20 h-20 rounded-full mx-auto mb-6 flex items-center justify-center text-white shadow-[0_10px_30px_rgba(0,0,0,0.4)] ${sc.language === 'en' ? 'bg-gradient-to-br from-indigo-500 to-purple-600' : 'bg-gradient-to-br from-cyan-500 to-blue-600'}`}>
-                                                <span className="text-2xl font-black">{sc.language === 'en' ? 'EN' : 'TH'}</span>
+<!-- ... existing code ... -->
+                                        {!isTyping && messages[messages.length-1]?.sender === 'ai' && (
+                                            <div className="flex flex-wrap gap-2 mt-2 animate-in fade-in">
+                                                {roleplayPhase === 'negotiating' && <button onClick={endScenarioAndEvaluate} className="text-xs bg-rose-500/10 border border-rose-500/50 text-rose-400 px-4 py-2 rounded-lg hover:bg-rose-500/20 active:scale-95 transition-all font-bold">🛑 {isEn ? "End Simulation (Evaluate)" : "จบการเจรจา (ประเมินผล)"}</button>}
+                                                {roleplayPhase === 'evaluating' && <><button onClick={() => startScenario(selectedScenario)} className="text-xs bg-amber-500/10 border border-amber-500/50 text-amber-400 px-4 py-2 rounded-lg hover:bg-amber-500/20 active:scale-95 transition-all font-bold">🔄 {isEn ? "Retry This Case" : "ลองฝึกเคสนี้อีกครั้ง"}</button><button onClick={() => { setSelectedScenario(null); setMessages([]); setRoleplayPhase('none'); }} className="text-xs bg-slate-800 border border-slate-600 text-slate-300 px-4 py-2 rounded-lg hover:bg-slate-700 transition-all font-bold">🔙 {isEn ? "Back to Scenarios" : "กลับไปเลือกเคสอื่น"}</button></>}
                                             </div>
-                                            <h3 className="font-extrabold text-2xl text-white mb-3 group-hover:text-cyan-300 transition-colors drop-shadow-sm">{sc.title}</h3>
-                                            <p className="text-base text-white/80 line-clamp-3">{sc.description}</p>
-                                        </GlassCard>
-                                    ))}
-                                </div>
-                            </div>
-                        ) : roleplayPhase === 'watching_video' ? (
-                            
-                            // VIDEO SCENARIO PHASE
-                            <div className="w-full max-w-5xl mx-auto flex flex-col items-center justify-center animate-in fade-in zoom-in duration-500 z-50">
-                                <div className="w-full aspect-video bg-black rounded-3xl overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.8)] border border-white/20 relative">
-                                    <iframe src={`${selectedScenario.videoUrl}?autoplay=1&title=0&byline=0&portrait=0`} className="absolute inset-0 w-full h-full border-none" allow="autoplay; fullscreen"></iframe>
-                                </div>
-                                <div className="mt-8 flex flex-col items-center gap-4">
-                                    <p className="text-white/80 text-sm font-medium animate-pulse">{isEn ? "Watch the scenario to understand the context before starting." : "ชมวิดีโอเพื่อทำความเข้าใจสถานการณ์ก่อนเริ่มฝึกเจรจา"}</p>
-                                    <button onClick={triggerScenarioNegotiation} className="px-8 py-4 bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/30 text-white rounded-full font-bold flex items-center gap-3 transition-all active:scale-95 shadow-lg group">
-                                        <SafeIcon icon={SkipForward} size={20} className="text-cyan-300" />
-                                        {isEn ? "Skip Video & Start" : "ข้ามวิดีโอ (เริ่มฝึกเจรจา)"} <SafeIcon icon={ArrowRight} size={20} className="group-hover:translate-x-1 transition-transform" />
-                                    </button>
-                                </div>
-                            </div>
-                            
-                        ) : (
-                        
-                            // CHAT PHASE (GLASSMORPHISM ON RIGHT)
-                            <div className="w-full max-w-lg lg:max-w-[450px] h-[85vh] flex flex-col relative rounded-[2rem] shadow-[0_20px_60px_rgba(0,0,0,0.5)] border border-white/40 bg-white/10 backdrop-blur-2xl animate-in fade-in slide-in-from-right-8 shrink-0 mr-0 lg:mr-8 xl:mr-16">
-                                
-                                {/* Chat Header */}
-                                <div className="p-5 border-b border-white/20 flex items-center justify-between shrink-0 bg-white/5 rounded-t-[2rem]">
-                                    <div className="flex items-center gap-3">
-                                        <div>
-                                            <h3 className="font-extrabold text-sm text-white drop-shadow-md">{selectedScenario.title}</h3>
-                                            <p className="text-[10px] text-white/80 font-bold flex items-center gap-1 mt-0.5"><SafeIcon icon={Volume2} size={12}/> {currentSpeaker === 'BROTHER' ? 'Charon Neural' : 'Aoede Neural'}</p>
-                                        </div>
-                                    </div>
-                                    <button onClick={() => { stopAudio(); setSelectedScenario(null); setMessages([]); setRoleplayPhase('none'); }} className="p-2 rounded-full bg-white/10 hover:bg-rose-500/80 text-white transition-colors shadow-sm" title={isEn ? "Close" : "ปิด"}><SafeIcon icon={X} size={18} /></button>
-                                </div>
-                                
-                                {/* Messages Area */}
-                                <div className="flex-1 p-4 overflow-y-auto custom-scrollbar space-y-4 flex flex-col relative z-30">
-                                    {messages.map((m, idx) => (
-                                        <div key={idx} className={`flex w-full ${m.sender === 'user' ? 'justify-end' : 'justify-start'} ${m.isHidden ? 'hidden' : ''}`}>
-                                            <div className={`p-3.5 rounded-2xl max-w-[85%] text-sm leading-relaxed whitespace-pre-wrap shadow-lg backdrop-blur-md border ${m.sender === 'ai' ? 'bg-white/60 border-white/50 text-slate-900 font-bold rounded-tl-none' : 'bg-blue-600/90 border-blue-400/50 text-white font-medium rounded-tr-none'}`}>
-                                                {m.image && <img src={m.image} className="w-full rounded-lg mb-2 object-cover border border-white/20" />}
-                                                {m.text}
-                                            </div>
-                                        </div>
-                                    ))}
-                                    {isTyping && (
-                                        <div className="flex justify-start animate-in fade-in">
-                                            <div className="p-4 rounded-2xl bg-white/60 backdrop-blur-md border border-white/50 rounded-tl-none flex gap-1.5 shadow-lg">
-                                                <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce"></div>
-                                                <div className="w-1.5 h-1.5 bg-cyan-500 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
-                                                <div className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-bounce" style={{animationDelay: '0.4s'}}></div>
-                                            </div>
-                                        </div>
-                                    )}
-                                    
-                                    {/* Actions after AI response */}
-                                    {!isTyping && messages[messages.length-1]?.sender === 'ai' && (
-                                        <div className="flex flex-wrap justify-end gap-2 mt-2 animate-in fade-in">
-                                            {roleplayPhase === 'negotiating' && <button onClick={endScenarioAndEvaluate} className="text-[11px] bg-rose-600/90 backdrop-blur-md border border-rose-400 text-white px-4 py-2 rounded-full hover:bg-rose-500 active:scale-95 transition-all font-bold shadow-lg">{isEn ? "🛑 End Simulation (Evaluate)" : "🛑 จบการเจรจา (ประเมินผล)"}</button>}
-                                            {roleplayPhase === 'evaluating' && <><button onClick={() => startScenario(selectedScenario)} className="text-[11px] bg-cyan-600/90 backdrop-blur-md border border-cyan-400 text-white px-4 py-2 rounded-full hover:bg-cyan-500 active:scale-95 transition-all font-bold shadow-lg">{isEn ? "🔄 Retry This Case" : "🔄 ลองฝึกเคสนี้อีกครั้ง"}</button></>}
-                                        </div>
-                                    )}
-                                    <div ref={messagesEndRef} />
-                                </div>
-                                
-                                {/* Input Area */}
-                                <div className="shrink-0 p-4 bg-white/5 border-t border-white/20 relative z-30 pb-safe rounded-b-[2rem]">
-                                    
-                                    {/* ⏱️ Crisis Countdown Bar */}
-                                    {roleplayPhase === 'negotiating' && !isTyping && messages[messages.length-1]?.sender === 'ai' && (
-                                       <div className="absolute top-0 left-0 w-full h-1 bg-white/10">
-                                           <div className={`h-full transition-all duration-1000 ${pressureTime > 10 ? 'bg-emerald-400 shadow-[0_0_8px_#34d399]' : pressureTime > 5 ? 'bg-amber-400 shadow-[0_0_8px_#fbbf24]' : 'bg-rose-500 shadow-[0_0_10px_#f43f5e]'}`} style={{ width: `${(pressureTime/20)*100}%` }}></div>
-                                       </div>
-                                    )}
-                                    
-                                    {/* 💡 Smart Suggestions Hooks */}
-                                    {roleplayPhase === 'negotiating' && smartSuggestions.length > 0 && !isTyping && (
-                                        <div className="flex flex-col gap-2 mb-3 px-1 animate-in fade-in slide-in-from-bottom-2">
-                                            <div className="flex flex-col gap-2">
-                                                {smartSuggestions.map((sug, i) => (
-                                                    <button key={i} onClick={() => handleSendChat(null, sug)} className="text-xs bg-white/80 hover:bg-white backdrop-blur-md border border-white/50 text-slate-800 font-medium px-4 py-2.5 rounded-xl text-left transition-colors active:scale-95 break-words line-clamp-2 shadow-lg shadow-black/10">{sug}</button>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {isVadMode && <div className="absolute -top-1 left-8 right-8 h-1 bg-transparent"><div className="h-full bg-cyan-400 transition-all duration-100 rounded-full shadow-[0_0_8px_rgba(34,211,238,1)]" style={{ width: `${Math.min(100, audioLevel * 2)}%` }}></div></div>}
-                                    {selectedImage && <div className="mb-2 relative inline-block"><img src={selectedImage} alt="Preview" className="h-14 w-14 object-cover rounded-xl border border-white/40 shadow-lg" /><button onClick={() => setSelectedImage(null)} className="absolute -top-2 -right-2 bg-slate-900 text-white rounded-full p-0.5 border border-slate-700 hover:bg-rose-500"><SafeIcon icon={X} size={14} /></button></div>}
-                                    
-                                    <form onSubmit={handleSendChat} className={`flex items-center gap-2 bg-white/20 backdrop-blur-xl border border-white/40 rounded-2xl p-1.5 pl-3 transition-colors shadow-[0_5px_15px_rgba(0,0,0,0.2)] ${isVadMode ? '!border-cyan-400 bg-cyan-900/40' : ''}`}>
-                                        <input type="file" id="ai-image-upload" accept="image/*" className="hidden" onChange={handleImageUpload} />
-                                        <label htmlFor="ai-image-upload" className="text-white hover:text-white/80 cursor-pointer p-1.5"><SafeIcon icon={ImageIcon} size={20} /></label>
-                                        <input type="text" value={chatInput} onChange={e => setChatInput(e.target.value)} placeholder={isListening ? (isEn ? "Listening..." : "กำลังฟัง...") : (isEn ? "Type a message..." : "พิมพ์ตอบกลับ หรือกดไมค์...")} disabled={isTyping || roleplayPhase === 'playing_scenario'} className="flex-1 bg-transparent text-white placeholder-white/70 px-1 outline-none text-sm font-bold drop-shadow-sm" />
-                                        
-                                        {/* Timer Badge */}
-                                        {roleplayPhase === 'negotiating' && !isTyping && messages[messages.length-1]?.sender === 'ai' && (
-                                            <div className={`text-[10px] font-mono font-black px-2 py-1 rounded-lg shrink-0 shadow-inner border ${pressureTime <= 5 ? 'text-rose-600 bg-rose-200 border-rose-400 animate-pulse' : 'text-slate-700 bg-white/80 border-white/50'}`}>{pressureTime}s</div>
                                         )}
-
-                                        <button type="button" onClick={toggleMic} disabled={isTyping || roleplayPhase === 'playing_scenario'} className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all relative shrink-0 ${isListening ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/50' : 'bg-white/20 text-white hover:bg-white/30 border border-white/30'}`}><SafeIcon icon={Mic} size={16} />{isListening && <span className="absolute inset-0 rounded-xl border-2 border-rose-300 animate-ping opacity-75"></span>}</button>
-                                        <button type="submit" disabled={(!chatInput.trim() && !selectedImage) || isTyping || roleplayPhase === 'playing_scenario'} className="w-9 h-9 rounded-xl bg-blue-600 hover:bg-blue-500 text-white flex items-center justify-center disabled:opacity-50 transition-colors shadow-lg shrink-0"><SafeIcon icon={Send} size={16} /></button>
-                                    </form>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            );
-        }
-
-        const root = createRoot(document.getElementById('skilllab-root'));
-        root.render(<ErrorBoundary><SkillLabApp /></ErrorBoundary>);
-    </script>
-</body>
-</html>
+<!-- ... existing code ... -->
+                                            <input type="text" value={chatInput} onChange={e => setChatInput(e.target.value)} placeholder={isListening ? (isEn ? "Listening..." : "กำลังฟัง...") : (isEn ? "Type a message or press mic..." : "พิมพ์ข้อความ หรือกดไมค์...")} disabled={isTyping || roleplayPhase === 'playing_scenario'} className="flex-1 bg-transparent text-slate-200 placeholder-slate-500 px-1 outline-none text-sm font-medium" />
+<!-- ... existing code ... -->
