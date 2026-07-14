@@ -35,12 +35,15 @@
         @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&display=swap');
         body { font-family: 'Sarabun', sans-serif; margin: 0; overflow-x: hidden; background-color: #0f172a; color: white; }
         
-        /* 🌟 GLOBAL BACKGROUND (Dark Gradient Since Image is in the Card) 🌟 */
+        /* 🌟 GLOBAL BACKGROUND (100% BRIGHTNESS) 🌟 */
         .sky-bg { 
             position: fixed; 
             inset: 0; 
             z-index: 0; 
-            background: linear-gradient(135deg, #0f172a, #1e293b);
+            background-image: url('https://res.cloudinary.com/djwclucoz/image/upload/v1783830896/Gemini_Generated_Image_r508lgr508lgr508_exrlwo.png');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
         }
         
         .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
@@ -50,6 +53,16 @@
         
         .pt-safe { padding-top: env(safe-area-inset-top, 20px); }
         .pb-safe { padding-bottom: env(safe-area-inset-bottom, 20px); }
+
+        /* 🌟 HOLOGRAM ANIMATIONS 🌟 */
+        @keyframes holo-pulse {
+            0% { transform: scale(0.9); opacity: 0.7; box-shadow: 0 0 0 0 rgba(34, 211, 238, 0.6); }
+            70% { transform: scale(1.1); opacity: 1; box-shadow: 0 0 0 25px rgba(34, 211, 238, 0); }
+            100% { transform: scale(0.9); opacity: 0.7; box-shadow: 0 0 0 0 rgba(34, 211, 238, 0); }
+        }
+        .animate-holo-pulse {
+            animation: holo-pulse 1.5s infinite;
+        }
     </style>
 
     <script type="importmap">
@@ -416,19 +429,19 @@
                 let spk = 'FAH'; let visualSpeaker = 'FAH'; 
                 let cleanText = aiText;
                 
-                // ค้นหา Tag ตัวละครแรกสุดที่โผล่มาในประโยค
-                const firstSpeakerMatch = cleanText.match(/\[\s*(ฟ้า|เมฆ|พี่เอก|เอก|น้องชาย|ลูกสาว|แฟน|แฟนของฟ้า|Fah|Mek|Brother|Sister|Boyfriend|AI|Michael)\s*\]/i);
+                // ค้นหา Tag ตัวละครในประโยค (ใช้ RegExp ตรวจจับ Tag ทั้งหมดก่อน)
+                const allTagsRegex = /\[\s*(ฟ้า|เมฆ|พี่เอก|เอก|น้องชาย|ลูกสาว|แฟน|แฟนของฟ้า|Fah|Mek|Brother|Sister|Boyfriend|AI|Michael)\s*\]/gi;
+                const matches = [...cleanText.matchAll(allTagsRegex)];
                 
-                if (firstSpeakerMatch) {
-                    const speakerTag = firstSpeakerMatch[1].toLowerCase();
-                    if (speakerTag.match(/เมฆ|น้องชาย|mek|brother/)) { spk = 'BROTHER'; visualSpeaker = 'BROTHER'; }
-                    else if (speakerTag.match(/พี่เอก|เอก|แฟน|แฟนของฟ้า|แฟนหนุ่ม|boyfriend/)) { spk = 'BOYFRIEND'; visualSpeaker = 'FAH'; } // Using Fah's UI for boyfriend currently
-                    else if (speakerTag.match(/michael|spouse|สามี/)) { spk = 'MICHAEL'; visualSpeaker = 'FAH'; }
+                if (matches.length > 0) {
+                    // ดึงตัวละครคนแรกที่พูด
+                    const firstSpeakerTag = matches[0][1].toLowerCase();
+                    if (firstSpeakerTag.match(/เมฆ|น้องชาย|mek|brother/)) { spk = 'BROTHER'; visualSpeaker = 'BROTHER'; }
+                    else if (firstSpeakerTag.match(/พี่เอก|เอก|แฟน|แฟนของฟ้า|แฟนหนุ่ม|boyfriend/)) { spk = 'BOYFRIEND'; visualSpeaker = 'FAH'; }
+                    else if (firstSpeakerTag.match(/michael|spouse|สามี/)) { spk = 'MICHAEL'; visualSpeaker = 'FAH'; }
                     else { spk = 'FAH'; visualSpeaker = 'FAH'; }
                     
-                    // หากมี Tag ตัวละครคนที่สองตามมา ให้ตัดข้อความหลังจากนั้นทิ้งไปเลย เพื่อบังคับให้พูดทีละคน
-                    const allTagsRegex = /\[\s*(ฟ้า|เมฆ|พี่เอก|เอก|น้องชาย|ลูกสาว|แฟน|แฟนของฟ้า|Fah|Mek|Brother|Sister|Boyfriend|AI|Michael)\s*\]/gi;
-                    const matches = [...cleanText.matchAll(allTagsRegex)];
+                    // หากมี Tag ตัวละครคนที่สองตามมา ให้ตัดข้อความหลังจากนั้นทิ้งไปเลย (บังคับพูดทีละคน)
                     if (matches.length > 1) {
                         cleanText = cleanText.substring(0, matches[1].index).trim();
                     }
@@ -553,7 +566,7 @@
             );
 
             return (
-                <div className="min-h-screen w-full font-sans antialiased overflow-hidden relative flex flex-col">
+                <div className="min-h-screen w-full font-sans antialiased overflow-hidden relative">
                     <div className="sky-bg"></div>
                     
                     {uiMessage.show && <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-[100] px-6 py-3 rounded-full font-bold shadow-xl animate-in slide-in-from-top-4 border backdrop-blur-md ${uiMessage.type === 'error' ? 'bg-rose-500/20 text-rose-300 border-rose-500/50' : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/50'}`}>{uiMessage.text}</div>}
@@ -567,10 +580,9 @@
                         <div className="text-white/90 font-bold text-sm bg-white/10 px-4 py-1.5 rounded-full border border-white/30 shadow-sm hidden sm:flex items-center gap-2 backdrop-blur-md"><span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> {user.name}</div>
                     </div>
 
-                    <div className={`flex-1 w-full relative z-10 flex flex-col md:flex-row items-center p-4 md:p-8 justify-center`}>
+                    <div className={`flex-1 w-full relative z-10 flex flex-col md:flex-row items-center p-4 md:p-8 ${!selectedScenario || roleplayPhase === 'watching_video' ? 'justify-center' : 'justify-end'}`}>
                         
                         {!selectedScenario ? (
-                            // MENU SCREEN
                             <div className="w-full max-w-5xl mx-auto flex flex-col gap-8 h-full justify-center animate-in fade-in zoom-in-95">
                                 <div className="p-4 bg-white/10 border border-white/20 rounded-2xl mb-4 backdrop-blur-xl max-w-3xl mx-auto text-center shadow-lg">
                                     <p className="text-sm md:text-base font-bold text-white flex flex-col sm:flex-row items-center justify-center gap-2 leading-relaxed"><SafeIcon icon={Target} size={24} className="shrink-0 text-cyan-300" /><span><strong>คำชี้แจง:</strong> พื้นที่นี้คือสถานการณ์จำลอง AI ขอให้ผู้เรียนนำความรู้การเจรจามาประยุกต์ใช้อย่างเต็มที่</span></p>
@@ -590,7 +602,6 @@
                             </div>
                         ) : roleplayPhase === 'watching_video' ? (
                             
-                            // VIDEO SCENARIO PHASE
                             <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-sm flex flex-col items-center justify-center p-4 animate-in fade-in zoom-in duration-500">
                                 <div className="w-full max-w-full h-[70vh] md:h-[85vh] aspect-[9/16] bg-black rounded-3xl overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.8)] border border-white/20 relative">
                                     <iframe src={`${selectedScenario.videoUrl}?autoplay=1&title=0&byline=0&portrait=0`} className="absolute inset-0 w-full h-full border-none" allow="autoplay; fullscreen"></iframe>
@@ -606,13 +617,39 @@
                             
                         ) : (
                         
-                            // CHAT PHASE (UNIFIED CARD WITH BACKGROUND)
                             <div className="w-full max-w-[1200px] mx-auto h-[85vh] flex flex-col md:flex-row relative rounded-[2rem] shadow-[0_30px_80px_rgba(0,0,0,0.8)] border border-white/20 bg-black overflow-hidden animate-in fade-in zoom-in duration-500 z-30">
                                 {/* Background Image Layer */}
                                 <div className="absolute inset-0 z-0" style={{ backgroundImage: `url('https://res.cloudinary.com/djwclucoz/image/upload/v1783830896/Gemini_Generated_Image_r508lgr508lgr508_exrlwo.png')`, backgroundSize: 'cover', backgroundPosition: 'center' }}></div>
 
-                                {/* Dark Gradient Overlay for better contrast on chat side */}
-                                <div className="absolute inset-0 bg-gradient-to-t md:bg-gradient-to-r from-black/80 via-black/20 to-transparent md:from-transparent md:via-black/40 md:to-black/90 z-0 pointer-events-none"></div>
+                                {/* Dark Gradient Overlay */}
+                                <div className="absolute inset-0 bg-gradient-to-t md:bg-gradient-to-r from-black/80 via-black/40 to-transparent md:from-transparent md:via-black/40 md:to-black/90 z-0 pointer-events-none"></div>
+
+                                {/* 🌟 AI HOLOGRAM VISUALIZER (Sci-Fi Theme) 🌟 */}
+                                <div className={`absolute inset-0 z-0 flex items-center justify-center md:justify-start md:pl-[15%] transition-all duration-1000 pointer-events-none ${isAiSpeaking ? 'opacity-100 scale-100' : 'opacity-40 scale-95'}`}>
+                                    <div className="relative w-[250px] h-[250px] md:w-[400px] md:h-[400px] flex items-center justify-center">
+                                        
+                                        {/* Glowing Aura Filter */}
+                                        <div className={`absolute inset-0 rounded-full mix-blend-screen filter blur-[40px] transition-all duration-700 ${isAiSpeaking ? 'bg-gradient-to-r from-cyan-500 to-fuchsia-500 opacity-60 animate-pulse' : 'bg-blue-900 opacity-20'}`}></div>
+
+                                        {/* Outer Rotating Ring */}
+                                        <div className={`absolute inset-4 rounded-full border-2 border-transparent border-t-cyan-400/80 border-l-cyan-400/30 transition-all duration-500 ${isAiSpeaking ? 'animate-spin' : ''}`} style={{ animationDuration: '3s' }}></div>
+
+                                        {/* Inner Rotating Ring */}
+                                        <div className={`absolute inset-10 rounded-full border-2 border-transparent border-b-fuchsia-400/80 border-r-fuchsia-400/30 transition-all duration-500 ${isAiSpeaking ? 'animate-spin' : ''}`} style={{ animationDuration: '4s', animationDirection: 'reverse' }}></div>
+
+                                        {/* Pulsing Core (Soundwave Effect) */}
+                                        <div className={`absolute inset-[35%] rounded-full bg-gradient-to-tr from-cyan-300 to-purple-400 shadow-[0_0_30px_rgba(34,211,238,0.6)] flex items-center justify-center transition-all duration-300 ${isAiSpeaking ? 'animate-holo-pulse' : 'opacity-50 blur-sm'}`}>
+                                            <SafeIcon icon={isAiSpeaking ? Volume2 : Bot} size={48} className="text-white drop-shadow-[0_0_10px_rgba(255,255,255,1)]" />
+                                        </div>
+                                    </div>
+                                    
+                                    {/* Speaking Status Text */}
+                                    <div className="absolute bottom-[10%] md:bottom-[20%] text-center w-full md:w-auto">
+                                        <p className={`font-mono font-black text-sm tracking-widest uppercase transition-all ${isAiSpeaking ? 'text-cyan-300 drop-shadow-[0_0_8px_rgba(34,211,238,0.8)] animate-pulse' : 'text-white/30'}`}>
+                                            {isAiSpeaking ? 'AI IS SPEAKING...' : 'SYSTEM IDLE'}
+                                        </p>
+                                    </div>
+                                </div>
 
                                 {/* Spacer for avatar area (visible on desktop) */}
                                 <div className="hidden md:flex flex-1 relative z-10"></div>
@@ -662,6 +699,7 @@
 
                                     {/* Input Area */}
                                     <div className="shrink-0 p-4 bg-black/30 border-t border-white/10 relative z-30 pb-safe">
+                                        
                                         {/* 💡 Smart Suggestions Hooks */}
                                         {roleplayPhase === 'negotiating' && smartSuggestions.length > 0 && !isTyping && (
                                             <div className="flex flex-col gap-2 mb-3 px-1 animate-in fade-in slide-in-from-bottom-2">
