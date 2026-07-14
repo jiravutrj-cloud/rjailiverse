@@ -100,6 +100,9 @@
         import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from 'firebase/auth';
         import { getFirestore, collection, doc, setDoc, onSnapshot, getDoc } from 'firebase/firestore';
 
+        // ============================================================================
+        // 1. DATA BINDING (ดึงข้อมูลจากตัวแปร Global ที่สร้างจาก data.js)
+        // ============================================================================
         const FAH_IDLE_VIDEO = window.FAH_IDLE_VIDEO || "";
         const CHARACTER_VIDEOS = window.CHARACTER_VIDEOS || {};
         const FAH_PROFILE_PIC = window.FAH_PROFILE_PIC || "";
@@ -131,6 +134,9 @@
           return <IconComponent size={size} className={className} strokeWidth={strokeWidth} {...rest} />;
         }
 
+        // ============================================================================
+        // 2. FIREBASE & UTILS
+        // ============================================================================
         let app, auth, db, appId;
         try {
           const fbP1 = "AIzaSyBs275"; const fbP2 = "NY99gdv1uZdAnb"; const fbP3 = "mx3UlWO8K4o5a0";
@@ -155,6 +161,9 @@
         const generateSessionId = () => Date.now().toString(36) + Math.random().toString(36).substring(2);
         const calculateScore = (questions, answers) => questions.reduce((acc, q) => acc + +(answers[q.id] === q.answer), 0);
 
+        // ============================================================================
+        // 4. STATE MANAGEMENT
+        // ============================================================================
         const createGlobalStore = (initialState) => {
           let savedState = null;
           try { savedState = JSON.parse(localStorage.getItem('elearning_app_state') ?? 'null'); } catch (e) {}
@@ -216,6 +225,9 @@
         };
         window.showGlobalMsg = actions.showMsg;
 
+        // ============================================================================
+        // 5. SHARED UI COMPONENTS
+        // ============================================================================
         function GlassCard({ children, className = "", onClick, ...rest }) {
           let radiusClass = 'rounded-[2rem]'; const m = className.match(/rounded-(?:\[.*?\]|\w+)/); if (m) radiusClass = m[0];
           let bgClass = className.replace(/\bbg-(?:white|slate-[12]00)(?:\/\d+)?\b/g, '').replace(/\bborder-white(?:\/\d+)?\b/g, '').replace(/\bbackdrop-blur-(?:sm|md|lg|xl|2xl|3xl)\b/g, '').replace(/\b!border-none\b/g, '').replace(/\bborder-none\b/g, '');
@@ -271,6 +283,10 @@
           );
         }
 
+        // ============================================================================
+        // 6. SCREENS
+        // ============================================================================
+
         function LandingScreen({ store, actions }) {
           return (
             <div className="flex min-h-screen w-full relative overflow-hidden items-center justify-center bg-transparent z-50">
@@ -306,36 +322,35 @@
           }, []);
           
           return (
-              <div className="flex min-h-screen w-full relative overflow-hidden items-center justify-center p-4 pb-16 md:pb-8 print-bg-white z-50">
-                 {/* Dark Overlay for better focus on video */}
-                 <div className="absolute inset-0 bg-black/40 backdrop-blur-sm pointer-events-none z-0"></div>
-                 
-                 <div className="relative z-10 w-full flex flex-col items-center justify-center animate-in fade-in zoom-in duration-700">
-                    
-                    {/* 🌟 Large Vertical Video Container 🌟 */}
-                    <div className="w-full max-w-full h-[60vh] md:h-[75vh] aspect-[9/16] bg-black rounded-3xl overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.8)] border border-white/40 relative mb-6">
-                       <iframe src="https://player.vimeo.com/video/1205670848?autoplay=1&loop=1&muted=0&api=1" className="absolute inset-0 w-full h-full border-none pointer-events-none" allow="autoplay; fullscreen; microphone" title="AI Introduction" />
-                    </div>
+              <div className="flex min-h-screen w-full relative overflow-hidden items-center justify-center p-4 pb-16 md:pb-24 print-bg-white">
+                 <div className="relative z-10 w-full max-w-md mx-auto flex flex-col items-center justify-center">
+                    <div className="items-center animate-in slide-in-from-bottom-8 fade-in duration-700 w-full flex flex-col">
+                       
+                       {/* 🌟 Vertical Video Container - Fixed Aspect Ratio 🌟 */}
+                       <div className="h-[55vh] md:h-[65vh] w-auto max-w-full aspect-[9/16] bg-black rounded-[2rem] overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-white/40 relative mb-6 mx-auto shrink-0">
+                          <iframe src="https://player.vimeo.com/video/1205670848?background=1&autoplay=1&loop=1&muted=0" className="absolute inset-0 w-full h-full border-none pointer-events-none" allow="autoplay; fullscreen; microphone" title="AI Introduction" />
+                       </div>
 
-                    {/* Info & Buttons */}
-                    <div className="w-full max-w-md space-y-4">
-                        <GlassCard className="p-4 md:p-5 !rounded-3xl flex items-center justify-center text-center gap-4 cursor-default relative overflow-hidden shadow-xl print-bg-white print-border-gold print-shadow-none">
-                           <div className="absolute right-0 top-1/2 -translate-y-1/2 opacity-10 no-print"><SafeIcon name="Brain" size={120} className="text-white"/></div>
-                           <div className="relative z-10">
-                               <h2 className="text-xl md:text-2xl font-black text-slate-800 print-text-dark mb-1 drop-shadow-sm">RJ Ailiverse System</h2>
-                               <p className="text-slate-700 print-text-dark text-xs md:text-sm font-bold leading-relaxed drop-shadow-sm">ระบบปัญญาประดิษฐ์และห้องปฏิบัติการเสมือนจริงเพื่อการฝึกอบรมบุคลากรทางการแพทย์</p>
+                       {/* Info & Buttons */}
+                       <div className="w-full space-y-4">
+                           <GlassCard className="p-5 !rounded-3xl flex items-center justify-center text-center gap-4 cursor-default relative overflow-hidden shadow-xl print-bg-white print-border-gold print-shadow-none">
+                              <div className="absolute right-0 top-1/2 -translate-y-1/2 opacity-10 no-print"><SafeIcon name="Brain" size={120} className="text-white"/></div>
+                              <div className="relative z-10">
+                                  <h2 className="text-xl md:text-2xl font-black text-slate-800 print-text-dark mb-1 drop-shadow-sm">RJ Ailiverse System</h2>
+                                  <p className="text-slate-700 print-text-dark text-xs font-bold leading-relaxed drop-shadow-sm">ระบบปัญญาประดิษฐ์และห้องปฏิบัติการเสมือนจริงเพื่อการฝึกอบรมบุคลากรทางการแพทย์</p>
+                              </div>
+                           </GlassCard>
+                           
+                           <div className="w-full relative z-10 flex flex-col gap-3 no-print">
+                             <GradientButton onClick={() => { actions.nav('auth_wizard'); }} className="w-full py-4 px-4 text-base md:text-lg rounded-2xl !shadow-[0_10px_25px_rgba(0,185,0,0.3)] border border-line-400">เข้าสู่ระบบ e-Learning <SafeIcon name="ArrowRight" size={20} /></GradientButton>
+                             
+                             <button onClick={() => window.open('./executive.html', '_blank')} className="w-full py-3.5 px-4 bg-slate-900/80 hover:bg-black/90 backdrop-blur-2xl border border-yellow-500/50 rounded-2xl text-[13px] md:text-sm font-bold transition-all shadow-[0_10px_30px_rgba(0,0,0,0.4)] flex items-center justify-center gap-2 group relative overflow-hidden">
+                                <div className="absolute inset-0 bg-gradient-to-r from-yellow-600/10 via-yellow-400/20 to-yellow-600/10 group-hover:via-yellow-400/30 transition-all"></div>
+                                <SafeIcon name="Globe" size={18} className="text-yellow-400 drop-shadow-[0_0_8px_rgba(250,204,21,0.8)] group-hover:scale-110 transition-transform relative z-10" />
+                                <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 via-yellow-400 to-yellow-600 drop-shadow-sm relative z-10">AI Policy Report (สำหรับผู้บริหาร)</span>
+                             </button>
                            </div>
-                        </GlassCard>
-                        
-                        <div className="w-full relative z-10 flex flex-col gap-3 md:gap-4 no-print">
-                          <GradientButton onClick={() => { actions.nav('auth_wizard'); }} className="w-full py-4 px-4 text-base md:text-lg rounded-2xl !shadow-[0_10px_25px_rgba(0,185,0,0.3)] border border-line-400">เข้าสู่ระบบ e-Learning <SafeIcon name="ArrowRight" size={20} /></GradientButton>
-                          
-                          <button onClick={() => window.open('./executive.html', '_blank')} className="w-full py-3.5 px-4 bg-slate-900/80 hover:bg-black/90 backdrop-blur-2xl border border-yellow-500/50 rounded-2xl text-[13px] md:text-sm font-bold transition-all shadow-[0_10px_30px_rgba(0,0,0,0.4)] flex items-center justify-center gap-2 group relative overflow-hidden">
-                             <div className="absolute inset-0 bg-gradient-to-r from-yellow-600/10 via-yellow-400/20 to-yellow-600/10 group-hover:via-yellow-400/30 transition-all"></div>
-                             <SafeIcon name="Globe" size={18} className="text-yellow-400 drop-shadow-[0_0_8px_rgba(250,204,21,0.8)] group-hover:scale-110 transition-transform relative z-10" />
-                             <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 via-yellow-400 to-yellow-600 drop-shadow-sm relative z-10">AI Policy Report (สำหรับผู้บริหาร)</span>
-                          </button>
-                        </div>
+                       </div>
                     </div>
                  </div>
               </div>
@@ -451,10 +466,7 @@
                        <FormInput label="เบอร์โทรศัพท์" type="tel" value={d.phone || ''} onChange={e => globalStore.setState(p => ({ registrationData: {...p.registrationData, phone: e.target.value} }))} placeholder="08xxxxxxxx" />
                        <FormInput label="อีเมล (สำหรับรับ OTP)" type="email" value={d.email || ''} onChange={e => globalStore.setState(p => ({ registrationData: {...p.registrationData, email: e.target.value} }))} placeholder="email@example.com" />
                        <FormInput label="ตำแหน่ง" value={d.position || ''} onChange={e => globalStore.setState(p => ({ registrationData: {...p.registrationData, position: e.target.value} }))} placeholder="ระบุตำแหน่ง" />
-                       
-                       {/* 🌟 ปรับเหลือ 2 ข้อตาม Request 🌟 */}
                        <FormSelect label="ลักษณะงานปัจจุบัน" value={d.workContext || ''} onChange={e => globalStore.setState(p => ({ registrationData: {...p.registrationData, workContext: e.target.value} }))} options={['ปฏิบัติงานรับบริจาค/ปลูกถ่ายอวัยวะ', 'ไม่ได้ปฏิบัติงานด้านนี้โดยตรง แต่สนใจศึกษา']} placeholder="-- เลือกลักษณะงาน --" />
-                       
                        <FormSelect label="สังกัด" value={d.department || ''} onChange={(e) => globalStore.setState(p => ({ registrationData: { ...p.registrationData, department: e.target.value, hospital: '', province: '', customHospital: '' } }))} options={deptList} placeholder="-- เลือกสังกัด --" />
                        <div className="w-full relative z-10">
                            <FormSelect label="หน่วยงาน / โรงพยาบาล" value={d.hospital || ''} onChange={(e) => { const hosp = e.target.value; let foundProv = ''; if (hosp !== 'อื่นๆ' && d.department) { const match = HOSPITAL_MAPPING[d.department].find(h => h.name === hosp); if (match) { foundProv = match.prov; } } globalStore.setState(p => ({ registrationData: { ...p.registrationData, hospital: hosp, province: foundProv || p.registrationData.province, customHospital: '' } })); }} options={hospList} placeholder="-- เลือกหน่วยงาน --" disabled={!d.department} />
@@ -486,7 +498,6 @@
                      const actualWorkContext = existingUser?.workContext || d.workContext;
                      const initialSeconds = existingUser?.studySeconds ?? ((finalUserType === 'Onsite' || finalUserType === 'Masterclass') ? 36000 : 0); 
                      
-                     // 🌟 อัปเกรดสิทธิ์ Masterclass อัตโนมัติตอนล็อกอิน (ถ้าเวลาสะสมเกิน 8 ชม. และเลือกลักษณะงานตรงเงื่อนไข) 🌟
                      if (actualWorkContext === 'ปฏิบัติงานรับบริจาค/ปลูกถ่ายอวัยวะ' && initialSeconds >= 28800) {
                          finalUserType = 'Masterclass';
                      }
@@ -590,7 +601,6 @@
                    let newType = state.loggedInUser.userType;
                    let newlyUpgraded = false;
 
-                   // 🌟 อัปเกรดสิทธิ์อัตโนมัติระหว่างเรียน (ให้ Masterclass ทันทีเมื่อเวลาถึง 8 ชม.) 🌟
                    if (state.loggedInUser.workContext === 'ปฏิบัติงานรับบริจาค/ปลูกถ่ายอวัยวะ' && newSecs >= 28800 && newType !== 'Masterclass') {
                        newType = 'Masterclass';
                        newlyUpgraded = true;
@@ -664,13 +674,12 @@
                     {t:'video', l:'วิดีโอ', i:'MonitorPlay'}, 
                     {t:'live', l:'Live สด', i:'Radio', e:lc?.status==='live'}, 
                     {t:'skill_lab', l:'AI Skill Lab', i:'Bot', a:() => { 
-                        // 🌟 ข้อความแจ้งเตือนปุ่มเข้า AI Skill Lab 🌟
                         if (user.userType === 'Masterclass') {
                             window.location.href='./aiskilllab.html'; 
                         } else if (user.workContext === 'ปฏิบัติงานรับบริจาค/ปลูกถ่ายอวัยวะ') {
-                            actions.showMsg('กรุณาสะสมเวลาเรียนให้ครบ 8 ชม. เพื่อปลดล็อกห้อง AI Skill Lab', 'error'); 
+                            actions.showMsg('กรุณาสะสมเวลาเรียนให้ครบ 8 ชม. เพื่อปลดล็อกสิทธิ์ Masterclass', 'error'); 
                         } else {
-                            actions.showMsg('ฟีเจอร์ AI สงวนสิทธิ์เฉพาะผู้ปฏิบัติงานรับบริจาคอวัยวะโดยตรง', 'error'); 
+                            actions.showMsg('ฟีเจอร์ AI (Beta) สงวนสิทธิ์เฉพาะผู้ปฏิบัติงานด้านนี้โดยตรงเท่านั้น', 'error'); 
                         }
                     }}, 
                     {t:'leaderboard', l:'จัดอันดับ', i:'Award'}, 
@@ -684,7 +693,7 @@
 
                 {tab === 'video' && (
                   <div className="flex flex-col gap-6 animate-in fade-in w-full max-w-full overflow-hidden px-1 md:px-0">
-                    <div className="w-full bg-black relative rounded-2xl md:rounded-[2rem] overflow-hidden shadow-[0_15px_40px_rgba(0,0,0,0.4)] border border-white/30 z-20 flex items-center justify-center" style={{ paddingTop: '56.25%' }}>
+                    <div className="w-full bg-black relative rounded-2xl md:rounded-[2rem] overflow-hidden shadow-2xl border border-white/20 z-20 flex items-center justify-center" style={{ paddingTop: '56.25%' }}>
                         <iframe src={activeLesson?.videoId ? `https://drive.google.com/file/d/${activeLesson.videoId}/preview` : ''} className="absolute inset-0 w-full h-full border-none" allow="autoplay; fullscreen" />
                     </div>
                     <GlassCard className="p-6 md:p-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-6"><div><h3 className="text-xl md:text-2xl font-black text-slate-800 drop-shadow-md">บทที่ {vId || 1}: {activeLesson?.title}</h3><p className="text-sm text-slate-700 mt-1 font-medium drop-shadow-sm">เนื้อหาภาคบังคับ กรุณาดูให้จบเพื่อสะสมเวลาเรียน</p></div>{activeLesson?.documentUrl && (<a href={activeLesson.documentUrl} target="_blank" rel="noreferrer" className="flex items-center gap-2 bg-white/60 text-line-700 hover:bg-white/80 border border-white/80 px-6 py-3 rounded-xl font-bold text-sm shadow-lg active:scale-95 backdrop-blur-md"><SafeIcon name="FileText" size={18} /> โหลดเอกสารประกอบ</a>)}</GlassCard>
@@ -892,6 +901,9 @@
           return inline ? <div className="w-full bg-transparent border-none shadow-none">{content}</div> : <ScreenWrapper>{content}</ScreenWrapper>;
         }
 
+        // ============================================================================
+        // 9. APP BOOTSTRAP
+        // ============================================================================
         function App() {
           const [store, setStore] = useGlobalState();
           
