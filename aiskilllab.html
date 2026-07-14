@@ -232,6 +232,7 @@
             // ⏱️ ระบบบีบคั้น (The Crisis Countdown) - แก้ไขบั๊กตัดบท AI ⏱️
             useEffect(() => {
                 let timer;
+                // เพิ่มเงื่อนไข !isAiSpeaking เข้าไป เพื่อให้ระบบนับถอยหลังเฉพาะตอนที่ AI หยุดพูดแล้วเท่านั้น
                 if (roleplayPhase === 'negotiating' && !isTyping && !isAiSpeaking && messages.length > 0 && messages[messages.length-1].sender === 'ai') {
                     timer = setInterval(() => {
                         setPressureTime(p => {
@@ -245,7 +246,7 @@
                         });
                     }, 1000);
                 } else {
-                    setPressureTime(20); 
+                    setPressureTime(20); // รีเซ็ตเวลาเป็น 20 วิ เสมอถ้า AI กำลังพิมพ์ กำลังพูด หรือเรากำลังพิมพ์
                 }
                 return () => clearInterval(timer);
             }, [roleplayPhase, isTyping, messages, isListening, chatInput, isAiSpeaking]);
@@ -325,7 +326,7 @@
 
                     setIsAiSpeaking(true);
 
-                    // Waveform Animation Loop (สีฟ้าธรรมชาติ)
+                    // Waveform Animation Loop (สีธรรมชาติ ไม่หลอน)
                     const drawWave = () => {
                         if (!ttsCanvasRef.current || !ttsAnalyserRef.current) return;
                         const canvas = ttsCanvasRef.current;
@@ -338,6 +339,7 @@
                         let x = 0;
                         for(let i = 0; i < dataArray.length; i++) {
                             const barHeight = Math.min(canvas.height, (dataArray[i] / 255) * canvas.height * 1.2); 
+                            // ใช้สีฟ้าธรรมชาติ ไม่ใช้โฮโลแกรมไซอัน
                             const hue = 210; 
                             ctx.fillStyle = `hsla(${hue}, 100%, 70%, 0.8)`;
                             ctx.shadowBlur = 10;
@@ -426,6 +428,7 @@
                 
                 const suggestionInstruction = `\n\n[ข้อบังคับพิเศษ: SMART HOOKS]\nในตอนท้ายสุดของข้อความ ให้คุณประเมินอารมณ์และเสนอ 'ตัวเลือกการตอบกลับเบื้องต้น' ให้ผู้เรียน 2 ทางเลือก โดยต้องจัดรูปแบบให้เป๊ะดังนี้ ห้ามผิดเพี้ยนเด็ดขาด:\n[DIALOGUE]\n(บทสนทนาของญาติ)\n[SUGGESTION 1] (ทางเลือกที่ 1)\n[SUGGESTION 2] (ทางเลือกที่ 2)`;
 
+                // 🌟 อัปเกรด: ฝังโครงสร้างทีมแพทย์เข้าไปให้ AI รู้ทันทีว่าใครมีหน้าที่อะไร 🌟
                 const roleplayPrompt = `[ข้อมูลพื้นฐานสำหรับ AI ทำความเข้าใจบทบาทของผู้เรียน]:\n${window.CLINICAL_KNOWLEDGE_BASE || ''}\n\n${currentScenarioPrompt}${introGuideline}${suggestionInstruction}\n\nประวัติ:\n${historyContext}\nผู้เรียน: ${userMsg}\nญาติ (ใส่ Tag อารมณ์และชื่อคนพูดก่อนเสมอ):`;
                 
                 try {
@@ -480,6 +483,7 @@
                 
                 const history = messages.slice(-15).map(m => `${m.sender === 'ai' ? 'ญาติ' : 'ผู้เรียน'}: ${m.text}`).join('\n');
                 
+                // 🌟 อัปเกรดการประเมินด้วย 5W1H และ 5 Core Techniques 🌟
                 const evalPrompt = `คุณคือ "ปรมาจารย์ด้านจิตวิทยาการแพทย์ (Cognitive Profiler)" ประเมินการเจรจานี้อ้างอิงจากบทบาททีมแพทย์และ 5 เทคนิคการเจรจาในคู่มือนี้: ${window.CLINICAL_KNOWLEDGE_BASE || ''}\n\nประวัติการสนทนา:\n${history}\n\n1. ให้คะแนนความเห็นอกเห็นใจ (Empathy Score) จาก 0-100 (ระบุแท็ก [EMPATHY: คะแนน] เสมอ)\n2. หากคะแนนเกิน 60 ถือว่าผ่าน พิมพ์ [PASS] ไม่ผ่านพิมพ์ [FAIL]\n3. [สำคัญ] วิเคราะห์การเจรจาตามหลัก 5W1H และตรวจสอบว่าผู้เรียนนำ "เทคนิคเจรจา 5 ข้อ (เช่น Decoupling, Perception Check, Positive Framing)" มาใช้ได้อย่างเหมาะสมกับบริบทสังคมไทยหรือไม่\n4. สรุป จุดแข็ง และ จุดอ่อน ที่ผู้เรียนต้องนำไปปรับปรุงให้ชัดเจนและเป็นมืออาชีพ`;
                 
                 try {
@@ -513,6 +517,9 @@
 
             const handleImageUpload = (e) => { const file = e.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onloadend = () => setSelectedImage(reader.result); reader.readAsDataURL(file); };
 
+            // ==========================================
+            // UI RENDERING VALUES
+            // ==========================================
             const isChaos = currentEmotion === 'ANGRY' || currentEmotion === 'CONFUSED' || currentEmotion === 'HESITANT';
             const hrRate = selectedScenario ? (isChaos ? (Math.floor(Math.random() * 20) + 115) : (Math.floor(Math.random() * 10) + 75)) : 0; 
             const spo2 = selectedScenario ? (isChaos ? 94 : 98) : 0;
@@ -548,6 +555,7 @@
                 </div>
             );
 
+            // 🌟 ตัวแปรคุมสถานะหน้าจอ 🌟
             const isPiP = roleplayPhase === 'giving_context' || roleplayPhase === 'negotiating' || roleplayPhase === 'evaluating';
             const isFullVideo = roleplayPhase === 'speaking_intro' || roleplayPhase === 'playing_scenario';
 
