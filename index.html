@@ -101,7 +101,7 @@
         import { getFirestore, collection, doc, setDoc, onSnapshot, getDoc } from 'firebase/firestore';
 
         // ============================================================================
-        // 1. DATA BINDING
+        // 1. DATA BINDING (ดึงข้อมูลจากตัวแปร Global ที่สร้างจาก data.js)
         // ============================================================================
         const FAH_IDLE_VIDEO = window.FAH_IDLE_VIDEO || "";
         const CHARACTER_VIDEOS = window.CHARACTER_VIDEOS || {};
@@ -326,16 +326,15 @@
                  <div className="relative z-10 w-full max-w-6xl mx-auto flex flex-col items-center justify-center">
                     <div className="items-center animate-in slide-in-from-bottom-8 fade-in duration-700 w-full">
                        
-                       {/* 🌟 ปรับให้วิดีโอใหญ่ 9:16 เต็มตา ขอบไม่ดำ 🌟 */}
-                       <div className="flex flex-col lg:flex-row gap-8 lg:gap-12 items-center justify-center w-full max-w-4xl mx-auto">
-                         <div className="w-[60%] sm:w-[50%] md:w-[320px] lg:w-[350px] shrink-0 flex items-center justify-center relative mx-auto lg:mx-0">
-                            <div className="w-full relative rounded-[2rem] overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-white/40 bg-black z-10 print-shadow-none print-border-gold" style={{ paddingBottom: '177.78%', height: 0 }}>
+                       <div className="flex flex-col items-center justify-center w-full max-w-4xl mx-auto">
+                         <div className="w-full sm:w-[80%] md:w-[450px] lg:w-[500px] shrink-0 flex flex-col items-center justify-center relative mx-auto mb-8">
+                            <div className="w-full relative bg-black z-20 shrink-0 rounded-[2rem] overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-white/40 h-[75vh] max-h-[800px] print-shadow-none print-border-gold">
                                <iframe src="https://player.vimeo.com/video/1205670848?autoplay=1&loop=1&muted=0&api=1" className="absolute inset-0 w-full h-full border-none pointer-events-none" allow="autoplay; fullscreen; microphone" title="AI Introduction" />
                             </div>
                          </div>
-                         <div className="w-full lg:flex-1 space-y-4 md:space-y-6">
-                            <GlassCard className="p-6 md:p-8 !rounded-3xl flex items-center gap-4 cursor-default relative overflow-hidden shadow-xl print-bg-white print-border-gold print-shadow-none">
-                               <div className="absolute right-0 top-1/2 -translate-y-1/2 opacity-20 no-print"><SafeIcon name="Brain" size={150} className="text-white"/></div>
+                         <div className="w-full lg:w-[600px] space-y-4 md:space-y-6">
+                            <GlassCard className="p-6 md:p-8 !rounded-3xl flex flex-col items-center text-center cursor-default relative overflow-hidden shadow-xl print-bg-white print-border-gold print-shadow-none">
+                               <div className="absolute right-0 top-1/2 -translate-y-1/2 opacity-10 no-print"><SafeIcon name="Brain" size={150} className="text-white"/></div>
                                <div className="relative z-10">
                                    <h2 className="text-2xl md:text-3xl font-black text-slate-800 print-text-dark mb-2 drop-shadow-sm">RJ Ailiverse System</h2>
                                    <p className="text-slate-700 print-text-dark text-sm md:text-base font-bold leading-relaxed drop-shadow-sm">ระบบปัญญาประดิษฐ์และห้องปฏิบัติการเสมือนจริงเพื่อการฝึกอบรมบุคลากรทางการแพทย์</p>
@@ -468,7 +467,6 @@
                        <FormInput label="เบอร์โทรศัพท์" type="tel" value={d.phone || ''} onChange={e => globalStore.setState(p => ({ registrationData: {...p.registrationData, phone: e.target.value} }))} placeholder="08xxxxxxxx" />
                        <FormInput label="อีเมล (สำหรับรับ OTP)" type="email" value={d.email || ''} onChange={e => globalStore.setState(p => ({ registrationData: {...p.registrationData, email: e.target.value} }))} placeholder="email@example.com" />
                        <FormInput label="ตำแหน่ง" value={d.position || ''} onChange={e => globalStore.setState(p => ({ registrationData: {...p.registrationData, position: e.target.value} }))} placeholder="ระบุตำแหน่ง" />
-                       {/* 🌟 ลดตัวเลือกลักษณะงานเหลือ 2 ตัวเลือก 🌟 */}
                        <FormSelect label="ลักษณะงานปัจจุบัน" value={d.workContext || ''} onChange={e => globalStore.setState(p => ({ registrationData: {...p.registrationData, workContext: e.target.value} }))} options={['ปฏิบัติงานรับบริจาค/ปลูกถ่ายอวัยวะ', 'ไม่ได้ปฏิบัติงานด้านนี้โดยตรง แต่สนใจศึกษา']} placeholder="-- เลือกลักษณะงาน --" />
                        <FormSelect label="สังกัด" value={d.department || ''} onChange={(e) => globalStore.setState(p => ({ registrationData: { ...p.registrationData, department: e.target.value, hospital: '', province: '', customHospital: '' } }))} options={deptList} placeholder="-- เลือกสังกัด --" />
                        <div className="w-full relative z-10">
@@ -700,7 +698,8 @@
                 {tab === 'video' && (
                   <div className="flex flex-col gap-6 animate-in fade-in w-full max-w-full overflow-hidden px-1 md:px-0">
                     <GlassCard className="flex flex-col overflow-hidden shadow-2xl !p-0 border-white/40 mb-2">
-                        <div className="w-full relative bg-black z-20 shrink-0 border-b border-white/20" style={{ paddingBottom: '56.25%', height: 0 }}>
+                        {/* 🌟 ปรับความสูงวิดีโอบนมือถือให้มากขึ้น (pb-[70%]) เพื่อเผื่อพื้นที่ให้แถบควบคุม Google Drive 🌟 */}
+                        <div className="w-full relative bg-black z-20 shrink-0 border-b border-white/20 pb-[70%] sm:pb-[60%] md:pb-[56.25%] h-0">
                             <iframe src={activeLesson?.videoId ? `https://drive.google.com/file/d/${activeLesson.videoId}/preview` : ''} className="absolute top-0 left-0 w-full h-full border-none" allow="autoplay; fullscreen" />
                         </div>
                         <div className="p-6 md:p-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
